@@ -1,0 +1,47 @@
+# Core
+streamlit==1.33.0
+pandas
+numpy
+scikit-learn
+joblib
+
+# Visualisation
+matplotlib
+seaborn
+shap
+plotly
+
+# Carte interactive
+folium
+
+# Traitement PDF
+reportlab
+pdfkit
+weasyprint
+jinja2
+
+# Pour serveur local Flask/API (si nécessaire plus tard)
+flask
+
+# Satellite/weather data (si enrichissement futur)
+geopandas
+rasterio
+requests
+
+# Pour uploader et lire les images (maladie feuille)
+opencv-python
+Pillow
+tensorflow
+keras
+
+# Authentification
+streamlit-authenticator
+
+# Manipulation CSV / I/O
+openpyxl
+pyarrow
+
+# AutoML (optionnel, si plus tard)
+xgboost
+lightgbm
+optuna
