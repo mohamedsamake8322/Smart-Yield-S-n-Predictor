@@ -1,47 +1,28 @@
-# Core
 streamlit==1.33.0
-pandas
-numpy
-scikit-learn
-joblib
-
-# Visualisation
-matplotlib
-seaborn
-shap
-plotly
-
-# Carte interactive
-folium
-
-# Traitement PDF
-reportlab
-pdfkit
-weasyprint
-jinja2
-
-# Pour serveur local Flask/API (si nécessaire plus tard)
-flask
-
-# Satellite/weather data (si enrichissement futur)
-geopandas
-rasterio
-requests
-
-# Pour uploader et lire les images (maladie feuille)
-opencv-python
-Pillow
-tensorflow
-keras
-
-# Authentification
-streamlit-authenticator
-
-# Manipulation CSV / I/O
-openpyxl
-pyarrow
-
-# AutoML (optionnel, si plus tard)
-xgboost
-lightgbm
-optuna
+pandas==1.5.3
+numpy==1.24.0
+scikit-learn==1.1.3
+joblib==1.4.2
+matplotlib==3.6.3
+seaborn==0.11.2
+shap==0.39.0
+plotly==5.3.0
+folium==0.12.1
+reportlab==3.6.12
+pdfkit==0.6.1
+weasyprint==53.3
+jinja2==3.1.4
+flask==3.1.0
+geopandas==0.10.2
+rasterio==1.3.3
+requests==2.31.0
+opencv-python==4.5.5.62
+Pillow==9.2.0
+# tensorflow  # Not installed
+keras==2.6.0
+# streamlit-authenticator  # Not installed
+openpyxl==3.0.10
+# pyarrow  # Not installed
+xgboost==1.4.2
+# lightgbm  # Not installed
+# optuna  # Not installed
