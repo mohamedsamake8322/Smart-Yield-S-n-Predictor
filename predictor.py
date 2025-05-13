@@ -1,37 +1,29 @@
-# === predictor.py ===
-import numpy as np
 import joblib
+import numpy as np
+import pandas as pd
 
-MODEL_PATH = "models/yield_model.pkl"
-
-# Load trained model
 def load_model():
-    return joblib.load(MODEL_PATH)
+    return joblib.load("yield_model.pkl")
 
-# Predict single entry
 def predict_single(model, temperature, humidity, precipitation, ph, fertilizer):
-    features = np.array([[temperature, humidity, precipitation, ph, fertilizer]])
-    prediction = model.predict(features)
-    return round(prediction[0], 2)
+    X = np.array([[temperature, humidity, precipitation, ph, fertilizer]])
+    return round(model.predict(X)[0], 2)
 
-# Predict batch from dataframe
 def predict_batch(model, df):
-    features = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]]
-    df["Predicted_Yield"] = model.predict(features).round(2)
+    features = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
+    df["Predicted_Yield"] = model.predict(df[features])
     return df
 
-# Generate recommendation based on yield and input values
-def get_recommendation(predicted_yield, ph, fertilizer):
-    if predicted_yield < 20:
-        if ph < 5.5:
-            return "🔎 pH too acidic. Add limestone."
-        elif ph > 8:
-            return "⚠️ pH too basic. Check soil alkalinity."
-        elif fertilizer < 50:
-            return "💡 Low fertilization. Increase the fertilizer dose."
-        else:
-            return "🌱 Suboptimal conditions. Monitor humidity and temperature."
-    elif predicted_yield >= 30:
-        return "✅ Excellent performance expected. Keep it up !"
-    else:
-        return "ℹ️ Average yield. Gradually optimize the settings.."
+def suggest_improvements(yield_value, ph, fertilizer):
+    suggestions = []
+    if ph < 5.5:
+        suggestions.append("Consider liming to increase soil pH.")
+    elif ph > 7.5:
+        suggestions.append("Consider adding sulfur to lower soil pH.")
+    if fertilizer < 50:
+        suggestions.append("You may need to increase fertilizer usage.")
+    elif fertilizer > 300:
+        suggestions.append("High fertilizer may not be cost-effective.")
+    if not suggestions:
+        return "No major improvements suggested. Maintain current conditions."
+    return " ".join(suggestions)
