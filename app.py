@@ -4,23 +4,29 @@ import numpy as np
 import datetime
 import os
 import joblib
+from PIL import Image
+import torch
+from torchvision import transforms
 
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+from disease_model import load_disease_model, predict_disease
 
 # === Configuration ===
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 st.title("🌾 Smart Yield Sènè Predictor")
 
 MODEL_PATH = "model/model.pkl"
+DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 DB_FILE = "history.db"
 init_db()
 
-# === Load the model ===
+# === Load the models ===
 model = load_model(MODEL_PATH)
+disease_model = load_disease_model(DISEASE_MODEL_PATH)
 
 # === Navigation Menu ===
 menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
@@ -163,3 +169,19 @@ elif choice == "Performance":
                 st.error("🛑 Model not trained yet. Go to Retrain Model.")
         else:
             st.error(f"❗ Evaluation CSV must contain: {required_cols}")
+
+# === Disease Detection Page ===
+elif choice == "Disease Detection":
+    st.subheader("🦠 Plant Disease Detection")
+    image_file = st.file_uploader("Upload a leaf image", type=["jpg", "jpeg", "png"])
+
+    if image_file is not None:
+        image = Image.open(image_file)
+        st.image(image, caption="Uploaded Image", use_column_width=True)
+
+        if st.button("Detect Disease"):
+            if disease_model:
+                label = predict_disease(disease_model, image)
+                st.success(f"✅ Detected: **{label}**")
+            else:
+                st.error("🛑 Disease detection model not found.")
