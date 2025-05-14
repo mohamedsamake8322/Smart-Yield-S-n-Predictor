@@ -1,3 +1,4 @@
+# === predictor.py ===
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -14,10 +15,6 @@ fertilizer_map = {
 }
 
 def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Convert fertilizer column to numeric values based on a mapping.
-    If already numeric, leave as-is. If unknown string, raise error.
-    """
     df = df.copy()
     if "Fertilizer" in df.columns:
         def convert(val):
@@ -34,22 +31,26 @@ def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model Persistence ----------
 
-def load_model(path: str = "model.joblib"):
+MODEL_PATH = "model/model.pkl"
+
+def load_model(path: str = MODEL_PATH):
     try:
         return joblib.load(path)
     except FileNotFoundError:
         print(f"[INFO] No model found at {path}.")
         return None
 
-def save_model(model, path: str = "model.joblib"):
+def save_model(model, path: str = MODEL_PATH):
     joblib.dump(model, path)
     print(f"[INFO] Model saved to {path}.")
 
 # ---------- Single Prediction ----------
 
-def predict_single(model, **kwargs):
-    input_df = pd.DataFrame([kwargs])
+def predict_single(model, features: dict):
+    input_df = pd.DataFrame([features])
     input_df = preprocess_fertilizer_column(input_df)
+    if "NDVI" not in input_df.columns:
+        input_df["NDVI"] = 0.5
     return model.predict(input_df)[0]
 
 # ---------- Batch Prediction ----------
@@ -66,28 +67,24 @@ def predict_batch(model, df: pd.DataFrame):
     if missing:
         raise ValueError(f"Missing columns for prediction: {missing}")
 
-    df["Yield"] = model.predict(df[required_features])
+    df["PredictedYield"] = model.predict(df[required_features])
     return df
 
 # ---------- Training ----------
 
 def train_model(df: pd.DataFrame):
     df = df.copy()
-    
-    # Ajouter NDVI si manquant
+
     if "NDVI" not in df.columns:
         df["NDVI"] = 0.5
 
-    # Colonnes nécessaires
     required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI", "Yield"]
     missing = [col for col in required_cols if col not in df.columns]
     if missing:
         raise ValueError(f"Missing column(s) in training data: {missing}")
 
-    # Convertir les engrais texte en numériques
     df = preprocess_fertilizer_column(df)
 
-    # Séparation features / cible
     X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
     y = df["Yield"]
 

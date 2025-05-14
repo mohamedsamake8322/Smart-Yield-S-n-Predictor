@@ -4,29 +4,30 @@ import numpy as np
 import datetime
 import os
 import joblib
+
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
-from visualizations import plot_yield_distribution
+from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
 # === Configuration ===
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 st.title("🌾 Smart Yield Sènè Predictor")
 
-MODEL_PATH = "model.pkl"
+MODEL_PATH = "model/model.pkl"
 DB_FILE = "history.db"
 init_db()
 
-# === Chargement du modèle ===
-model = load_model()
+# === Load the model ===
+model = load_model(MODEL_PATH)
 
-# === Menu de navigation ===
-menu = ["Home", "Retrain Model", "History", "Performance"]
+# === Navigation Menu ===
+menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
 choice = st.sidebar.selectbox("Menu", menu)
 username = st.sidebar.text_input("👤 Enter your username", value="guest")
 
-# === Page Home : Prédiction ===
+# === Home Page: Prediction ===
 if choice == "Home":
     st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
     st.subheader("📈 Predict Agricultural Yield")
@@ -59,7 +60,7 @@ if choice == "Home":
                     pdf = generate_pdf_report(username, features, prediction, "Use appropriate fertilizer and monitor pH.")
                     st.download_button("Download PDF", data=pdf, file_name="report.pdf")
             else:
-                st.error("🚫 Model not trained yet. Go to Retrain Model.")
+                st.error("🛑 Model not trained yet. Go to Retrain Model.")
 
     else:
         st.markdown("### 📁 Batch Prediction from CSV")
@@ -75,6 +76,8 @@ if choice == "Home":
                 if st.button("Predict from CSV"):
                     if model:
                         df["PredictedYield"] = predict_batch(model, df)
+                        st.success("✅ Prediction completed.")
+                        st.subheader("🧾 Prediction Results")
                         st.dataframe(df)
 
                         for _, row in df.iterrows():
@@ -82,16 +85,40 @@ if choice == "Home":
                             prediction = row["PredictedYield"]
                             save_prediction(username, features, prediction, datetime.datetime.now())
 
-                        fig = plot_yield_distribution(df)
-                        st.pyplot(fig)
+                        # === Tabs for Visualization ===
+                        st.subheader("📊 Visualizations")
+                        tab1, tab2, tab3 = st.tabs(["Histogram", "Pie Chart", "Trend Over Time"])
 
-                        st.download_button("Download Results CSV", convert_df_to_csv(df), "predictions.csv", "text/csv")
+                        with tab1:
+                            fig1 = plot_yield_distribution(df)
+                            if fig1:
+                                st.pyplot(fig1)
+                            else:
+                                st.warning("No predicted yield data to plot.")
+
+                        with tab2:
+                            fig2 = plot_yield_pie(df)
+                            if fig2:
+                                st.pyplot(fig2)
+                            else:
+                                st.warning("No predicted yield data to plot.")
+
+                        with tab3:
+                            if "timestamp" not in df.columns:
+                                df["timestamp"] = pd.date_range(end=datetime.datetime.now(), periods=len(df), freq='D')
+                            fig3 = plot_yield_over_time(df)
+                            if fig3:
+                                st.pyplot(fig3)
+                            else:
+                                st.warning("No data for time trend.")
+
+                        st.download_button("📅 Download Results CSV", convert_df_to_csv(df), "predictions.csv", "text/csv")
                     else:
-                        st.error("🚫 Model not trained yet. Go to Retrain Model.")
+                        st.error("🛑 Model not trained yet. Go to Retrain Model.")
             else:
                 st.error(f"❗ CSV must contain columns: {required_cols}")
 
-# === Page Retrain Model ===
+# === Retrain Model Page ===
 elif choice == "Retrain Model":
     st.subheader("🔁 Retrain the Model")
     train_file = st.file_uploader("Upload Training CSV", type=["csv"])
@@ -108,7 +135,7 @@ elif choice == "Retrain Model":
         else:
             st.error(f"❗ Training CSV must contain: {required_cols}")
 
-# === Page History ===
+# === History Page ===
 elif choice == "History":
     st.subheader("📚 Prediction History")
     results = get_user_predictions(username)
@@ -119,7 +146,7 @@ elif choice == "History":
     else:
         st.info("No predictions found for this user.")
 
-# === Page Performance ===
+# === Performance Page ===
 elif choice == "Performance":
     st.subheader("📊 Model Evaluation")
     eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"])
@@ -133,6 +160,6 @@ elif choice == "Performance":
                 mae, r2 = evaluate_model(model, eval_df)
                 st.success(f"✅ MAE: {mae:.2f}, R² Score: {r2:.2f}")
             else:
-                st.error("🚫 Model not trained yet. Go to Retrain Model.")
+                st.error("🛑 Model not trained yet. Go to Retrain Model.")
         else:
             st.error(f"❗ Evaluation CSV must contain: {required_cols}")
