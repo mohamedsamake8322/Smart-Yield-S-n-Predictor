@@ -1,4 +1,4 @@
-# === evaluate_model.py ===
+# === evaluate.py ===
 
 import pandas as pd
 import matplotlib.pyplot as plt
