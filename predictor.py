@@ -1,21 +1,37 @@
+
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
-# ---------- Paramètres par défaut ----------
-DEFAULT_VALUES = {
-    "Temperature": 25.0,
-    "Humidity": 60.0,
-    "Precipitation": 50.0,
-    "pH": 6.5,
-    "Fertilizer": 50.0,
-    "NDVI": 0.5,
-    "Yield": 2.5  # utilisé uniquement si nécessaire
+# ---------- Fertilizer Mapping ----------
+fertilizer_map = {
+    "DAP": 70,
+    "Urea": 80,
+    "Compost": 50,
+    "NPK": 65,
+    "None": 0
 }
 
-FEATURES = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]
+def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert fertilizer column to numeric values based on a mapping.
+    If already numeric, leave as-is. If unknown string, raise error.
+    """
+    df = df.copy()
+    if "Fertilizer" in df.columns:
+        def convert(val):
+            if isinstance(val, str):
+                return fertilizer_map.get(val, None)
+            return val
+
+        df["Fertilizer"] = df["Fertilizer"].apply(convert)
+
+        if df["Fertilizer"].isnull().any():
+            unknowns = df[df["Fertilizer"].isnull()]
+            raise ValueError(f"Unknown fertilizer types found: {unknowns}")
+    return df
 
 # ---------- Model Persistence ----------
 
@@ -34,33 +50,37 @@ def save_model(model, path: str = "model.joblib"):
 
 def predict_single(model, **kwargs):
     input_df = pd.DataFrame([kwargs])
-    for col in FEATURES:
-        if col not in input_df.columns:
-            input_df[col] = DEFAULT_VALUES[col]
-    return model.predict(input_df[FEATURES])[0]
+    input_df = preprocess_fertilizer_column(input_df)
+    return model.predict(input_df)[0]
 
 # ---------- Batch Prediction ----------
 
 def predict_batch(model, df: pd.DataFrame):
     df = df.copy()
-    for col in FEATURES:
-        if col not in df.columns:
-            df[col] = DEFAULT_VALUES[col]
-    df["Yield"] = model.predict(df[FEATURES])
+    df = preprocess_fertilizer_column(df)
+
+    if "NDVI" not in df.columns:
+        df["NDVI"] = 0.5
+
+    required_features = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]
+    missing = [col for col in required_features if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns for prediction: {missing}")
+
+    df["Yield"] = model.predict(df[required_features])
     return df
 
 # ---------- Training ----------
 
 def train_model(df: pd.DataFrame):
-    df = df.copy()
+    df = preprocess_fertilizer_column(df)
 
-    # Ajouter les colonnes manquantes avec valeurs par défaut
-    for col in FEATURES + ["Yield"]:
-        if col not in df.columns:
-            print(f"[WARN] Colonne '{col}' manquante. Valeur par défaut utilisée : {DEFAULT_VALUES.get(col, 0)}")
-            df[col] = DEFAULT_VALUES.get(col, 0)
+    required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI", "Yield"]
+    missing = [col for col in required_cols if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing column(s) in training data: {missing}")
 
-    X = df[FEATURES]
+    X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
     y = df["Yield"]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
