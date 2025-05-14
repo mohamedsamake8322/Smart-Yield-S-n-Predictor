@@ -1,4 +1,3 @@
-
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -73,13 +72,22 @@ def predict_batch(model, df: pd.DataFrame):
 # ---------- Training ----------
 
 def train_model(df: pd.DataFrame):
-    df = preprocess_fertilizer_column(df)
+    df = df.copy()
+    
+    # Ajouter NDVI si manquant
+    if "NDVI" not in df.columns:
+        df["NDVI"] = 0.5
 
+    # Colonnes nécessaires
     required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI", "Yield"]
     missing = [col for col in required_cols if col not in df.columns]
     if missing:
         raise ValueError(f"Missing column(s) in training data: {missing}")
 
+    # Convertir les engrais texte en numériques
+    df = preprocess_fertilizer_column(df)
+
+    # Séparation features / cible
     X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
     y = df["Yield"]
 
