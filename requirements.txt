@@ -16,7 +16,7 @@ flask==3.1.0
 geopandas==0.10.2
 rasterio==1.3.3
 requests==2.31.0
-opencv-python==4.5.5.62
+opencv-python==4.5.5.64
 Pillow==9.2.0
 # tensorflow  # Not installed
 keras==2.6.0
