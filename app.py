@@ -177,45 +177,49 @@ elif choice == "Disease Detection":
     
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
 
-    if image_file is not None:
-        image = Image.open(image_file).convert("RGB")
-        st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
+    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
 
-        if st.button("🔍 Detect Disease"):
-            if disease_model:
-                label = predict_disease(disease_model, image)
+if image_file is not None:
+    image = Image.open(image_file).convert("RGB")
+    st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
 
-                # Affichage du résultat avec badge
-                plant, disease = label.split("__") if "__" in label else ("Unknown", label)
+    if st.button("🔍 Detect Disease"):
+        if disease_model:
+            label = predict_disease(disease_model, image)
 
-                st.markdown(f"### 🧬 Identified Plant: `{plant}`")
-                st.markdown(f"### 🩺 Detected Disease: `{disease}`")
+            # Parse plant and disease names
+            plant, disease = label.split("__") if "__" in label else ("Unknown", label)
 
-                if "healthy" in disease.lower():
-                    st.success("✅ This leaf appears healthy.")
-                    st.markdown("🧑‍🌾 **Recommendation:** Keep monitoring and maintain good agricultural practices.")
-                else:
-                    st.error("⚠️ Disease detected!")
-                    st.markdown(f"""
-                        <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
-                        <b>🧑‍⚕️ Advice:</b> 
-                        <ul>
-                            <li>Isolate the infected plant if possible</li>
-                            <li>Use appropriate fungicides or pesticides</li>
-                            <li>Improve soil drainage and avoid overwatering</li>
-                            <li>Consult an agronomist for accurate treatment</li>
-                        </ul>
-                        </div>
-                    """, unsafe_allow_html=True)
+            # Display detection result
+            st.markdown(f"### 🌿 Detected Plant: <span style='background-color:#d1ecf1;color:#0c5460;padding:4px 8px;border-radius:8px'>{plant}</span>", unsafe_allow_html=True)
+            st.markdown(f"### 🧪 Detected Disease: <span style='background-color:#f8d7da;color:#721c24;padding:4px 8px;border-radius:8px'>{disease}</span>", unsafe_allow_html=True)
 
-                # Option de téléchargement de rapport PDF (bonus)
-                if st.checkbox("📄 Generate PDF Report"):
-                    report_pdf = generate_pdf_report(
-                        username,
-                        features={"Detected Plant": plant, "Disease": disease},
-                        prediction="N/A",
-                        recommendation="Apply appropriate treatment and monitor."
-                    )
-                    st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
+            # Provide health status and advice
+            if "healthy" in disease.lower():
+                st.success("✅ This leaf appears healthy.")
+                st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
             else:
-                st.error("🛑 Disease detection model not loaded.")
+                st.error("⚠️ Disease detected!")
+                st.markdown(f"""
+                    <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
+                    <b>👩‍⚕️ Suggested Advice:</b>
+                    <ul>
+                        <li>Isolate the infected plant if possible</li>
+                        <li>Use appropriate fungicides or pesticides</li>
+                        <li>Improve soil drainage and avoid overwatering</li>
+                        <li>Consult an agronomist for accurate diagnosis and treatment</li>
+                    </ul>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Optional: generate PDF report
+            if st.checkbox("📄 Generate PDF Report"):
+                report_pdf = generate_pdf_report(
+                    username,
+                    features={"Detected Plant": plant, "Detected Disease": disease},
+                    prediction="N/A",
+                    recommendation="Follow treatment guidelines and monitor the plant closely."
+                )
+                st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
+        else:
+            st.error("🛑 Disease detection model is not loaded. Please check the model path.")
