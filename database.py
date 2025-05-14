@@ -121,3 +121,33 @@ def save_location(lat, lon):
 
     conn.commit()
     conn.close()
+import sqlite3
+
+def get_user_predictions(username):
+    conn = sqlite3.connect("history.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT username, temperature, humidity, precipitation, pH, fertilizer, predicted_yield, timestamp
+        FROM predictions
+        WHERE username = ?
+        ORDER BY timestamp DESC
+    """, (username,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+
+    results = []
+    for row in rows:
+        results.append({
+            "Username": row[0],
+            "Temperature": row[1],
+            "Humidity": row[2],
+            "Precipitation": row[3],
+            "pH": row[4],
+            "Fertilizer": row[5],
+            "Predicted Yield": row[6],
+            "Timestamp": row[7],
+        })
+
+    return results
