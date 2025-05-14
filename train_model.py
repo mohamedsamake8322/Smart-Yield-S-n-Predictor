@@ -6,21 +6,20 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import joblib
 
-# Charger les données
+# Load the data
 df = pd.read_csv("data.csv")
 
-# Encoder les colonnes catégorielles
+# Encode categorical columns
 df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
 
-# Séparer les features et la cible
+# Separate features and target
 X = df_encoded.drop("yield", axis=1)
 y = df_encoded["yield"]
 
-
-# Diviser en jeu d'entraînement/test
+# Split into training/test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Créer le modèle
+# Create the model
 model = xgb.XGBRegressor(
     n_estimators=100,
     learning_rate=0.1,
@@ -30,15 +29,20 @@ model = xgb.XGBRegressor(
     random_state=42
 )
 
-# Entraîner le modèle
+# Train the model
 model.fit(X_train, y_train)
 
-# Évaluer
+# Evaluate
 y_pred = model.predict(X_test)
 rmse = mean_squared_error(y_test, y_pred, squared=False)
 r2 = r2_score(y_test, y_pred)
 
-print(f"✅ Modèle entraîné. RMSE: {rmse:.2f}, R2: {r2:.2f}")
+print(f"✅ Model trained. RMSE: {rmse:.2f}, R2: {r2:.2f}")
 
-# Sauvegarder le modèle
+# Save the model
 joblib.dump(model, "model_xgb.pkl")
+import joblib
+
+# Save the model
+joblib.dump(model, 'yield_model.pkl')
+print("✅ Model saved as yield_model.pkl")

@@ -27,3 +27,8 @@ def suggest_improvements(yield_value, ph, fertilizer):
     if not suggestions:
         return "No major improvements suggested. Maintain current conditions."
     return " ".join(suggestions)
+model = joblib.load('yield_model.pkl')
+
+def predict_yield(data: dict):
+    features = np.array([[data['rainfall'], data['temperature'], data['humidity'], data['soil_type'], data['crop_type']]])
+    return model.predict(features)[0]
