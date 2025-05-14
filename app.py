@@ -27,9 +27,7 @@ choice = st.sidebar.selectbox("Menu", menu)
 username = st.sidebar.text_input("👤 Enter your username", value="guest")
 
 # === Page Home : Prédiction ===
-if menu == "Home":
-    st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
-    st.info("Use the sidebar to navigate between pages like Prediction, Performance, History, and Model Retraining.")
+if choice == "Home":
     st.subheader("📈 Predict Agricultural Yield")
     input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
 
