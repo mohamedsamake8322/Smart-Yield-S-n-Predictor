@@ -28,6 +28,7 @@ username = st.sidebar.text_input("👤 Enter your username", value="guest")
 
 # === Page Home : Prédiction ===
 if choice == "Home":
+    st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
     st.subheader("📈 Predict Agricultural Yield")
     input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
 
