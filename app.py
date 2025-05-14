@@ -4,7 +4,7 @@ import numpy as np
 import datetime
 import os
 import joblib
-from predictor import load_model, predict_yield, retrain_model, predict_batch
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
@@ -48,7 +48,7 @@ if choice == "Home":
 
         if st.button("Predict Yield"):
             if model:
-                prediction = predict_yield(model, features)
+                prediction = predict_single(model, features)
                 st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
 
                 timestamp = datetime.datetime.now()
@@ -73,7 +73,7 @@ if choice == "Home":
 
                 if st.button("Predict from CSV"):
                     if model:
-                        df["PredictedYield"] = df.apply(lambda row: predict_yield(model, row), axis=1)
+                        df["PredictedYield"] = predict_batch(model, df)
                         st.dataframe(df)
 
                         for _, row in df.iterrows():
@@ -101,7 +101,8 @@ elif choice == "Retrain Model":
 
         if validate_csv_columns(train_df, required_cols):
             if st.button("Retrain"):
-                model = retrain_model(train_df)
+                model = train_model(train_df)
+                save_model(model)
                 st.success("✅ Model retrained successfully!")
         else:
             st.error(f"❗ Training CSV must contain: {required_cols}")
