@@ -187,6 +187,23 @@ elif choice == "Disease Detection":
                 st.success(f"✅ Disease Detection Result: **{label}**")
             else:
                 st.error("🛑 Disease detection model is not loaded.")
+           # Provide health status and advice
+if "healthy" in label.lower():
+    st.success("✅ This leaf appears healthy.")
+    st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
+else:
+    st.error("⚠️ Disease detected!")
+    st.markdown(f"""
+        <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
+        <b>👩‍⚕️ Suggested Advice:</b>
+        <ul>
+            <li>Isolate the infected plant if possible</li>
+            <li>Use appropriate fungicides or pesticides</li>
+            <li>Improve soil drainage and avoid overwatering</li>
+            <li>Consult an agronomist for accurate diagnosis and treatment</li>
+        </ul>
+        </div>
+    """, unsafe_allow_html=True)
 
             # Optional: generate PDF report
             if st.checkbox("📄 Generate PDF Report"):
