@@ -20,7 +20,7 @@ st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 st.title("🌾 Smart Yield Sènè Predictor")
 
 MODEL_PATH = "model/model.pth"
-DISEASE_MODEL_PATH = "models/plant_disease_model.pth"  # corrected extension and path
+DISEASE_MODEL_PATH = "model/plant_disease_model.pth"  # corrected extension and path
 DB_FILE = "history.db"
 init_db()
 
