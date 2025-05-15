@@ -1,7 +1,5 @@
-# disease_model.py
-
 import os
-import joblib
+import torch
 import numpy as np
 from PIL import Image
 from typing import Union
@@ -14,7 +12,7 @@ def load_disease_model(model_path: str):
         model_path (str): Path to the .pth model file.
 
     Returns:
-        model: Trained model object.
+        model: Trained PyTorch model.
 
     Raises:
         FileNotFoundError: If the model file does not exist.
@@ -22,15 +20,16 @@ def load_disease_model(model_path: str):
     """
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"🚫 Model file not found at: {model_path}")
-    
+
     try:
-        model = joblib.load(model_path)
+        model = torch.load(model_path, map_location=torch.device('cpu'))  # Assure le chargement sur CPU
+        model.eval()  # Passe en mode évaluation
         return model
     except Exception as e:
-        raise Exception(f"❌ Error loading model: {str(e)}")
+        raise Exception(f"❌ Error loading model: {repr(e)}")
 
 
-def preprocess_image(image: Image.Image, size: tuple = (128, 128)) -> np.ndarray:
+def preprocess_image(image: Image.Image, size: tuple = (128, 128)) -> torch.Tensor:
     """
     Preprocess the input image to match the model input.
 
@@ -39,19 +38,20 @@ def preprocess_image(image: Image.Image, size: tuple = (128, 128)) -> np.ndarray
         size (tuple): Resize target.
 
     Returns:
-        np.ndarray: Flattened image array shaped for prediction.
+        torch.Tensor: Image tensor ready for prediction.
     """
     image = image.convert("RGB").resize(size)
     img_array = np.array(image).astype(np.float32) / 255.0  # Normalize
-    return img_array.flatten().reshape(1, -1)
+    img_tensor = torch.tensor(img_array).permute(2, 0, 1).unsqueeze(0)  # Change dimensions
+    return img_tensor
 
 
 def predict_disease(model, image: Union[Image.Image, np.ndarray]) -> str:
     """
-    Predict the plant disease from an input image using the provided model.
+    Predict the plant disease from an input image using the provided PyTorch model.
 
     Args:
-        model: Trained machine learning model.
+        model: Trained PyTorch model.
         image (PIL.Image.Image): Input image.
 
     Returns:
@@ -59,7 +59,9 @@ def predict_disease(model, image: Union[Image.Image, np.ndarray]) -> str:
     """
     try:
         processed = preprocess_image(image)
-        prediction = model.predict(processed)
-        return prediction[0]
+        with torch.no_grad():  # Désactive le calcul du gradient pour la prédiction
+            prediction = model(processed)
+            predicted_class = prediction.argmax(dim=1).item()  # Récupère l'indice de la classe prédite
+        return str(predicted_class)
     except Exception as e:
-        raise ValueError(f"🧪 Prediction failed: {e}")
+        raise ValueError(f"🧪 Prediction failed: {repr(e)}")
