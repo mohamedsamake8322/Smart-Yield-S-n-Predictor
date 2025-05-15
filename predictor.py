@@ -31,7 +31,7 @@ def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model Persistence ----------
 
-MODEL_PATH = "model/model.pkl"
+MODEL_PATH = "model/model.pth"
 
 def load_model(path: str = MODEL_PATH):
     try:
