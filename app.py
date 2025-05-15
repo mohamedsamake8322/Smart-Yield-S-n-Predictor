@@ -206,7 +206,7 @@ else:
     """, unsafe_allow_html=True)
 
             # Optional: generate PDF report
-            if st.checkbox("📄 Generate PDF Report"):
+if st.checkbox("📄 Generate PDF Report"):
                 report_pdf = generate_pdf_report(
                     username,
                     features={"Detected Plant": "plant", "Detected Disease": "disease"},
