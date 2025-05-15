@@ -2,11 +2,12 @@ import os
 import torch
 import numpy as np
 from PIL import Image
-from typing import Union
+from torchvision import models, transforms
+import torch.nn as nn
 
 def load_disease_model(model_path: str):
     """
-    Load the trained disease model from the given path.
+    Load the trained ResNet18 model for plant disease detection.
 
     Args:
         model_path (str): Path to the .pth model file.
@@ -22,33 +23,39 @@ def load_disease_model(model_path: str):
         raise FileNotFoundError(f"🚫 Model file not found at: {model_path}")
 
     try:
-        model = torch.load(model_path, map_location=torch.device('cpu'))  # Assure le chargement sur CPU
-        model.eval()  # Passe en mode évaluation
+        # Recréer l’architecture
+        model = models.resnet18(pretrained=False)
+        num_classes = 10  # Ajuste selon ton dataset
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+        # Charger les poids
+        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+        model.eval()
         return model
     except Exception as e:
         raise Exception(f"❌ Error loading model: {repr(e)}")
 
-
-def preprocess_image(image: Image.Image, size: tuple = (128, 128)) -> torch.Tensor:
+def preprocess_image(image: Image.Image) -> torch.Tensor:
     """
-    Preprocess the input image to match the model input.
+    Preprocess the input image for the PyTorch model.
 
     Args:
         image (PIL.Image.Image): Input image.
-        size (tuple): Resize target.
 
     Returns:
-        torch.Tensor: Image tensor ready for prediction.
+        torch.Tensor: Preprocessed image tensor.
     """
-    image = image.convert("RGB").resize(size)
-    img_array = np.array(image).astype(np.float32) / 255.0  # Normalize
-    img_tensor = torch.tensor(img_array).permute(2, 0, 1).unsqueeze(0)  # Change dimensions
-    return img_tensor
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),  # Taille adaptée à ResNet18
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # Normalisation ImageNet
+    ])
+    
+    return transform(image).unsqueeze(0)  # Ajoute une dimension batch
 
-
-def predict_disease(model, image: Union[Image.Image, np.ndarray]) -> str:
+def predict_disease(model, image: Image.Image) -> str:
     """
-    Predict the plant disease from an input image using the provided PyTorch model.
+    Predict the plant disease using the trained ResNet18 model.
 
     Args:
         model: Trained PyTorch model.
@@ -59,9 +66,12 @@ def predict_disease(model, image: Union[Image.Image, np.ndarray]) -> str:
     """
     try:
         processed = preprocess_image(image)
-        with torch.no_grad():  # Désactive le calcul du gradient pour la prédiction
-            prediction = model(processed)
-            predicted_class = prediction.argmax(dim=1).item()  # Récupère l'indice de la classe prédite
-        return str(predicted_class)
+
+        # Prédiction
+        with torch.no_grad():
+            output = model(processed)
+            predicted_class_idx = output.argmax(dim=1).item()
+        
+        return str(predicted_class_idx)  # Retourne l'indice de la classe prédite
     except Exception as e:
         raise ValueError(f"🧪 Prediction failed: {repr(e)}")

@@ -1,4 +1,3 @@
-# === predictor.py ===
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -17,27 +16,17 @@ fertilizer_map = {
 def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     if "Fertilizer" in df.columns:
-        def convert(val):
-            if isinstance(val, str):
-                return fertilizer_map.get(val, None)
-            return val
-
-        df["Fertilizer"] = df["Fertilizer"].apply(convert)
-
-        if df["Fertilizer"].isnull().any():
-            unknowns = df[df["Fertilizer"].isnull()]
-            raise ValueError(f"Unknown fertilizer types found: {unknowns}")
+        df["Fertilizer"] = df["Fertilizer"].apply(lambda val: fertilizer_map.get(val, None) if isinstance(val, str) else val)
     return df
 
 # ---------- Model Persistence ----------
-
-MODEL_PATH = "model/model.pth"
+MODEL_PATH = "model/model_xgb.pkl"  # Corrigé pour XGBoost
 
 def load_model(path: str = MODEL_PATH):
     try:
-        return joblib.load(path)
-    except FileNotFoundError:
-        print(f"[INFO] No model found at {path}.")
+        return joblib.load(path) if os.path.exists(path) else None
+    except Exception as e:
+        print(f"[ERROR] Model loading failed: {e}")
         return None
 
 def save_model(model, path: str = MODEL_PATH):
@@ -45,56 +34,33 @@ def save_model(model, path: str = MODEL_PATH):
     print(f"[INFO] Model saved to {path}.")
 
 # ---------- Single Prediction ----------
-
 def predict_single(model, features: dict):
     input_df = pd.DataFrame([features])
     input_df = preprocess_fertilizer_column(input_df)
-    if "NDVI" not in input_df.columns:
-        input_df["NDVI"] = 0.5
+    input_df["NDVI"] = 0.5  # Default NDVI value
     return model.predict(input_df)[0]
 
 # ---------- Batch Prediction ----------
-
 def predict_batch(model, df: pd.DataFrame):
-    df = df.copy()
     df = preprocess_fertilizer_column(df)
-
-    if "NDVI" not in df.columns:
-        df["NDVI"] = 0.5
-
+    df["NDVI"] = 0.5  # Default NDVI value
     required_features = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]
-    missing = [col for col in required_features if col not in df.columns]
-    if missing:
-        raise ValueError(f"Missing columns for prediction: {missing}")
-
-    df["PredictedYield"] = model.predict(df[required_features])
-    return df
+    return model.predict(df[required_features])
 
 # ---------- Training ----------
-
 def train_model(df: pd.DataFrame):
-    df = df.copy()
-
-    if "NDVI" not in df.columns:
-        df["NDVI"] = 0.5
-
-    required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI", "Yield"]
-    missing = [col for col in required_cols if col not in df.columns]
-    if missing:
-        raise ValueError(f"Missing column(s) in training data: {missing}")
-
+    df["NDVI"] = 0.5
     df = preprocess_fertilizer_column(df)
 
     X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
     y = df["Yield"]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
-    print(f"[INFO] Model trained. Mean Absolute Error: {mae:.2f}")
+    print(f"[INFO] Model trained. MAE: {mae:.2f}")
 
     return model
