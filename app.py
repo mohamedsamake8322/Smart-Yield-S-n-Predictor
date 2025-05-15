@@ -214,5 +214,5 @@ if st.checkbox("📄 Generate PDF Report"):
                     recommendation="Follow treatment guidelines and monitor the plant closely."
                 )
                 st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
-        else:
+else:
             st.error("🛑 Disease detection model is not loaded. Please check the model path.")
