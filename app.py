@@ -1,16 +1,22 @@
-
 import streamlit as st  # type: ignore
 import pandas as pd  # type: ignore
 import numpy as np  # type: ignore
 import datetime
 import os
 import joblib
-from PIL import Image
-import torch
-from torchvision import transforms
-from streamlit_lottie import st_lottie
+import hashlib
 import json
 import requests
+import torch
+import openai
+from PIL import Image
+from torchvision import transforms
+import streamlit_authenticator as stauth  # For authentication
+from streamlit_lottie import st_lottie
+from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.add_vertical_space import add_vertical_space
+from langchain.llms import OpenAI
+from langchain.chains import ConversationChain
 
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
@@ -20,7 +26,7 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
 st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
-st.title("🌾 Smart Yield Predictor")
+st.title("🌾 Smart Yield Sènè Predictor")
 
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
@@ -30,7 +36,7 @@ init_db()
 model = load_model(MODEL_PATH)
 disease_model = load_disease_model(DISEASE_MODEL_PATH)
 
-menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
+menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection", "Fertilization Advice", "Field Map"]
 choice = st.sidebar.selectbox("Menu", menu)
 username = st.sidebar.text_input("👤 Enter your username", value="guest")
 
@@ -211,3 +217,64 @@ elif choice == "Disease Detection":
                     st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
             else:
                 st.error("🛑 Disease detection model is not loaded.")
+
+# === Fertilization Advice ===
+elif choice == "Fertilization Advice":
+    st.subheader("🧪 Smart Fertilization Recommender")
+
+    crop = st.selectbox("🌾 Select Crop", ["Maize", "Millet", "Rice", "Sorghum", "Tomato", "Okra"])
+    pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
+    soil_type = st.selectbox("🧱 Soil Type", ["Sandy", "Clay", "Loamy"])
+    growth_stage = st.selectbox("🌱 Growth Stage", ["Germination", "Vegetative", "Flowering", "Maturity"])
+
+    if st.button("🧮 Get Fertilization Advice"):
+        advice = ""
+
+        if crop in ["Maize", "Rice"]:
+            if pH < 5.5:
+                advice += "🧪 Apply lime to raise soil pH.\n"
+            if soil_type == "Sandy":
+                advice += "🧂 Use slow-release nitrogen fertilizers (e.g., Urea with coating).\n"
+            if growth_stage == "Vegetative":
+                advice += "💊 Apply NPK 20-10-10 at 100 kg/ha.\n"
+            elif growth_stage == "Flowering":
+                advice += "💊 Apply NPK 10-20-20 at 50 kg/ha.\n"
+        elif crop in ["Tomato", "Okra"]:
+            advice += "💊 Use compost plus NPK 15-15-15 (50-100 kg/ha).\n"
+            if pH < 6.0:
+                advice += "🧪 Slightly acid soil: add organic matter to buffer.\n"
+        else:
+            advice += "📌 General advice: Use balanced NPK and organic matter.\n"
+
+        st.success("✅ Fertilizer Recommendation Generated:")
+        st.markdown(f"```markdown\n{advice}\n```")
+
+# === Field Map ===
+elif choice == "Field Map":
+    import folium
+    from streamlit_folium import st_folium
+
+    st.subheader("🗺️ Interactive Field Stress Map")
+
+    fields = [
+        {"name": "Field A", "lat": 12.64, "lon": -8.0},
+        {"name": "Field B", "lat": 12.66, "lon": -7.98},
+        {"name": "Field C", "lat": 12.63, "lon": -8.02},
+    ]
+
+    m = folium.Map(location=[12.64, -8.0], zoom_start=13)
+
+    for field in fields:
+        stress_level = np.random.uniform(0, 1)
+        color = "green" if stress_level < 0.3 else "orange" if stress_level < 0.7 else "red"
+        folium.CircleMarker(
+            location=[field["lat"], field["lon"]],
+            radius=10,
+            popup=f"{field['name']}\nStress: {stress_level:.2f}",
+            color=color,
+            fill=True,
+            fill_color=color
+        ).add_to(m)
+
+    st_folium(m, width=700, height=500)
+    st.caption("🧪 Stress color: Green (low) - Orange (medium) - Red (high)")
