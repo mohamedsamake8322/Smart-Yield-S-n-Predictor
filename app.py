@@ -31,6 +31,7 @@ usernames = ["mohamed", "samake"]
 # Define clear-text passwords locally (will hash immediately)
 passwords = ["78772652Moh#", "78772652Moh@"]
 hashed_passwords = stauth.Hasher(passwords).generate()
+st.write("Hashed passwords:", hashed_passwords)
 credentials = {
     "usernames": {
         usernames[i]: {
