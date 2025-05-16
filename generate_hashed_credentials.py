@@ -1,15 +1,13 @@
 import json
 import streamlit_authenticator as stauth
 
-# Utilisateurs à définir
 names = ["Mohamed", "SAMAKE"]
 usernames = ["mohamed", "samake"]
 passwords = ["78772652Moha#", "78772652Sama@"]
 
-# Hasher tous les mots de passe
-hashed_passwords = stauth.Hasher(passwords).generate()
+# Hasher les mots de passe correctement
+hashed_passwords = stauth.hasher(passwords).generate()
 
-# Construire le dict credentials au format attendu par stauth.Authenticate
 credentials = {
     "usernames": {
         usernames[i]: {
@@ -19,7 +17,6 @@ credentials = {
     }
 }
 
-# Sauvegarder dans un fichier JSON
 with open("hashed_credentials.json", "w") as f:
     json.dump(credentials, f, indent=4)
 
