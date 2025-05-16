@@ -30,25 +30,25 @@ names = ["Mohamed", "SAMAKE"]
 usernames = ["mohamed", "samake"]
 passwords = ["78772652Moh#", "78772652Moh@"]
 
-# Construire la structure credentials avec mots de passe en clair (temporaire)
+# Hasher tous les mots de passe (la méthode attend une liste simple)
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+# Construire la structure credentials avec mots de passe hashés
 credentials = {
     "usernames": {
         usernames[i]: {
             "name": names[i],
-            "password": passwords[i]
+            "password": hashed_passwords[i]
         } for i in range(len(usernames))
     }
 }
 
-# Hasher tous les mots de passe dans credentials
-hashed_credentials = stauth.Hasher().hash_passwords(credentials)
-
 # Pour debug (optionnel)
-st.write("Hashed credentials:", hashed_credentials)
+st.write("Hashed credentials:", credentials)
 
 # Créer l’authenticator avec le dict contenant les mots de passe hashés
 authenticator = stauth.Authenticate(
-    hashed_credentials,
+    credentials,
     "sene_predictor_app",  # Cookie name
     "auth_cookie",         # Cookie key
     cookie_expiry_days=1
