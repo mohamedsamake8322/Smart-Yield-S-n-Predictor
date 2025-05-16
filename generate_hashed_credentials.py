@@ -5,10 +5,9 @@ names = ["Mohamed", "SAMAKE"]
 usernames = ["mohamed", "samake"]
 passwords = ["78772652Moha#", "78772652Sama@"]
 
-hasher = stauth.Hasher()
-
-# Utilise hash_passwords (au pluriel) pour générer la liste des mots de passe hachés
-hashed_passwords = hasher.hash_passwords(passwords)
+# Passe la liste des mots de passe ici
+hasher = stauth.Hasher(passwords)
+hashed_passwords = hasher.generate()
 
 print("Mots de passe hashés :", hashed_passwords)
 
