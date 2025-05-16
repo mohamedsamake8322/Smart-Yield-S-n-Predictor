@@ -6,7 +6,9 @@ usernames = ["mohamed", "samake"]
 passwords = ["78772652Moha#", "78772652Sama@"]
 
 # Hasher les mots de passe correctement
-hashed_passwords = stauth.hasher(passwords).generate()
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+print(hashed_passwords)
 
 credentials = {
     "usernames": {
