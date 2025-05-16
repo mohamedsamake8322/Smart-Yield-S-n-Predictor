@@ -1,41 +1,50 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+import streamlit as st  # type: ignore
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
 import datetime
 import os
 import joblib
 from PIL import Image
 import torch
 from torchvision import transforms
-from disease_model import load_disease_model, predict_disease
+from streamlit_lottie import st_lottie
+import json
+import requests
 
+from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
-from disease_model import load_disease_model, predict_disease
 
-# === Configuration ===
 st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
 st.title("🌾 Smart Yield Predictor")
 
-MODEL_PATH = "model/model_xgb.pkl"  # corrected extension and path
+MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 DB_FILE = "history.db"
 init_db()
 
-# === Load the models ===
-model = load_model(MODEL_PATH)  # Chargement XGBoost
-disease_model = load_disease_model(DISEASE_MODEL_PATH)  # Chargement PyTorch
+model = load_model(MODEL_PATH)
+disease_model = load_disease_model(DISEASE_MODEL_PATH)
 
-# === Menu Navigation ===
 menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
 choice = st.sidebar.selectbox("Menu", menu)
 username = st.sidebar.text_input("👤 Enter your username", value="guest")
 
-# === Home Page: Yield Prediction ===
+# === Animation ===
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
+
+# === Home Page ===
 if choice == "Home":
+    st_lottie(lottie_plant, height=150)
     st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
     st.subheader("📈 Predict Agricultural Yield")
     input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
@@ -61,15 +70,13 @@ if choice == "Home":
                 st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
                 timestamp = datetime.datetime.now()
                 save_prediction(username, features, prediction, timestamp)
-
                 if st.checkbox("📄 Download PDF Report"):
                     pdf = generate_pdf_report(username, features, prediction, "Use appropriate fertilizer and monitor pH.")
                     st.download_button("Download PDF", data=pdf, file_name="report.pdf")
-                save_prediction(username, features, prediction, datetime.datetime.now())
             else:
                 st.error("🛑 Model not trained yet.")
 
-    else:  # CSV Upload
+    else:
         st.markdown("### 📁 Batch Prediction from CSV")
         csv_file = st.file_uploader("Upload CSV", type=["csv"])
         if csv_file:
@@ -95,7 +102,6 @@ if choice == "Home":
             else:
                 st.error(f"❗ CSV must contain columns: {required_cols}")
 
-            # === Tabs for Visualization ===
             st.subheader("📊 Visualizations")
             tab1, tab2, tab3 = st.tabs(["Histogram", "Pie Chart", "Trend Over Time"])
 
@@ -122,19 +128,13 @@ if choice == "Home":
                 else:
                     st.warning("No data for time trend.")
 
-            st.download_button("📅 Download Results CSV", convert_df_to_csv(df), "predictions.csv", "text/csv")
-        else:
-            st.error("🛑 Model not trained yet. Go to Retrain Model.")
-
-# === Retrain Model Page ===
+# === Retrain ===
 elif choice == "Retrain Model":
     st.subheader("🔁 Retrain the Model")
     train_file = st.file_uploader("Upload Training CSV", type=["csv"])
-
     if train_file is not None:
         train_df = pd.read_csv(train_file)
         required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
-
         if validate_csv_columns(train_df, required_cols):
             if st.button("Retrain"):
                 model = train_model(train_df)
@@ -143,32 +143,29 @@ elif choice == "Retrain Model":
         else:
             st.error(f"❗ Training CSV must contain: {required_cols}")
 
-# === History Page ===
+# === History ===
 elif choice == "History":
     st.subheader("📚 Prediction History")
     results = get_user_predictions(username)
-
     if results:
         hist_df = pd.DataFrame(results)
         st.dataframe(hist_df)
     else:
         st.info("No predictions found for this user.")
 
-# === Performance Page ===
+# === Performance ===
 elif choice == "Performance":
     st.subheader("📊 Model Evaluation")
     eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"])
-
     if eval_file is not None:
         eval_df = pd.read_csv(eval_file)
         required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
-
         if validate_csv_columns(eval_df, required_cols):
             if model:
                 mae, r2 = evaluate_model(model, eval_df)
                 st.success(f"✅ MAE: {mae:.2f}, R² Score: {r2:.2f}")
             else:
-                st.error("🛑 Model not trained yet. Go to Retrain Model.")
+                st.error("🛑 Model not trained yet.")
         else:
             st.error(f"❗ Evaluation CSV must contain: {required_cols}")
 
@@ -176,23 +173,22 @@ elif choice == "Performance":
 elif choice == "Disease Detection":
     st.subheader("🦠 Plant Disease Detection")
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
-
     if image_file:
         image = Image.open(image_file).convert("RGB")
         st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
-
         if st.button("🔍 Detect Disease"):
             if disease_model:
                 label = predict_disease(disease_model, image)
+                detected_plant = label.split()[0] if label else "Unknown"
                 st.success(f"✅ Disease Detection Result: **{label}**")
+                st.info(f"🪴 Detected Plant: **{detected_plant}**")
 
-                # Provide health status and advice
                 if "healthy" in label.lower():
                     st.success("✅ This leaf appears healthy.")
                     st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
                 else:
                     st.error("⚠️ Disease detected!")
-                    st.markdown(f"""
+                    st.markdown("""
                         <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
                         <b>👩‍⚕️ Suggested Advice:</b>
                         <ul>
@@ -204,15 +200,13 @@ elif choice == "Disease Detection":
                         </div>
                     """, unsafe_allow_html=True)
 
-                # Generate PDF report
                 if st.checkbox("📄 Generate PDF Report"):
                     report_pdf = generate_pdf_report(
                         username,
-                        features={"Detected Plant": "Unknown", "Detected Disease": label},
+                        features={"Detected Plant": detected_plant, "Detected Disease": label},
                         prediction="N/A",
                         recommendation="Follow treatment guidelines and monitor the plant closely."
                     )
                     st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
             else:
                 st.error("🛑 Disease detection model is not loaded.")
-
