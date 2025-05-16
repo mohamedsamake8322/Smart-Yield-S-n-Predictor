@@ -28,30 +28,36 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 # === Authentication setup ===
 names = ["Mohamed", "SAMAKE"]
 usernames = ["mohamed", "samake"]
-# Define clear-text passwords locally (will hash immediately)
 passwords = ["78772652Moh#", "78772652Moh@"]
-hashed_passwords = stauth.Hasher().hash_passwords(passwords)
-print("Hashed passwords:", hashed_passwords)
-st.write("Hashed passwords:", hashed_passwords)
+
+# Construire la structure credentials avec mots de passe en clair (temporaire)
 credentials = {
     "usernames": {
         usernames[i]: {
             "name": names[i],
-            "password": hashed_passwords[i]
+            "password": passwords[i]
         } for i in range(len(usernames))
     }
 }
+
+# Hasher tous les mots de passe dans credentials
+hashed_credentials = stauth.Hasher().hash_passwords(credentials)
+
+# Pour debug (optionnel)
+st.write("Hashed credentials:", hashed_credentials)
+
+# Créer l’authenticator avec le dict contenant les mots de passe hashés
 authenticator = stauth.Authenticate(
-    credentials,
+    hashed_credentials,
     "sene_predictor_app",  # Cookie name
     "auth_cookie",         # Cookie key
     cookie_expiry_days=1
 )
 
-# Display login form in sidebar
+# Afficher le formulaire de login dans la sidebar
 name, authentication_status, username = authenticator.login("Login", "sidebar")
 
-# Handle authentication status
+# Gérer l’état de l’authentification
 if authentication_status is False:
     st.error("❌ Username or password is incorrect.")
     st.stop()
@@ -59,7 +65,7 @@ elif authentication_status is None:
     st.warning("👈 Please enter your credentials.")
     st.stop()
 elif authentication_status:
-    # Successful login
+    # Connexion réussie
     authenticator.logout("🔓 Logout", "sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
     USERNAME = username
