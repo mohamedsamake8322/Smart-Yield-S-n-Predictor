@@ -5,10 +5,13 @@ names = ["Mohamed", "SAMAKE"]
 usernames = ["mohamed", "samake"]
 passwords = ["78772652Moha#", "78772652Sama@"]
 
-# Hasher les mots de passe correctement
-hashed_passwords = stauth.Hasher(passwords).generate()
+# Créer un objet Hasher sans argument
+hasher = stauth.Hasher()
 
-print(hashed_passwords)
+# Générer les mots de passe hashés
+hashed_passwords = hasher.generate(passwords)
+
+print("Mots de passe hashés :", hashed_passwords)
 
 credentials = {
     "usernames": {
@@ -19,6 +22,7 @@ credentials = {
     }
 }
 
+# Sauvegarder dans un fichier JSON
 with open("hashed_credentials.json", "w") as f:
     json.dump(credentials, f, indent=4)
 
