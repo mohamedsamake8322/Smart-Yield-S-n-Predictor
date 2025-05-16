@@ -31,7 +31,7 @@ usernames = ["mohamed", "samake"]
 passwords = ["78772652Moh#", "78772652Moh@"]
 
 # Hasher tous les mots de passe (la méthode attend une liste simple)
-hashed_passwords = stauth.Hasher(passwords).generate()
+hashed_passwords = stauth.Hasher().hash_passwords(passwords)
 
 # Construire la structure credentials avec mots de passe hashés
 credentials = {
