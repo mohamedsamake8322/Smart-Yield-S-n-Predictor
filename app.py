@@ -25,50 +25,7 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
-# === Authentication setup ===
-names = ["Mohamed", "SAMAKE"]
-usernames = ["mohamed", "samake"]
-passwords = ["78772652Moh#", "78772652Moh@"]
 
-# Hasher tous les mots de passe (la méthode attend une liste simple)
-hashed_passwords = stauth.Hasher().hash_passwords(passwords)
-
-# Construire la structure credentials avec mots de passe hashés
-credentials = {
-    "usernames": {
-        usernames[i]: {
-            "name": names[i],
-            "password": hashed_passwords[i]
-        } for i in range(len(usernames))
-    }
-}
-
-# Pour debug (optionnel)
-st.write("Hashed credentials:", credentials)
-
-# Créer l’authenticator avec le dict contenant les mots de passe hashés
-authenticator = stauth.Authenticate(
-    credentials,
-    "sene_predictor_app",  # Cookie name
-    "auth_cookie",         # Cookie key
-    cookie_expiry_days=1
-)
-
-# Afficher le formulaire de login dans la sidebar
-name, authentication_status, username = authenticator.login("Login", "sidebar")
-
-# Gérer l’état de l’authentification
-if authentication_status is False:
-    st.error("❌ Username or password is incorrect.")
-    st.stop()
-elif authentication_status is None:
-    st.warning("👈 Please enter your credentials.")
-    st.stop()
-elif authentication_status:
-    # Connexion réussie
-    authenticator.logout("🔓 Logout", "sidebar")
-    st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
