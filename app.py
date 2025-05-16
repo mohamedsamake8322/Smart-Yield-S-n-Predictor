@@ -25,7 +25,29 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
+# === Authentication setup ===
+with open("hashed_credentials.json", "r") as f:
+    credentials = json.load(f)
 
+authenticator = stauth.Authenticate(
+    credentials,
+    "sene_predictor_app",  # Cookie name
+    "auth_cookie",         # Cookie key
+    cookie_expiry_days=1
+)
+
+name, authentication_status, username = authenticator.login("Login", "sidebar")
+
+if authentication_status is False:
+    st.error("❌ Username or password is incorrect.")
+    st.stop()
+elif authentication_status is None:
+    st.warning("👈 Please enter your credentials.")
+    st.stop()
+elif authentication_status:
+    authenticator.logout("🔓 Logout", "sidebar")
+    st.sidebar.success(f"✅ Logged in as {name}")
+    USERNAME = username
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
@@ -38,7 +60,6 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 
     model = load_model(MODEL_PATH)
     disease_model = load_disease_model(DISEASE_MODEL_PATH)
-
     menu = [
         "Home", "Retrain Model", "History", "Performance",
         "Disease Detection", "Fertilization Advice", "Field Map"
