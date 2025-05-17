@@ -26,18 +26,33 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
 # === Authentication setup ===
+import streamlit as st  # type: ignore
+import json
+import streamlit_authenticator as stauth
+import bcrypt
+
+# === Load credentials ===
 with open("hashed_credentials.json", "r") as f:
     credentials = json.load(f)
 
-authenticator = stauth.Authenticate( # type: ignore
+# === Vérification de la structure des credentials ===
+if "usernames" not in credentials:
+    st.error("⚠️ Error: 'usernames' key missing in credentials file.")
+    st.stop()
+
+# === Setup de l'authentification ===
+authenticator = stauth.Authenticate(
     credentials,
     "sene_predictor_app",  # Cookie name
     "auth_cookie",         # Cookie key
-    cookie_expiry_days=1
+    cookie_expiry_days=1,
+    refresh=True  # Active le rafraîchissement pour éviter les problèmes de cache
 )
 
+# === Interface de connexion ===
 name, authentication_status, username = authenticator.login("Login", "sidebar")
 
+# === Gestion des erreurs d'authentification ===
 if authentication_status is False:
     st.error("❌ Username or password is incorrect.")
     st.stop()
@@ -47,7 +62,37 @@ elif authentication_status is None:
 elif authentication_status:
     authenticator.logout("🔓 Logout", "sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username
+
+    # === Vérification du rôle de l'utilisateur connecté ===
+    user_role = credentials["usernames"].get(username, {}).get("role", "user")
+
+    st.title("Smart Yield Sènè Predictor")
+
+    # === Espace Admin uniquement ===
+    if user_role == "admin":
+        st.subheader("👑 Admin Dashboard")
+        st.write("Manage users, view logs, and more.")
+
+        # Interface pour ajouter un nouvel utilisateur
+        with st.expander("➕ Add a new user"):
+            new_username = st.text_input("Username")
+            new_name = st.text_input("Full name")
+            new_password = st.text_input("Password", type="password")
+            new_role = st.selectbox("Role", ["user", "admin"])
+
+            if st.button("Create User"):
+                if new_username in credentials["usernames"]:
+                    st.warning("⚠️ This username already exists.")
+                else:
+                    hashed_pw = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+                    credentials["usernames"][new_username] = {
+                        "name": new_name,
+                        "password": hashed_pw,
+                        "role": new_role
+                    }
+                    with open("hashed_credentials.json", "w") as f:
+                        json.dump(credentials, f, indent=4)
+                    st.success("✅ User successfully added.")
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
