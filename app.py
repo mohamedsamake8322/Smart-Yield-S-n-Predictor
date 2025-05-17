@@ -27,7 +27,7 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 
 # === Authentification ===
 with open("hashed_credentials.json", "r") as f:
-    credentials = json.load(f)
+    credentials = json.load(f)["credentials"]
 
 authenticator = stauth.Authenticate(
     credentials,
