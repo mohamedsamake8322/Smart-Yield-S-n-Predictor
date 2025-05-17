@@ -25,16 +25,17 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
-# === Authentication setup ===
-# Charger les identifiants depuis le fichier JSON
+# === Authentification ===
 with open("hashed_credentials.json", "r") as f:
     credentials = json.load(f)
+
 authenticator = stauth.Authenticate(
     credentials,
     "sene_predictor_app",
     "auth_cookie_key",
     cookie_expiry_days=1
 )
+
 name, authentication_status, username = authenticator.login(title="🔐 Login", location="main")
 
 if authentication_status is False:
@@ -45,17 +46,22 @@ elif authentication_status is None:
     st.stop()
 else:
     authenticator.logout("🔓 Logout", location="sidebar")
+    
+    # Stockage sécurisé dans la session
+    st.session_state["name"] = name
+    st.session_state["username"] = username
+
+    # Affichage utilisateur connecté
+    USERNAME = st.session_state["username"]
     st.sidebar.success(f"✅ Logged in as {name}")
-st.session_state["name"] = name
-st.session_state["username"] = username
+    st.sidebar.markdown("---")
+    st.sidebar.write(f"👤 Utilisateur : `{USERNAME}`")
 
-# Authenticated user info
-USERNAME = st.session_state.username
-st.sidebar.success(f"✅ Logged in as {st.session_state.name}")
+    # Bouton de déconnexion supplémentaire
+    if st.sidebar.button("🔓 Logout"):
+        st.session_state.authenticated = False
+        st.experimental_rerun()
 
-if st.sidebar.button("🔓 Logout"):
-    st.session_state.authenticated = False
-    st.experimental_rerun()
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
