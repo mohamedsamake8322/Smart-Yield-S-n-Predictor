@@ -27,35 +27,37 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 import folium
 from streamlit_folium import st_folium
 
+
 # === Authentification ===
 import os, json, streamlit as st, streamlit_authenticator as stauth
 
-# ――― Chargement direct du JSON ―――
+# ――― Chargement du fichier JSON ―――
 file_path = os.path.join(os.path.dirname(__file__), "hashed_credentials.json")
 with open(file_path, "r") as f:
-    credentials = json.load(f)       # c’est déjà { "usernames": { … } }
+    credentials = json.load(f)
 
-# ――― Init Authenticator ―――
+# ――― Authentification ―――
 authenticator = stauth.Authenticate(
-    credentials,
-    "sene_predictor_app",   # cookie name
-    "auth_cookie_key",      # cookie key
+    credentials["usernames"],        # ✅ ici c’est corrigé
+    "sene_predictor_app",            # nom du cookie
+    "auth_cookie_key",               # clé du cookie
     cookie_expiry_days=1
 )
 
-# ――― Login ―――
-name, authentication_status, username = authenticator.login("sidebar")
+# ――― Interface de login ―――
+name, authentication_status, username = authenticator.login("Login", "sidebar")
 
 if authentication_status is False:
-    st.sidebar.error("❌ Incorrect credentials. Please try again.")
+    st.sidebar.error("❌ Identifiants incorrects.")
     st.stop()
 elif authentication_status is None:
-    st.sidebar.warning("👈 Please enter your credentials.")
+    st.sidebar.warning("👈 Veuillez vous connecter.")
     st.stop()
 else:
-    authenticator.logout("sidebar")
-    st.sidebar.success(f"✅ Logged in as {name}")
+    authenticator.logout("Déconnexion", "sidebar")
+    st.sidebar.success(f"✅ Connecté en tant que {name}")
     USERNAME = username
+
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
