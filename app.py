@@ -32,8 +32,20 @@ import streamlit_authenticator as stauth
 import bcrypt
 
 # === Load credentials ===
-with open("hashed_credentials.json", "r") as f:
-    credentials = json.load(f)
+try:
+    with open("hashed_credentials.json", "r", encoding="utf-8") as f:
+        credentials = json.load(f)
+    
+    # Debugging : Afficher le contenu des credentials pour vérifier le format
+    st.write("Debugging credentials structure:", credentials)
+
+    # Vérification de la clé "usernames"
+    if "usernames" not in credentials:
+        st.error("⚠️ Error: 'usernames' key is missing in credentials file.")
+        st.stop()
+except json.JSONDecodeError:
+    st.error("🚨 Error loading JSON file. Check its format.")
+    st.stop()
 
 # === Vérification de la structure des credentials ===
 if "usernames" not in credentials:
