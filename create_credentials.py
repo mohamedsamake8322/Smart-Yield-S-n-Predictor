@@ -3,9 +3,9 @@ import json
 
 # === Utilisateurs à définir ici ===
 users = {
-    "admin": {"name": "Admin User", "password": "admin123"},
-    "farmer": {"name": "Farmer Joe", "password": "farm456"},
-    "expert": {"name": "Dr Agri", "password": "agri789"},
+    "mohamedsamake": {"name": "Mohamed S", "password": "78772652Moha@"},
+    "mohamedsamake2000": {"name": "Mohamed", "password": "78772652Moh#"},
+    "mohamed": {"name": "Samake", "password": "78772652Moh@"},
 }
 
 # === Hashing des mots de passe ===

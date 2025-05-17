@@ -17,7 +17,7 @@ from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.add_vertical_space import add_vertical_space
 from langchain.llms import OpenAI
 from langchain.chains import ConversationChain
-
+import streamlit_authenticator as stauth
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
@@ -26,25 +26,31 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
 # === Authentication setup ===
-st.sidebar.title("🔐 Login")
-username_input = st.sidebar.text_input("Username")
-password_input = st.sidebar.text_input("Password", type="password")
-login_btn = st.sidebar.button("Login")
+# Charger les identifiants depuis le fichier JSON
+with open("hashed_credentials.json") as f:
+    credentials = json.load(f)
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# Configurer l'authenticator
+authenticator = stauth.Authenticate(
+    credentials,
+    "sene_predictor_app",  # Nom du cookie
+    "auth_cookie_key",     # Clé secrète du cookie
+    cookie_expiry_days=1
+)
 
-if login_btn:
-    if verify_password(username_input, password_input):
-        st.session_state.authenticated = True
-        st.session_state.username = username_input
-        st.session_state.name = get_name(username_input)
-        st.success(f"✅ Logged in as {st.session_state.name}")
-    else:
-        st.error("❌ Incorrect credentials.")
+# Interface de login dans la sidebar
+name, authentication_status, username = authenticator.login("🔐 Login", "sidebar")
 
-if not st.session_state.authenticated:
+if authentication_status is False:
+    st.sidebar.error("❌ Wrong credentials")
     st.stop()
+elif authentication_status is None:
+    st.sidebar.warning("👈 Please enter your credentials")
+    st.stop()
+else:
+    authenticator.logout("🔓 Logout", "sidebar")
+    st.sidebar.success(f"✅ Logged in as {name}")
+    USERNAME = username
 
 # Authenticated user info
 USERNAME = st.session_state.username
