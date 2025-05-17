@@ -45,8 +45,7 @@ authenticator = stauth.Authenticate(
     credentials,
     "sene_predictor_app",  # Cookie name
     "auth_cookie",         # Cookie key
-    cookie_expiry_days=1,
-    refresh=True  # Active le rafraîchissement pour éviter les problèmes de cache
+    cookie_expiry_days=1
 )
 
 # === Interface de connexion ===
