@@ -48,7 +48,7 @@ elif authentication_status is None:
     st.sidebar.warning("👈 Please enter your credentials")
     st.stop()
 else:
-    authenticator.logout("🔓 Logout", "sidebar")
+    authenticator.logout("🔓 Logout", "main")
     st.sidebar.success(f"✅ Logged in as {name}")
     USERNAME = username
 
