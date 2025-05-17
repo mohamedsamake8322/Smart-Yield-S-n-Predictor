@@ -25,38 +25,41 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
-# === Authentication setup ===
-# Charger les identifiants depuis le fichier JSON
+# Chargement des identifiants hachés
 with open("hashed_credentials.json", "r") as f:
     credentials = json.load(f)
 
+# Initialisation de l'authentificateur
 authenticator = stauth.Authenticate(
     credentials,
-    "sene_predictor_app",
-    "auth_cookie_key",
+    "sene_predictor_app",     # Nom du cookie
+    "auth_cookie_key",        # Clé de sécurité
     cookie_expiry_days=1
 )
 
+# Interface de connexion
 name, authentication_status, username = authenticator.login("🔐 Login")
 
+# Gestion des cas
 if authentication_status is False:
-    st.sidebar.error("❌ Wrong credentials")
-    st.stop()
+    st.error("❌ Wrong credentials")
 elif authentication_status is None:
-    st.sidebar.warning("👈 Please enter your credentials")
-    st.stop()
+    st.warning("👈 Please enter your credentials")
 else:
     authenticator.logout("🔓 Logout", "sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username
 
-# Authenticated user info
-USERNAME = st.session_state.username
-st.sidebar.success(f"✅ Logged in as {st.session_state.name}")
+    # Stockage sécurisé dans la session
+    st.session_state["name"] = name
+    st.session_state["username"] = username
 
-if st.sidebar.button("🔓 Logout"):
-    st.session_state.authenticated = False
-    st.experimental_rerun()
+    # Tu peux accéder à USERNAME à tout moment
+    USERNAME = st.session_state["username"]
+
+    # Exemple d'usage :
+    st.sidebar.markdown("---")
+    st.sidebar.write(f"👤 Utilisateur : {USERNAME}")
+
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
