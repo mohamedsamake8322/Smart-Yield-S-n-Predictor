@@ -1,80 +1,76 @@
-import streamlit as st  # type: ignore
-import pandas as pd  # type: ignore
-import numpy as np  # type: ignore
-import datetime
-import os
-import joblib
-import hashlib
+import streamlit as st
+import bcrypt
 import json
-import requests
-import torch
-import openai
-from PIL import Image
-from torchvision import transforms
-from auth import verify_password, get_name
-from streamlit_lottie import st_lottie
-from streamlit_extras.switch_page_button import switch_page
-from streamlit_extras.add_vertical_space import add_vertical_space
-from langchain.llms import OpenAI
-from langchain.chains import ConversationChain
 import streamlit_authenticator as stauth
-from disease_model import load_disease_model, predict_disease
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
-from database import init_db, save_prediction, get_user_predictions, save_location
-from evaluate import evaluate_model
-from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
-from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
-import folium
-from streamlit_folium import st_folium
 
-
-# === Authentification ===
-import os, json, streamlit as st, streamlit_authenticator as stauth
-
-# ――― Chargement du fichier JSON ―――
-file_path = os.path.join(os.path.dirname(__file__), "hashed_credentials.json")
-with open(file_path, "r") as f:
+# === Load user credentials from JSON file ===
+with open("hashed_credentials.json") as f:
     credentials = json.load(f)
 
-# ――― Authentification ―――
+# === Authentication setup ===
 authenticator = stauth.Authenticate(
-    credentials["usernames"],        # ✅ ici c’est corrigé
-    "sene_predictor_app",            # nom du cookie
-    "auth_cookie_key",               # clé du cookie
+    credentials["usernames"],
+    "sene_predictor_app",       # Cookie name
+    "auth_cookie_key",          # Secret key
     cookie_expiry_days=1
 )
 
-# ――― Interface de login ―――
-name, authentication_status, username = authenticator.login("Login", "sidebar")
+# === Login Interface ===
+name, auth_status, username = authenticator.login("Login", "sidebar")
 
-if authentication_status is False:
-    st.sidebar.error("❌ Identifiants incorrects.")
+# === Authentication Handling ===
+if auth_status is False:
+    st.sidebar.error("❌ Invalid credentials. Please try again.")
     st.stop()
-elif authentication_status is None:
-    st.sidebar.warning("👈 Veuillez vous connecter.")
+elif auth_status is None:
+    st.sidebar.warning("👈 Please log in.")
     st.stop()
 else:
-    authenticator.logout("Déconnexion", "sidebar")
-    st.sidebar.success(f"✅ Connecté en tant que {name}")
-    USERNAME = username
+    authenticator.logout("Logout", "sidebar")
+    st.sidebar.success(f"✅ Logged in as {name}")
 
+    # Retrieve user role
+    user_role = credentials["usernames"].get(username, {}).get("role", "user")
 
-    # === App setup ===
-    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
-    st.title("🌾 Smart Yield Sènè Predictor")
+    # === Display Based on Role ===
+    st.title("Smart Yield Sènè Predictor")
 
-    MODEL_PATH = "model/model_xgb.pkl"
-    DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
-    DB_FILE = "history.db"
-    init_db()
+    if user_role == "admin":
+        st.subheader("👑 Admin Dashboard")
+        st.write("Manage users, view logs, and more.")
+        
+        # ➕ Add new user section
+        with st.expander("➕ Add a new user"):
+            new_username = st.text_input("Username")
+            new_name = st.text_input("Full name")
+            new_password = st.text_input("Password", type="password")
+            new_role = st.selectbox("Role", ["user", "admin"])
 
-    model = load_model(MODEL_PATH)
-    disease_model = load_disease_model(DISEASE_MODEL_PATH)
-    menu = [
-        "Home", "Retrain Model", "History", "Performance",
-        "Disease Detection", "Fertilization Advice", "Field Map"
-    ]
-    choice = st.sidebar.selectbox("Menu", menu)
+            if st.button("Create User"):
+                if new_username in credentials["usernames"]:
+                    st.warning("⚠️ This username already exists.")
+                else:
+                    hashed_pw = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+                    credentials["usernames"][new_username] = {
+                        "name": new_name,
+                        "password": hashed_pw,
+                        "role": new_role
+                    }
+                    with open("hashed_credentials.json", "w") as f:
+                        json.dump(credentials, f, indent=4)
+                    st.success("✅ User successfully added.")
+
+    elif user_role == "user":
+        st.subheader("🌾 User Dashboard")
+        st.write("Welcome to your dashboard.")
+
+# === App setup ===
+st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+
+# === Debugging password validation ===
+def check_password(password, stored_hash):
+    return bcrypt.checkpw(password.encode(), stored_hash.encode())
+
 
     # === Animation helper ===
     def load_lottieurl(url):
