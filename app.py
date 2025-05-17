@@ -42,9 +42,9 @@ if "usernames" not in credentials:
 
 # === Setup de l'authentification ===
 authenticator = stauth.Authenticate(
-    credentials,
-    "sene_predictor_app",  # Cookie name
-    "auth_cookie",         # Cookie key
+    credentials["usernames"],  # Utilisation correcte des credentials
+    "sene_predictor_app",      # Cookie name
+    "auth_cookie",             # Cookie key
     cookie_expiry_days=1
 )
 
