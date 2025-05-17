@@ -28,24 +28,22 @@ import folium
 from streamlit_folium import st_folium
 
 # === Authentification ===
+import os, json, streamlit as st, streamlit_authenticator as stauth
+
+# ――― Chargement direct du JSON ―――
 file_path = os.path.join(os.path.dirname(__file__), "hashed_credentials.json")
 with open(file_path, "r") as f:
-    data = json.load(f)
-    try:
-        # Descendre dans credentials → usernames
-        credentials = data["credentials"]["usernames"]
-    except KeyError:
-        st.error("Le fichier 'hashed_credentials.json' doit contenir 'credentials' → 'usernames'.")
-        st.stop()
+    credentials = json.load(f)       # c’est déjà { "usernames": { … } }
 
+# ――― Init Authenticator ―――
 authenticator = stauth.Authenticate(
     credentials,
-    "sene_predictor_app",
-    "auth_cookie_key",
+    "sene_predictor_app",   # cookie name
+    "auth_cookie_key",      # cookie key
     cookie_expiry_days=1
 )
 
-# --- Login (location seulement) ---
+# ――― Login ―――
 name, authentication_status, username = authenticator.login("sidebar")
 
 if authentication_status is False:
@@ -58,7 +56,6 @@ else:
     authenticator.logout("sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
     USERNAME = username
-
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
