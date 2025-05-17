@@ -11,7 +11,7 @@ import torch
 import openai
 from PIL import Image
 from torchvision import transforms
-import streamlit_authenticator as stauth  # For authentication
+from auth import verify_password, get_name
 from streamlit_lottie import st_lottie
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.add_vertical_space import add_vertical_space
@@ -26,28 +26,33 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
 # === Authentication setup ===
-with open("hashed_credentials.json", "r") as f:
-    credentials = json.load(f)
+st.sidebar.title("🔐 Login")
+username_input = st.sidebar.text_input("Username")
+password_input = st.sidebar.text_input("Password", type="password")
+login_btn = st.sidebar.button("Login")
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "sene_predictor_app",  # Cookie name
-    "auth_cookie",         # Cookie key
-    cookie_expiry_days=1
-)
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-name, authentication_status, username = authenticator.login("Login", "sidebar")
+if login_btn:
+    if verify_password(username_input, password_input):
+        st.session_state.authenticated = True
+        st.session_state.username = username_input
+        st.session_state.name = get_name(username_input)
+        st.success(f"✅ Logged in as {st.session_state.name}")
+    else:
+        st.error("❌ Incorrect credentials.")
 
-if authentication_status is False:
-    st.error("❌ Username or password is incorrect.")
+if not st.session_state.authenticated:
     st.stop()
-elif authentication_status is None:
-    st.warning("👈 Please enter your credentials.")
-    st.stop()
-elif authentication_status:
-    authenticator.logout("🔓 Logout", "sidebar")
-    st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username
+
+# Authenticated user info
+USERNAME = st.session_state.username
+st.sidebar.success(f"✅ Logged in as {st.session_state.name}")
+
+if st.sidebar.button("🔓 Logout"):
+    st.session_state.authenticated = False
+    st.experimental_rerun()
 
     # === App setup ===
     st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
