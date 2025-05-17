@@ -28,7 +28,8 @@ import folium
 from streamlit_folium import st_folium
 
 # === Authentification ===
-with open("hashed_credentials.json", "r") as f:
+file_path = os.path.join(os.path.dirname(__file__), "hashed_credentials.json")
+with open(file_path, "r") as f:
     data = json.load(f)
     if "credentials" in data:
         credentials = data["credentials"]
