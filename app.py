@@ -1,24 +1,30 @@
 import streamlit as st
-import bcrypt
 import json
 import streamlit_authenticator as stauth
 
-# === Load user credentials from JSON file ===
+# === Load credentials and validate structure ===
 with open("hashed_credentials.json") as f:
     credentials = json.load(f)
 
-# === Authentication setup ===
+# Debugging: print credentials
+st.write("Debugging credentials structure:", credentials)
+
+if "usernames" not in credentials:
+    st.error("⚠️ Error: 'usernames' key is missing in credentials file.")
+    st.stop()
+
+# Authentication setup
 authenticator = stauth.Authenticate(
-    credentials["usernames"],
-    "sene_predictor_app",       # Cookie name
-    "auth_cookie_key",          # Secret key
+    credentials,  # Use the full credentials structure, not just credentials["usernames"]
+    "sene_predictor_app",
+    "auth_cookie_key",
     cookie_expiry_days=1
 )
 
-# === Login Interface ===
+# Login
 name, auth_status, username = authenticator.login("Login", "sidebar")
 
-# === Authentication Handling ===
+# Authentication handling
 if auth_status is False:
     st.sidebar.error("❌ Invalid credentials. Please try again.")
     st.stop()
@@ -32,46 +38,15 @@ else:
     # Retrieve user role
     user_role = credentials["usernames"].get(username, {}).get("role", "user")
 
-    # === Display Based on Role ===
+    # Display based on role
     st.title("Smart Yield Sènè Predictor")
 
     if user_role == "admin":
         st.subheader("👑 Admin Dashboard")
         st.write("Manage users, view logs, and more.")
-        
-        # ➕ Add new user section
-        with st.expander("➕ Add a new user"):
-            new_username = st.text_input("Username")
-            new_name = st.text_input("Full name")
-            new_password = st.text_input("Password", type="password")
-            new_role = st.selectbox("Role", ["user", "admin"])
-
-            if st.button("Create User"):
-                if new_username in credentials["usernames"]:
-                    st.warning("⚠️ This username already exists.")
-                else:
-                    hashed_pw = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
-                    credentials["usernames"][new_username] = {
-                        "name": new_name,
-                        "password": hashed_pw,
-                        "role": new_role
-                    }
-                    with open("hashed_credentials.json", "w") as f:
-                        json.dump(credentials, f, indent=4)
-                    st.success("✅ User successfully added.")
-
     elif user_role == "user":
         st.subheader("🌾 User Dashboard")
         st.write("Welcome to your dashboard.")
-
-# === App setup ===
-st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
-
-# === Debugging password validation ===
-def check_password(password, stored_hash):
-    return bcrypt.checkpw(password.encode(), stored_hash.encode())
-
-
     # === Animation helper ===
     def load_lottieurl(url):
         try:
