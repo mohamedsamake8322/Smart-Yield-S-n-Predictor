@@ -35,14 +35,16 @@ import bcrypt
 try:
     with open("hashed_credentials.json", "r", encoding="utf-8") as f:
         credentials = json.load(f)
-    
-    # Debugging : Afficher le contenu des credentials pour vérifier le format
-    st.write("Debugging credentials structure:", credentials)
 
-    # Vérification de la clé "usernames"
+    # Debugging : afficher le JSON chargé
+    st.write("🔍 Debugging credentials structure:", credentials)
+
     if "usernames" not in credentials:
         st.error("⚠️ Error: 'usernames' key is missing in credentials file.")
         st.stop()
+except Exception as e:
+    st.error(f"🚨 Error loading JSON file: {e}")
+    st.stop()
 except json.JSONDecodeError:
     st.error("🚨 Error loading JSON file. Check its format.")
     st.stop()
