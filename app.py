@@ -32,14 +32,14 @@ with open("hashed_credentials.json", "r") as f:
 
 authenticator = stauth.Authenticate(
     credentials,
-    "sene_predictor_app",   # nom du cookie
-    "auth_cookie_key",      # clé secrète du cookie
+    "sene_predictor_app",
+    "auth_cookie_key",
     cookie_expiry_days=1
 )
-# ──────────────────────────── Login ────────────────────────────
+
 name, authentication_status, username = authenticator.login(
-location="sidebar", # ✅ correct
-form_name="🔐 Login" # ✅ correct
+    location="sidebar",
+    form_name="🔐 Login"
 )
 
 if authentication_status is False:
@@ -49,10 +49,9 @@ elif authentication_status is None:
     st.sidebar.warning("👈 Please enter your credentials")
     st.stop()
 else:
-    authenticator.logout("🔓 Logout", "sidebar")   # unique bouton logout
+    authenticator.logout("🔓 Logout", "sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
     USERNAME = username
-        # à utiliser dans le reste de l’app
 
 # Authenticated user info
 USERNAME = st.session_state.username
