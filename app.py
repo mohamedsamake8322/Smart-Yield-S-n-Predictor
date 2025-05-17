@@ -31,7 +31,7 @@ from streamlit_folium import st_folium
 with open("hashed_credentials.json", "r") as f:
     data = json.load(f)
     if "credentials" in data:
-        credentials = data["credentials"]
+        credentials = data["credentials"]["usernames"]
     else:
         st.error("Le fichier 'hashed_credentials.json' ne contient pas de clé 'credentials'.")
         st.stop()
