@@ -1,3 +1,33 @@
+import streamlit as st  # type: ignore
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
+import datetime
+import os
+import joblib
+import hashlib
+import json
+import requests
+import torch
+import openai
+from PIL import Image
+from torchvision import transforms
+from auth import verify_password, get_name
+from streamlit_lottie import st_lottie
+from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.add_vertical_space import add_vertical_space
+from langchain.llms import OpenAI
+from langchain.chains import ConversationChain
+import streamlit_authenticator as stauth
+from disease_model import load_disease_model, predict_disease
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from database import init_db, save_prediction, get_user_predictions, save_location
+from evaluate import evaluate_model
+from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
+from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+import folium
+from streamlit_folium import st_folium
+
+# Charger les identifiants depuis le fichier JSON
 import streamlit as st
 import json
 import streamlit_authenticator as stauth
@@ -47,6 +77,23 @@ else:
     elif user_role == "user":
         st.subheader("🌾 User Dashboard")
         st.write("Welcome to your dashboard.")
+    # === App setup ===
+    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+    st.title("🌾 Smart Yield Sènè Predictor")
+
+    MODEL_PATH = "model/model_xgb.pkl"
+    DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
+    DB_FILE = "history.db"
+    init_db()
+
+    model = load_model(MODEL_PATH)
+    disease_model = load_disease_model(DISEASE_MODEL_PATH)
+    menu = [
+        "Home", "Retrain Model", "History", "Performance",
+        "Disease Detection", "Fertilization Advice", "Field Map"
+    ]
+    choice = st.sidebar.selectbox("Menu", menu)
+
     # === Animation helper ===
     def load_lottieurl(url):
         try:
