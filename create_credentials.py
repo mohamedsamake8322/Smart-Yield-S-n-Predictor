@@ -19,6 +19,6 @@ for username, data in users.items():
 
 # === Sauvegarde dans un fichier JSON ===
 with open("hashed_credentials.json", "w") as f:
-    json.dump(hashed_credentials, f, indent=4)
+    json.dump({"usernames": hashed_credentials}, f, indent=4)
 
-print("✅ Fichier 'hashed_credentials.json' généré avec succès.")
+print("✅ hashed credentials.json' file generated successfully.")
