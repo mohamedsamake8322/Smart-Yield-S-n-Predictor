@@ -11,7 +11,7 @@ import torch
 import openai
 from PIL import Image
 from torchvision import transforms
-import streamlit_authenticator as stauth  # For authentication
+from auth import verify_password, get_name
 from streamlit_lottie import st_lottie
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.add_vertical_space import add_vertical_space
@@ -29,7 +29,7 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 with open("hashed_credentials.json", "r") as f:
     credentials = json.load(f)
 
-authenticator = stauth.Authenticate(
+authenticator = stauth.Authenticate( # type: ignore
     credentials,
     "sene_predictor_app",  # Cookie name
     "auth_cookie",         # Cookie key
