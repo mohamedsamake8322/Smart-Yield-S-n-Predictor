@@ -39,8 +39,8 @@ authenticator = stauth.Authenticate(
 
 # ──────────────────────────── Login ────────────────────────────
 name, authentication_status, username = authenticator.login(
-    "🔐 Login",          # form_name  (1er argument, positionnel)
-    "sidebar"            # location   (2e argument, positionnel)
+    "sidebar ",          # form_name  (1er argument, positionnel)
+    "🔐 Login"            # location   (2e argument, positionnel)
 )
 
 if authentication_status is False:
