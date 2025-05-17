@@ -11,74 +11,46 @@ import torch
 import openai
 from PIL import Image
 from torchvision import transforms
-from auth import verify_password, get_name
+import streamlit_authenticator as stauth  # For authentication
 from streamlit_lottie import st_lottie
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.add_vertical_space import add_vertical_space
 from langchain.llms import OpenAI
 from langchain.chains import ConversationChain
-import streamlit_authenticator as stauth
+
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
-import folium
-from streamlit_folium import st_folium
 
-# Charger les identifiants depuis le fichier JSON
-import streamlit as st
-import json
-import streamlit_authenticator as stauth
-
-# === Load credentials and validate structure ===
-with open("hashed_credentials.json") as f:
+# === Authentication setup ===
+with open("hashed_credentials.json", "r") as f:
     credentials = json.load(f)
 
-# Debugging: print credentials
-st.write("Debugging credentials structure:", credentials)
-
-if "usernames" not in credentials:
-    st.error("⚠️ Error: 'usernames' key is missing in credentials file.")
-    st.stop()
-
-# Authentication setup
 authenticator = stauth.Authenticate(
-    credentials,  # Use the full credentials structure, not just credentials["usernames"]
-    "sene_predictor_app",
-    "auth_cookie_key",
+    credentials,
+    "sene_predictor_app",  # Cookie name
+    "auth_cookie",         # Cookie key
     cookie_expiry_days=1
 )
 
-# Login
-name, auth_status, username = authenticator.login("Login", "sidebar")
+name, authentication_status, username = authenticator.login("Login", "sidebar")
 
-# Authentication handling
-if auth_status is False:
-    st.sidebar.error("❌ Invalid credentials. Please try again.")
+if authentication_status is False:
+    st.error("❌ Username or password is incorrect.")
     st.stop()
-elif auth_status is None:
-    st.sidebar.warning("👈 Please log in.")
+elif authentication_status is None:
+    st.warning("👈 Please enter your credentials.")
     st.stop()
-else:
-    authenticator.logout("Logout", "sidebar")
+elif authentication_status:
+    authenticator.logout("🔓 Logout", "sidebar")
     st.sidebar.success(f"✅ Logged in as {name}")
+    USERNAME = username
 
-    # Retrieve user role
-    user_role = credentials["usernames"].get(username, {}).get("role", "user")
-
-    # Display based on role
-    st.title("Smart Yield Sènè Predictor")
-
-    if user_role == "admin":
-        st.subheader("👑 Admin Dashboard")
-        st.write("Manage users, view logs, and more.")
-    elif user_role == "user":
-        st.subheader("🌾 User Dashboard")
-        st.write("Welcome to your dashboard.")
     # === App setup ===
-    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+    st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
     st.title("🌾 Smart Yield Sènè Predictor")
 
     MODEL_PATH = "model/model_xgb.pkl"
