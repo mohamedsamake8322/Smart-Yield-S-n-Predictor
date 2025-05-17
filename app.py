@@ -30,16 +30,18 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 with open("hashed_credentials.json") as f:
     credentials = json.load(f)
 
-# Configurer l'authenticator
 authenticator = stauth.Authenticate(
     credentials,
-    "sene_predictor_app",  # Nom du cookie
-    "auth_cookie_key",     # Clé secrète du cookie
+    "sene_predictor_app",
+    "auth_cookie_key",
     cookie_expiry_days=1
 )
 
-# Interface de login dans la sidebar
-name, authentication_status, username = authenticator.login("🔐 Login", "sidebar")
+# --- Login ---
+name, authentication_status, username = authenticator.login(
+    form_name="🔐 Login",
+    location="sidebar"
+)
 
 if authentication_status is False:
     st.sidebar.error("❌ Wrong credentials")
@@ -48,9 +50,9 @@ elif authentication_status is None:
     st.sidebar.warning("👈 Please enter your credentials")
     st.stop()
 else:
-    authenticator.logout("🔓 Logout", "main")
+    authenticator.logout("🔓 Logout", "sidebar")   # un seul bouton logout
     st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username
+    USERNAME = username       # à utiliser partout dans l'app
 
 # Authenticated user info
 USERNAME = st.session_state.username
