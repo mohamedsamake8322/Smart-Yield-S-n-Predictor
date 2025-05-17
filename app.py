@@ -28,19 +28,16 @@ import folium
 from streamlit_folium import st_folium
 
 # === Authentification ===
-import os, json, streamlit as st, streamlit_authenticator as stauth
-
-# === Chargement du JSON ===
 file_path = os.path.join(os.path.dirname(__file__), "hashed_credentials.json")
 with open(file_path, "r") as f:
     data = json.load(f)
-    if "usernames" in data:
-        credentials = data["usernames"]
-    else:
-        st.error("Le fichier 'hashed_credentials.json' doit contenir une clé 'usernames'.")
+    try:
+        # Descendre dans credentials → usernames
+        credentials = data["credentials"]["usernames"]
+    except KeyError:
+        st.error("Le fichier 'hashed_credentials.json' doit contenir 'credentials' → 'usernames'.")
         st.stop()
 
-# === Initialisation de l'authenticator ===
 authenticator = stauth.Authenticate(
     credentials,
     "sene_predictor_app",
@@ -48,7 +45,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# === Login ===
+# --- Login (location seulement) ---
 name, authentication_status, username = authenticator.login("sidebar")
 
 if authentication_status is False:
@@ -58,20 +55,9 @@ elif authentication_status is None:
     st.sidebar.warning("👈 Please enter your credentials.")
     st.stop()
 else:
-    # === Logout et affichage utilisateur ===
     authenticator.logout("sidebar")
-    st.session_state["name"] = name
-    st.session_state["username"] = username
-
-    USERNAME = st.session_state["username"]
     st.sidebar.success(f"✅ Logged in as {name}")
-    st.sidebar.markdown("---")
-    st.sidebar.write(f"👤 User: `{USERNAME}`")
-
-    # Bouton de déconnexion manuel (optionnel)
-    if st.sidebar.button("🔓 Logout"):
-        st.session_state.clear()
-        st.experimental_rerun()
+    USERNAME = username
 
 
     # === App setup ===
