@@ -24,6 +24,8 @@ from database import init_db, save_prediction, get_user_predictions, save_locati
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+import folium
+from streamlit_folium import st_folium
 
 # === Authentification ===
 with open("hashed_credentials.json", "r") as f:
@@ -39,32 +41,32 @@ authenticator = stauth.Authenticate(
 name, authentication_status, username = authenticator.login(title="🔐 Login", location="main")
 
 if authentication_status is False:
-    st.sidebar.error("❌ Wrong credentials")
+    st.sidebar.error("❌ Incorrect credentials. Please try again.")
     st.stop()
 elif authentication_status is None:
-    st.sidebar.warning("👈 Please enter your credentials")
+    st.sidebar.warning("👈 Please enter your credentials.")
     st.stop()
 else:
     authenticator.logout("🔓 Logout", location="sidebar")
     
-    # Stockage sécurisé dans la session
+    # Secure session storage
     st.session_state["name"] = name
     st.session_state["username"] = username
 
-    # Affichage utilisateur connecté
+    # Display logged-in user
     USERNAME = st.session_state["username"]
     st.sidebar.success(f"✅ Logged in as {name}")
     st.sidebar.markdown("---")
-    st.sidebar.write(f"👤 Utilisateur : `{USERNAME}`")
+    st.sidebar.write(f"👤 User: `{USERNAME}`")
 
-    # Bouton de déconnexion supplémentaire
+    # Additional logout button
     if st.sidebar.button("🔓 Logout"):
         st.session_state.authenticated = False
         st.experimental_rerun()
 
 
     # === App setup ===
-    st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
+    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
     st.title("🌾 Smart Yield Sènè Predictor")
 
     MODEL_PATH = "model/model_xgb.pkl"
