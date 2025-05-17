@@ -24,6 +24,8 @@ from database import init_db, save_prediction, get_user_predictions, save_locati
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+import streamlit_authenticator as stauth
+st.write("Version de streamlit-authenticator :", stauth.__version__)
 
 # Chargement des identifiants hachés
 with open("hashed_credentials.json", "r") as f:
