@@ -38,7 +38,7 @@ authenticator = stauth.Authenticate(
 )
 
 # Interface de connexion
-name, authentication_status, username = authenticator.login("🔐 Login")
+name, authentication_status, username = authenticator.login(location='main', title='🔐 Login')
 
 # Gestion des cas
 if authentication_status is False:
