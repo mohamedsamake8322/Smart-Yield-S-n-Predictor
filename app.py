@@ -37,10 +37,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login(
-    location="sidebar",
-    form_name="🔐 Login"
-)
+name, authentication_status, username = authenticator.login("🔐 Login")
 
 if authentication_status is False:
     st.sidebar.error("❌ Wrong credentials")
