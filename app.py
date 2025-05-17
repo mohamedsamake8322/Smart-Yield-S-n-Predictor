@@ -36,11 +36,10 @@ authenticator = stauth.Authenticate(
     "auth_cookie_key",      # clé secrète du cookie
     cookie_expiry_days=1
 )
-
 # ──────────────────────────── Login ────────────────────────────
 name, authentication_status, username = authenticator.login(
-    "sidebar ",          # form_name  (1er argument, positionnel)
-    "🔐 Login"            # location   (2e argument, positionnel)
+location="sidebar", # ✅ correct
+form_name="🔐 Login" # ✅ correct
 )
 
 if authentication_status is False:
@@ -52,7 +51,8 @@ elif authentication_status is None:
 else:
     authenticator.logout("🔓 Logout", "sidebar")   # unique bouton logout
     st.sidebar.success(f"✅ Logged in as {name}")
-    USERNAME = username        # à utiliser dans le reste de l’app
+    USERNAME = username
+        # à utiliser dans le reste de l’app
 
 # Authenticated user info
 USERNAME = st.session_state.username
