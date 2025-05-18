@@ -54,8 +54,15 @@ def verify_password(username, provided_password):
         stored_password = cur.fetchone()
 
         if stored_password:
-            stored_password = stored_password[0]
-            return bcrypt.checkpw(provided_password.encode(), stored_password.encode("utf-8"))
+            stored_password = stored_password[0].strip()  # Remove unwanted spaces or characters
+            print(f"🔎 Stored password from DB: {stored_password}")  # Debugging line
+            
+            # Ensure that the password is properly formatted before comparison
+            if stored_password.startswith("$2b$"):
+                return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
+            else:
+                print("🚨 Error: Stored password is not a valid bcrypt hash.")
+                return False
         return False
     except psycopg2.InterfaceError as e:
         print(f"🚨 PostgreSQL interface error: {e}")
@@ -85,10 +92,10 @@ def get_role(username):
 # --- AUTOMATED TESTS ---
 if __name__ == "__main__":
     print("\n🚀 Test: Registering a user with a secure password...")
-    register_user("test_user", "Sfhsama4", "user")  # Password will be securely hashed
+    register_user("test_user", "Mohsama4", "user")  # Password will be securely hashed
 
     print("\n🔎 Test: Verifying the password...")
-    if verify_password("test_user", "Sfhsama4"):  # Checking with the raw password
+    if verify_password("test_user", "Mohsama4"):  # Checking with the raw password
         print("✅ Successful login!")
     else:
         print("❌ Login failed.")
