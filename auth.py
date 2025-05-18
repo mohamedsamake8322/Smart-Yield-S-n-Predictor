@@ -83,3 +83,18 @@ def get_role(username):
     finally:
         cur.close()
         conn.close()
+
+# --- TESTS AUTOMATIQUES ---
+if __name__ == "__main__":
+    print("\n🚀 Test : Ajout d'un utilisateur...")
+    register_user("new_user", "secure_password", "user")
+
+    print("\n🔎 Test : Vérification du mot de passe...")
+    if verify_password("test_user", "new_hashed_password"):
+        print("✅ Connexion réussie !")
+    else:
+        print("❌ Échec de connexion.")
+
+    print("\n🔹 Test : Récupération du rôle...")
+    role = get_role("test_user")
+    print(f"🎭 Rôle de 'test_user' : {role}")
