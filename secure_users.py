@@ -3,9 +3,9 @@ import bcrypt
 
 # Connect to PostgreSQL
 conn = psycopg2.connect(
-    dbname="smart_yield",  # Change this if your database name is different
+    dbname="smart_yield",  
     user="postgres",
-    password="70179877Moh#",  # Replace this with your PostgreSQL password
+    password="70179877Moh#",  
     host="localhost",
     port="5432"
 )
@@ -20,21 +20,34 @@ def hash_password(password):
 
 # Insert a user with a hashed password
 username = "secure_user"
-password = "SuperSecret123"  # User's original password
+password = "SuperSecret123"  
 hashed_password = hash_password(password)
 
 cur.execute(
-    "INSERT INTO users (username, password, role) VALUES (%s, %s, %s);",
+    "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
     (username, hashed_password.decode(), "user")
 )
 
 conn.commit()
 print(f"User '{username}' added successfully!")
 
-# Verify the insertion
-cur.execute("SELECT * FROM users;")
-print(cur.fetchall())
+# Function to check password
+def check_password(stored_password, provided_password):
+    return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
 
-# Close the connection
+# Verify a user
+cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
+stored_password = cur.fetchone()
+
+if stored_password:
+    stored_password = stored_password[0]
+    if check_password(stored_password, password):
+        print(f"Connexion réussie pour {username} ! ✅")
+    else:
+        print("Mot de passe incorrect ❌")
+else:
+    print(f"L'utilisateur {username} n'existe pas !")
+
+# Close the connection AFTER all operations
 cur.close()
 conn.close()
