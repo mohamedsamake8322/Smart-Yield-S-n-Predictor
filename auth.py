@@ -55,7 +55,7 @@ def verify_password(username, provided_password):
 
         if stored_password:
             stored_password = stored_password[0]
-            return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
+            return bcrypt.checkpw(provided_password.encode(), stored_password.encode("utf-8"))
         return False
     except psycopg2.InterfaceError as e:
         print(f"🚨 PostgreSQL interface error: {e}")

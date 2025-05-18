@@ -72,7 +72,7 @@ def login():
 
     if not stored_password:
         return jsonify({"error": "❌ User does not exist"}), 404
-
+    print(f"🔎 Stored password from DB: {stored_password}")
     if bcrypt.checkpw(password.encode(), stored_password[0].encode()):
         access_token = create_access_token(identity=username)
         return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
