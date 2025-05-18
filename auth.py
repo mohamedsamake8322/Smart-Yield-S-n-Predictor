@@ -1,13 +1,14 @@
 import psycopg2
 import bcrypt
 
-# Connexion à PostgreSQL
+# Connexion à PostgreSQL (Neon)
 conn = psycopg2.connect(
-    dbname="smart_yield",  
-    user="postgres",
-    password="70179877Moh#",  
-    host="localhost",
-    port="5432"
+    dbname="neondb",
+    user="neondb_owner",
+    password="npg_SEw7pzOuTt5s",
+    host="ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech",
+    port="5432",
+    sslmode="require"  # Important pour Neon
 )
 
 cur = conn.cursor()
@@ -42,7 +43,7 @@ def verify_password(username, provided_password):
     
     return False
 
-# Fonction pour récupérer le nom d’un utilisateur
+# Fonction pour récupérer le rôle d’un utilisateur
 def get_role(username):
     cur.execute("SELECT role FROM users WHERE username = %s;", (username,))
     role = cur.fetchone()
