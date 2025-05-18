@@ -1,33 +1,53 @@
+import psycopg2
 import bcrypt
-import json
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-SECRET_KEY = os.getenv("APP_SECRET_KEY")
+# Connexion à PostgreSQL
+conn = psycopg2.connect(
+    dbname="smart_yield",  
+    user="postgres",
+    password="70179877Moh#",  
+    host="localhost",
+    port="5432"
+)
 
-CREDENTIALS_FILE = "hashed_credentials.json"
+cur = conn.cursor()
 
-def load_credentials():
+# Fonction pour hacher un mot de passe
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode(), salt)
+    return hashed.decode()
+
+# Fonction pour enregistrer un nouvel utilisateur
+def register_user(username, password, role="user"):
+    hashed_password = hash_password(password)
     try:
-        with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-            credentials = json.load(f)
+        cur.execute(
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
+            (username, hashed_password, role)
+        )
+        conn.commit()
+        print(f"✅ Utilisateur '{username}' enregistré avec succès.")
+    except Exception as e:
+        print(f"🚨 Erreur lors de l'inscription : {e}")
 
-        if "usernames" not in credentials:
-            raise ValueError("⚠️ Error: 'usernames' key is missing in credentials file.")
-        
-        return credentials
-    except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"🚨 Error loading JSON file: {e}")
-        return {"usernames": {}}  # Retourne un dictionnaire vide pour éviter les crashes
+# Fonction pour vérifier un mot de passe
+def verify_password(username, provided_password):
+    cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
+    stored_password = cur.fetchone()
 
-def verify_password(username, password):
-    credentials = load_credentials()
-    if username in credentials["usernames"]:  # Vérifie correctement les usernames
-        hashed = credentials["usernames"][username]["password"]
-        return bcrypt.checkpw(password.encode(), hashed.encode())  # Corrigé
+    if stored_password:
+        stored_password = stored_password[0]
+        return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
+    
     return False
 
-def get_name(username):
-    credentials = load_credentials()
-    return credentials["usernames"].get(username, {}).get("name", username)
+# Fonction pour récupérer le nom d’un utilisateur
+def get_role(username):
+    cur.execute("SELECT role FROM users WHERE username = %s;", (username,))
+    role = cur.fetchone()
+    return role[0] if role else None
+
+# Fermer la connexion quand tout est terminé
+cur.close()
+conn.close()

@@ -1,22 +1,14 @@
-import streamlit as st  # type: ignore
-import pandas as pd  # type: ignore
-import numpy as np  # type: ignore
+import streamlit as st  
+import pandas as pd  
+import numpy as np  
 import datetime
 import os
-import joblib
-import hashlib
-import json
 import requests
 import torch
 import openai
 from PIL import Image
 from torchvision import transforms
-from auth import verify_password, get_name
-from streamlit_lottie import st_lottie
-from streamlit_extras.switch_page_button import switch_page
-from streamlit_extras.add_vertical_space import add_vertical_space
-from langchain.llms import OpenAI
-from langchain.chains import ConversationChain
+from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
 
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
@@ -25,90 +17,42 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 
-# === Authentication setup ===
-import streamlit as st  # type: ignore
-import json
-import streamlit_authenticator as stauth
-import bcrypt
-
-# === Load credentials ===
-try:
-    with open("hashed_credentials.json", "r", encoding="utf-8") as f:
-        credentials = json.load(f)
-
-    # Debugging : afficher le JSON chargé
-    st.write("🔍 Debugging credentials structure:", credentials)
-
-    if "usernames" not in credentials:
-        st.error("⚠️ Error: 'usernames' key is missing in credentials file.")
-        st.stop()
-except Exception as e:
-    st.error(f"🚨 Error loading JSON file: {e}")
-    st.stop()
-except json.JSONDecodeError:
-    st.error("🚨 Error loading JSON file. Check its format.")
-    st.stop()
-
-# === Vérification de la structure des credentials ===
-if "usernames" not in credentials:
-    st.error("⚠️ Error: 'usernames' key missing in credentials file.")
-    st.stop()
-
-# === Setup de l'authentification ===
-authenticator = stauth.Authenticate(
-    credentials["usernames"],  # Utilisation correcte des credentials
-    "sene_predictor_app",      # Cookie name
-    "auth_cookie",             # Cookie key
-    cookie_expiry_days=1
-)
-
 # === Interface de connexion ===
-name, authentication_status, username = authenticator.login("Login", "sidebar")
+st.title("Smart Yield Sènè Predictor")
 
-# === Gestion des erreurs d'authentification ===
-if authentication_status is False:
-    st.error("❌ Username or password is incorrect.")
-    st.stop()
-elif authentication_status is None:
-    st.warning("👈 Please enter your credentials.")
-    st.stop()
-elif authentication_status:
-    authenticator.logout("🔓 Logout", "sidebar")
-    st.sidebar.success(f"✅ Logged in as {name}")
+st.sidebar.header("🔐 Authentication")
 
-    # === Vérification du rôle de l'utilisateur connecté ===
-    user_role = credentials["usernames"].get(username, {}).get("role", "user")
+# Entrée utilisateur
+username = st.sidebar.text_input("👤 Username")
+password = st.sidebar.text_input("🔑 Password", type="password")
 
-    st.title("Smart Yield Sènè Predictor")
+# Vérifier les identifiants avec PostgreSQL
+if st.sidebar.button("Login"):
+    if verify_password(username, password):
+        st.sidebar.success(f"✅ Logged in as {username}")
+        user_role = get_role(username)  # On récupère le rôle de l'utilisateur depuis PostgreSQL
+    else:
+        st.sidebar.error("❌ Username or password incorrect.")
 
-    # === Espace Admin uniquement ===
-    if user_role == "admin":
-        st.subheader("👑 Admin Dashboard")
-        st.write("Manage users, view logs, and more.")
+# === Interface Admin uniquement ===
+if "user_role" in locals() and user_role == "admin":
+    st.subheader("👑 Admin Dashboard")
+    st.write("Manage users, view logs, and more.")
 
-        # Interface pour ajouter un nouvel utilisateur
-        with st.expander("➕ Add a new user"):
-            new_username = st.text_input("Username")
-            new_name = st.text_input("Full name")
-            new_password = st.text_input("Password", type="password")
-            new_role = st.selectbox("Role", ["user", "admin"])
+    # Interface pour ajouter un nouvel utilisateur
+    with st.expander("➕ Add a new user"):
+        new_username = st.text_input("New Username")
+        new_password = st.text_input("New Password", type="password")
+        new_role = st.selectbox("Role", ["user", "admin"])
 
-            if st.button("Create User"):
-                if new_username in credentials["usernames"]:
-                    st.warning("⚠️ This username already exists.")
-                else:
-                    hashed_pw = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
-                    credentials["usernames"][new_username] = {
-                        "name": new_name,
-                        "password": hashed_pw,
-                        "role": new_role
-                    }
-                    with open("hashed_credentials.json", "w") as f:
-                        json.dump(credentials, f, indent=4)
-                    st.success("✅ User successfully added.")
+        from auth import register_user
+        if st.button("Create User"):
+            register_user(new_username, new_password, new_role)
+            st.success(f"✅ User '{new_username}' added successfully.")
+
 
     # === App setup ===
-    st.set_page_config(page_title="Smart Yield Predictor", layout="wide")
+    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
     st.title("🌾 Smart Yield Sènè Predictor")
 
     MODEL_PATH = "model/model_xgb.pkl"
