@@ -1,7 +1,7 @@
 import psycopg2
 import bcrypt
 
-# Fonction pour créer une connexion PostgreSQL
+# Function to create a PostgreSQL connection
 def get_connection():
     try:
         conn = psycopg2.connect(
@@ -14,16 +14,14 @@ def get_connection():
         )
         return conn
     except psycopg2.OperationalError as e:
-        print(f"🚨 Erreur de connexion : {e}")
+        print(f"🚨 Connection error: {e}")
         return None
 
-# Fonction pour hacher un mot de passe
+# Function to hash a password
 def hash_password(password):
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode(), salt)
-    return hashed.decode()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-# Fonction pour enregistrer un nouvel utilisateur
+# Function to register a new user with a properly hashed password
 def register_user(username, password, role="user"):
     conn = get_connection()
     if conn is None:
@@ -31,20 +29,20 @@ def register_user(username, password, role="user"):
     
     try:
         cur = conn.cursor()
-        hashed_password = hash_password(password)
+        hashed_password = hash_password(password)  # Ensuring password is hashed before storage
         cur.execute(
             "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
             (username, hashed_password, role)
         )
         conn.commit()
-        print(f"✅ Utilisateur '{username}' enregistré avec succès.")
+        print(f"✅ User '{username}' successfully registered.")
     except psycopg2.InterfaceError as e:
-        print(f"🚨 Erreur de connexion PostgreSQL : {e}")
+        print(f"🚨 PostgreSQL connection error: {e}")
     finally:
         cur.close()
         conn.close()
 
-# Fonction pour vérifier un mot de passe
+# Function to verify a hashed password
 def verify_password(username, provided_password):
     conn = get_connection()
     if conn is None:
@@ -60,13 +58,13 @@ def verify_password(username, provided_password):
             return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
         return False
     except psycopg2.InterfaceError as e:
-        print(f"🚨 Erreur d'interface PostgreSQL : {e}")
+        print(f"🚨 PostgreSQL interface error: {e}")
         return False
     finally:
         cur.close()
         conn.close()
 
-# Fonction pour récupérer le rôle d’un utilisateur
+# Function to retrieve a user's role
 def get_role(username):
     conn = get_connection()
     if conn is None:
@@ -78,23 +76,23 @@ def get_role(username):
         role = cur.fetchone()
         return role[0] if role else None
     except psycopg2.InterfaceError as e:
-        print(f"🚨 Erreur d'interface PostgreSQL : {e}")
+        print(f"🚨 PostgreSQL interface error: {e}")
         return None
     finally:
         cur.close()
         conn.close()
 
-# --- TESTS AUTOMATIQUES ---
+# --- AUTOMATED TESTS ---
 if __name__ == "__main__":
-    print("\n🚀 Test : Ajout d'un utilisateur...")
-    register_user("new_user", "secure_password", "user")
+    print("\n🚀 Test: Registering a user with a secure password...")
+    register_user("test_user", "Sfhsama4", "user")  # Password will be securely hashed
 
-    print("\n🔎 Test : Vérification du mot de passe...")
-    if verify_password("test_user", "new_hashed_password"):
-        print("✅ Connexion réussie !")
+    print("\n🔎 Test: Verifying the password...")
+    if verify_password("test_user", "Sfhsama4"):  # Checking with the raw password
+        print("✅ Successful login!")
     else:
-        print("❌ Échec de connexion.")
+        print("❌ Login failed.")
 
-    print("\n🔹 Test : Récupération du rôle...")
+    print("\n🔹 Test: Retrieving the user's role...")
     role = get_role("test_user")
-    print(f"🎭 Rôle de 'test_user' : {role}")
+    print(f"🎭 Role of 'test_user': {role}")
