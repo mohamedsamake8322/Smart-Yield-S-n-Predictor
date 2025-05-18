@@ -2,7 +2,7 @@ import psycopg2
 
 # Connect to PostgreSQL
 conn = psycopg2.connect(
-    dbname="mohame_samake",  # Change to your database name if needed
+    dbname="smart_yield",  # Change to your database name if needed
     user="postgres",
     password="70179877Moh#",  # Replace this with your actual PostgreSQL password
     host="localhost",
