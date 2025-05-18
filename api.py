@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import psycopg2
 import bcrypt
 import os
@@ -78,6 +78,13 @@ def login():
         return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
 
     return jsonify({"error": "❌ Incorrect password"}), 401
+
+# Endpoint sécurisé - Accès seulement avec un JWT valide
+@app.route("/protected", methods=["GET"])
+@jwt_required()  # ⛔ Protège cette route, seulement les utilisateurs authentifiés peuvent y accéder
+def protected():
+    current_user = get_jwt_identity()  # Récupère l'utilisateur connecté via son token JWT
+    return jsonify({"message": f"🔒 Welcome {current_user}, you have access to this protected route!"}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
