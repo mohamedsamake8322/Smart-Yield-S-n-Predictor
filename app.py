@@ -13,7 +13,6 @@ st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 from PIL import Image
 from torchvision import transforms
 from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
-
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
