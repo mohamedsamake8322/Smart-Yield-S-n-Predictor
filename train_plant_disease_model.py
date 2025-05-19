@@ -1,9 +1,8 @@
-
 import os
 import torch
-import torchvision
 import torch.nn as nn
-from torchvision import datasets, transforms, models
+import timm  # Bibliothèque pour charger EfficientNet-B7
+from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -11,13 +10,14 @@ from tqdm import tqdm
 DATA_DIR = 'plant_disease_dataset'
 MODEL_PATH = 'plant_disease_model.pth'
 BATCH_SIZE = 32
-NUM_EPOCHS = 10
-LEARNING_RATE = 0.001
+NUM_EPOCHS = 20  # Augmentation du nombre d'époques pour une meilleure convergence
+LEARNING_RATE = 0.0001  # Réduction du LR pour s’adapter à un modèle plus profond
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# === Prétraitements ===
+# === Prétraitements optimisés ===
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize((300, 300)),  # Adapté à EfficientNet-B7
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406],
                          [0.229, 0.224, 0.225])
@@ -34,16 +34,20 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
 num_classes = len(train_dataset.classes)
 print(f"Classes détectées : {train_dataset.classes}")
 
-# === Chargement du modèle ResNet18 ===
-model = models.resnet18(pretrained=True)
-model.fc = nn.Linear(model.fc.in_features, num_classes)
+# === Chargement du modèle EfficientNet-B7 ===
+model = timm.create_model("efficientnet_b7", pretrained=True)
+
+# Modification de la dernière couche pour correspondre au nombre de classes
+model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+
+# Envoi sur le GPU si disponible
 model = model.to(DEVICE)
 
 # === Définition de la fonction de perte et de l'optimiseur ===
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)  # AdamW pour une meilleure régularisation
 
-# === Entraînement ===
+# === Entraînement amélioré ===
 for epoch in range(NUM_EPOCHS):
     model.train()
     running_loss = 0.0
@@ -62,7 +66,7 @@ for epoch in range(NUM_EPOCHS):
     avg_loss = running_loss / len(train_loader)
     print(f"📘 Epoch {epoch+1} | Training Loss: {avg_loss:.4f}")
 
-    # === Validation ===
+    # === Validation améliorée ===
     model.eval()
     correct = 0
     total = 0
@@ -79,4 +83,4 @@ for epoch in range(NUM_EPOCHS):
 
 # === Sauvegarde du modèle ===
 torch.save(model.state_dict(), MODEL_PATH)
-print(f"💾 Modèle sauvegardé dans {MODEL_PATH}")
+print(f"💾 Modèle EfficientNet-B7 sauvegardé dans {MODEL_PATH}")
