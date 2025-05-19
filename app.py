@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 import openai
 import shap
 import joblib
+os.system("pip list | grep bcrypt")  # Vérifier si bcrypt est installé
+os.system("pip install --no-cache-dir bcrypt")  # Force une installation propre
+import bcrypt  # Import après installation
+
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 from PIL import Image
 from torchvision import transforms
