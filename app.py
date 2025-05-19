@@ -3,13 +3,14 @@ import os
 
 # Vérifier si bcrypt est installé
 os.system("pip list | grep bcrypt")
-
+os.system("pip install --user bcrypt")
 # Installer bcrypt proprement avant l'importation
 os.system("pip install --no-cache-dir --user bcrypt")
 
 # Ajouter le chemin utilisateur aux modules Python
 sys.path.append(os.path.expanduser("~/.local/lib/python3.10/site-packages"))
-
+import sys
+print(sys.path)  # Vérifier où Python cherche les modules
 import bcrypt
 import streamlit as st  
 import pandas as pd  
