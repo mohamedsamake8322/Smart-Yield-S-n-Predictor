@@ -92,10 +92,10 @@ def get_role(username):
 # --- AUTOMATED TESTS ---
 if __name__ == "__main__":
     print("\n🚀 Test: Registering a user with a secure password...")
-    register_user("test_user", "Mohsama4", "user")  # Password will be securely hashed
+    register_user("test_user", "Moh#7017", "user")  # Password will be securely hashed
 
     print("\n🔎 Test: Verifying the password...")
-    if verify_password("test_user", "Mohsama4"):  # Checking with the raw password
+    if verify_password("test_user", "Moh#7017"):  # Checking with the raw password
         print("✅ Successful login!")
     else:
         print("❌ Login failed.")
