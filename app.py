@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd  
 import numpy as np  
 import datetime
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 import os
 import requests
 import torch
