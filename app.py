@@ -2,6 +2,7 @@ import sys
 import os
 os.system("pip install opencv-python-headless")
 # Vérifier si bcrypt est installé
+os.system("ldd $(which python) | grep libGL")
 os.system("pip list | grep bcrypt")
 os.system("pip install --user bcrypt")
 # Installer bcrypt proprement avant l'importation
