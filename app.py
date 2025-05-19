@@ -3,21 +3,14 @@ import pandas as pd
 import numpy as np  
 import datetime
 import os
-os.system("pip install bcrypt")
-os.system("pip install --no-cache-dir scikit-learn==1.1.3")
-import sys
-sys.path.append("/home/appuser/.local/lib/python3.10/site-packages")
-import bcrypt
 import requests
 import torch
-import matplotlib.pyplot as plt
 import openai
-import shap
-import joblib
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 from PIL import Image
 from torchvision import transforms
 from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
+
 from disease_model import load_disease_model, predict_disease
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from database import init_db, save_prediction, get_user_predictions, save_location
@@ -25,25 +18,7 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
-import sklearn
-print("Version de scikit-learn:", sklearn.__version__)
-MODEL_PATH = "model/model_xgb.pkl"
 
-# Vérifier si le fichier existe avant de le charger
-if not os.path.exists(MODEL_PATH):
-    st.error("🛑 Model file not found!")
-    print("Existing files:", os.listdir("model"))  # Afficher les fichiers existants
-else:
-    model = joblib.load(MODEL_PATH)
-
-# 📌 Fonction pour convertir le DataFrame en CSV formaté
-def convert_df_to_csv(df):
-    return df.to_csv(index=False, encoding="utf-8")
-
-# 📌 Vérification des colonnes requises dans le CSV
-def validate_csv_columns(df, required_cols):
-    missing_cols = [col for col in required_cols if col not in df.columns]
-    return not missing_cols, missing_cols
 # Function to load Lottie animation from URL
 def load_lottieurl(url: str):
     r = requests.get(url)
@@ -159,11 +134,9 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                 required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
                 if validate_csv_columns(df, required_cols):
                     df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-                    if st.button("Predict from CSV", key="predict_csv_button"):
+                    if st.button("Predict from CSV"):
                         if model:
                             df["PredictedYield"] = predict_batch(model, df)
-                            df["Timestamp"] = datetime.datetime.now()
-                            df["Username"] = USERNAME
                             st.success("✅ Prediction completed.")
                             st.subheader("🧾 Prediction Results")
                             st.dataframe(df)
@@ -186,61 +159,33 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                     st.error(f"❗ CSV must contain columns: {required_cols}")
 
                 st.subheader("📊 Visualizations")
-                # 🎛️ Interactive Filters
-                st.subheader("🎛️ Interactive Filters")
-                min_yield = st.slider("📊 Minimum Yield to Display (tons/ha)", 0.0, 10.0, 2.0)
-                date_range = st.date_input("📅 Select Period for Analysis", [datetime.datetime.now() - datetime.timedelta(days=30), datetime.datetime.now()])
-                # Filtering dataset
-                filtered_df = df[df["PredictedYield"] >= min_yield]
-                filtered_df = filtered_df[(filtered_df["Timestamp"] >= date_range[0]) & (filtered_df["Timestamp"] <= date_range[1])]
-                st.subheader("🧾 Filtered Prediction Results")
-                st.dataframe(filtered_df)
-
-                # Performance Metrics
-                st.subheader("📊 Yield Performance Metrics")
-                st.metric("📈 Average Yield", f"{filtered_df['PredictedYield'].mean():.2f} tons/ha")
-                st.metric("🔹 Max Yield", f"{filtered_df['PredictedYield'].max():.2f} tons/ha")
-                st.metric("🔻 Min Yield", f"{filtered_df['PredictedYield'].min():.2f} tons/ha")
-                tab1, tab2, tab3, tab4 = st.tabs([
-                    "Histogram", "Pie Chart", "Trend Over Time", "Distribution Analysis"
+                tab1, tab2, tab3 = st.tabs([
+                    "Histogram", "Pie Chart", "Trend Over Time"
                 ])
-                # Histogram
                 with tab1:
-                    fig1 = plot_yield_distribution(filtered_df)
+                    fig1 = plot_yield_distribution(df)
                     if fig1:
                         st.pyplot(fig1)
                     else:
                         st.warning("No predicted yield data to plot.")
-                        # Pie Chart
                 with tab2:
-                    fig2 = plot_yield_pie(filtered_df)
+                    fig2 = plot_yield_pie(df)
                     if fig2:
                         st.pyplot(fig2)
                     else:
                         st.warning("No predicted yield data to plot.")
-                        # Trend Over Time
                 with tab3:
-                    if "Timestamp" not in filtered_df.columns:
-                        df["Timestamp"] = pd.date_range(
+                    if "timestamp" not in df.columns:
+                        df["timestamp"] = pd.date_range(
                             end=datetime.datetime.now(),
                             periods=len(df),
                             freq='D'
                         )
-                    fig3 = plot_yield_over_time(filtered_df)
+                    fig3 = plot_yield_over_time(df)
                     if fig3:
                         st.pyplot(fig3)
                     else:
                         st.warning("No data for time trend.")
-                        with tab4:
-                            import seaborn as sns
-                            fig, ax = plt.subplots()
-                            sns.histplot(filtered_df["PredictedYield"], bins=20, kde=True, ax=ax)
-                            ax.set_title("📊 Yield Distribution Analysis")
-                            st.pyplot(fig)
-            else:
-                st.warning("⚠️ No data available for visualization.")
-                        # Distribution Analysis (Advanced Visualization
-                            
 
     # === Retrain Model ===
     elif choice == "Retrain Model":
