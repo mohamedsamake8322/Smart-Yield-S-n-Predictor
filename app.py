@@ -25,9 +25,13 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 MODEL_PATH = "model/model_xgb.pkl"
-model = joblib.load(MODEL_PATH)
+
+# Vérifier si le fichier existe avant de le charger
 if not os.path.exists(MODEL_PATH):
     st.error("🛑 Model file not found!")
+    print("Existing files:", os.listdir("model"))  # Afficher les fichiers existants
+else:
+    model = joblib.load(MODEL_PATH)
 
 # 📌 Fonction pour convertir le DataFrame en CSV formaté
 def convert_df_to_csv(df):
