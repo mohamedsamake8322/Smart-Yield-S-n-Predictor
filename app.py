@@ -6,6 +6,7 @@ import os
 import requests
 import torch
 import openai
+st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 from PIL import Image
 from torchvision import transforms
 from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
@@ -52,7 +53,6 @@ if "user_role" in locals() and user_role == "admin":
 
 
     # === App setup ===
-    st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
     st.title("🌾 Smart Yield Sènè Predictor")
 
     MODEL_PATH = "model/model_xgb.pkl"
