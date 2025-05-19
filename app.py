@@ -1,6 +1,6 @@
 import sys
 import os
-
+os.system("pip install opencv-python-headless")
 # Vérifier si bcrypt est installé
 os.system("pip list | grep bcrypt")
 os.system("pip install --user bcrypt")
@@ -9,7 +9,7 @@ os.system("pip install --no-cache-dir --user bcrypt")
 
 # Ajouter le chemin utilisateur aux modules Python
 sys.path.append(os.path.expanduser("~/.local/lib/python3.10/site-packages"))
-import sys
+import cv2
 print(sys.path)  # Vérifier où Python cherche les modules
 import bcrypt
 import streamlit as st  
