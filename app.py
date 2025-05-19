@@ -75,14 +75,20 @@ else:
 
         # Interface pour ajouter un nouvel utilisateur
         with st.expander("➕ Add a new user"):
-            new_username = st.text_input("New Username")
-            new_password = st.text_input("New Password", type="password")
-            new_role = st.selectbox("Role", ["user", "admin"])
+            new_username = st.text_input("New Username", key="new_username_input")  # Ajout d'un key unique
+    new_password = st.text_input("New Password", type="password", key="new_password_input")  # Ajout d'un key unique
+    new_role = st.selectbox("Role", ["user", "admin"])
 
-            from auth import register_user
-            if st.button("Create User"):
-                register_user(new_username, new_password, new_role)
-                st.success(f"✅ User '{new_username}' added successfully.")
+    from auth import register_user
+    if st.button("Create User", key="create_user_button"):
+        register_user(new_username, new_password, new_role)
+        st.success(f"✅ User '{new_username}' added successfully.")
+
+    from auth import register_user
+    if st.button("Create User", key="create_user_button"):
+          register_user(new_username, new_password, new_role)
+    st.success(f"✅ User '{new_username}' added successfully.")
+
     # === App setup ===
     st.title("🌾 Smart Yield Sènè Predictor 🍀🍎🍉")
 
@@ -133,7 +139,7 @@ else:
                 "Fertilizer": fertilizer
             }
 
-            if st.button("Predict Yield"):
+            if st.button("Predict Yield", key="predict_button"):
                 if model:
                     prediction = predict_single(model, features)
                     st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
@@ -155,7 +161,7 @@ else:
                 required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
                 if validate_csv_columns(df, required_cols):
                     df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-                    if st.button("Predict from CSV"):
+                if st.button("Predict from CSV", key="predict_csv_button"):
                         if model:
                             df["PredictedYield"] = predict_batch(model, df)
                             st.success("✅ Prediction completed.")
@@ -219,7 +225,7 @@ else:
                 "pH", "Fertilizer", "Yield"
             ]
             if validate_csv_columns(train_df, required_cols):
-                if st.button("Retrain"):
+                if st.button("Retrain", key="retrain_button"):
                     model = train_model(train_df)
                     save_model(model)
                     # reload model for immediate use
@@ -264,7 +270,7 @@ else:
         if image_file:
             image = Image.open(image_file).convert("RGB")
             st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
-            if st.button("🔍 Detect Disease"):
+            if st.button("🔍 Detect Disease", key="detect_disease_button"):
                 if disease_model:
                     label = predict_disease(disease_model, image)
                     detected_plant = label.split()[0] if label else "Unknown"
@@ -306,7 +312,7 @@ else:
         pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
         soil_type = st.selectbox("🧱 Soil Type", ["Sandy", "Clay", "Loamy"] )
         growth_stage = st.selectbox("🌱 Growth Stage", ["Germination", "Vegetative", "Flowering", "Maturity"] )
-        if st.button("🧮 Get Fertilization Advice"):
+        if st.button("🧮 Get Fertilization Advice", key="fertilization_advice_button"):
             advice = ""
             if crop in ["Maize", "Rice"]:
                 if pH < 5.5:
