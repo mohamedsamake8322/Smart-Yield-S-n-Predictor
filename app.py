@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd  
 import numpy as np  
 import datetime
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
 import os
 import requests
 import torch
@@ -27,72 +25,45 @@ def load_lottieurl(url: str):
     if r.status_code != 200:
         return None
     return r.json()
-
 # === Interface de connexion ===
-st.title("🌾🍓🍅 Smart Yield Sènè Predictor 🌽🥕🧄")
+st.title("Smart Yield Sènè Predictor")
 
-if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
-    # === Interface d’authentification (s’affiche seulement si non connecté) ===
-    st.sidebar.header("🔐 Authentication")
+st.sidebar.header("🔐 Authentication")
 
-    username = st.sidebar.text_input("👤 Username")
-    password = st.sidebar.text_input("🔑 Password", type="password")
-
-    if st.sidebar.button("Login"):
-        if verify_password(username, password):
-            st.session_state["authenticated"] = True  # Stocke l'état connecté
-            st.session_state["username"] = username
-            st.sidebar.success(f"✅ Logged in as {username}")
-            st.session_state["user_role"] = get_role(username)  # On récupère le rôle
-        else:
-            st.sidebar.error("❌ Username or password incorrect.")
-
-else:
-    # === Interface utilisateur une fois connecté ===
-    USERNAME = st.session_state.get("username", None)
-    st.sidebar.success(f"✅ Logged in as {USERNAME}")
-    
-    # Entrée utilisateur
+# Entrée utilisateur
 username = st.sidebar.text_input("👤 Username")
 password = st.sidebar.text_input("🔑 Password", type="password")
 
+# Vérifier les identifiants avec PostgreSQL
 if st.sidebar.button("Login"):
-        if verify_password(username, password):
-            st.session_state["authenticated"] = True  # Stocke l'état connecté
-            st.session_state["username"] = username  # Stocke l'username
-            st.sidebar.success(f"✅ Logged in as {username}")
-            st.session_state["user_role"] = get_role(username)  # On récupère le rôle
-        else:
-            st.sidebar.error("❌ Username or password incorrect.")
+    if verify_password(username, password):
+        st.session_state["username"] = username  # Stocke l'username après connexion
+        USERNAME = username  # Définit USERNAME
+        st.sidebar.success(f"✅ Logged in as {USERNAME}")
+        user_role = get_role(username)  # On récupère le rôle
+    else:
+        st.sidebar.error("❌ Username or password incorrect.")
 
-else:
-    # === Interface utilisateur une fois connecté ===
-    USERNAME = st.session_state["username"]
-    st.sidebar.success(f"✅ Logged in as {USERNAME}")
+# Récupérer USERNAME après connexion
+USERNAME = st.session_state.get("username", None)  # Vérifie si l’utilisateur est connecté
 
-    # === Interface Admin uniquement ===
-    if st.session_state.get("user_role") == "admin":
-        st.subheader("👑 Admin Dashboard")
-        st.write("Manage users, view logs, and more.")
+# === Interface Admin uniquement ===
+if USERNAME and "user_role" in locals() and user_role == "admin":
+    st.subheader("👑 Admin Dashboard")
+    st.write("Manage users, view logs, and more.")
 
-        # Interface pour ajouter un nouvel utilisateur
-        with st.expander("➕ Add a new user"):
-            new_username = st.text_input("New Username", key="new_username_input")  # Ajout d'un key unique
-    new_password = st.text_input("New Password", type="password", key="new_password_input")  # Ajout d'un key unique
-    new_role = st.selectbox("Role", ["user", "admin"])
+    # Interface pour ajouter un nouvel utilisateur
+    with st.expander("➕ Add a new user"):
+        new_username = st.text_input("New Username")
+        new_password = st.text_input("New Password", type="password")
+        new_role = st.selectbox("Role", ["user", "admin"])
 
-    from auth import register_user
-    if st.button("Create User", key="create_user_button"):
-        register_user(new_username, new_password, new_role)
-        st.success(f"✅ User '{new_username}' added successfully.")
-
-    from auth import register_user
-    if st.button("Create User", key="create_user_button"):
-          register_user(new_username, new_password, new_role)
-    st.success(f"✅ User '{new_username}' added successfully.")
-
+        from auth import register_user
+        if st.button("Create User"):
+            register_user(new_username, new_password, new_role)
+            st.success(f"✅ User '{new_username}' added successfully.")
     # === App setup ===
-    st.title("🌾 Smart Yield Sènè Predictor 🍀🍎🍉")
+    st.title("🌾 Smart Yield Sènè Predictor")
 
     MODEL_PATH = "model/model_xgb.pkl"
     DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
@@ -141,7 +112,7 @@ else:
                 "Fertilizer": fertilizer
             }
 
-            if st.button("Predict Yield", key="predict_button"):
+            if st.button("Predict Yield"):
                 if model:
                     prediction = predict_single(model, features)
                     st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
@@ -163,7 +134,7 @@ else:
                 required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
                 if validate_csv_columns(df, required_cols):
                     df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-                if st.button("Predict from CSV", key="predict_csv_button"):
+                    if st.button("Predict from CSV"):
                         if model:
                             df["PredictedYield"] = predict_batch(model, df)
                             st.success("✅ Prediction completed.")
@@ -227,7 +198,7 @@ else:
                 "pH", "Fertilizer", "Yield"
             ]
             if validate_csv_columns(train_df, required_cols):
-                if st.button("Retrain", key="retrain_button"):
+                if st.button("Retrain"):
                     model = train_model(train_df)
                     save_model(model)
                     # reload model for immediate use
@@ -272,7 +243,7 @@ else:
         if image_file:
             image = Image.open(image_file).convert("RGB")
             st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
-            if st.button("🔍 Detect Disease", key="detect_disease_button"):
+            if st.button("🔍 Detect Disease"):
                 if disease_model:
                     label = predict_disease(disease_model, image)
                     detected_plant = label.split()[0] if label else "Unknown"
@@ -314,7 +285,7 @@ else:
         pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
         soil_type = st.selectbox("🧱 Soil Type", ["Sandy", "Clay", "Loamy"] )
         growth_stage = st.selectbox("🌱 Growth Stage", ["Germination", "Vegetative", "Flowering", "Maturity"] )
-        if st.button("🧮 Get Fertilization Advice", key="fertilization_advice_button"):
+        if st.button("🧮 Get Fertilization Advice"):
             advice = ""
             if crop in ["Maize", "Rice"]:
                 if pH < 5.5:
