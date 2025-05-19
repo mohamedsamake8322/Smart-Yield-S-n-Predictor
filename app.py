@@ -29,16 +29,32 @@ def load_lottieurl(url: str):
 # === Interface de connexion ===
 st.title("🌾🍓🍅 Smart Yield Sènè Predictor 🌽🥕🧄")
 
-# Vérifier si l'utilisateur est déjà connecté
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
-    # Affichage du formulaire d’authentification uniquement si l’utilisateur n’est pas connecté
+    # === Interface d’authentification (s’affiche seulement si non connecté) ===
     st.sidebar.header("🔐 Authentication")
-    
-    # Entrée utilisateur
+
     username = st.sidebar.text_input("👤 Username")
     password = st.sidebar.text_input("🔑 Password", type="password")
 
     if st.sidebar.button("Login"):
+        if verify_password(username, password):
+            st.session_state["authenticated"] = True  # Stocke l'état connecté
+            st.session_state["username"] = username
+            st.sidebar.success(f"✅ Logged in as {username}")
+            st.session_state["user_role"] = get_role(username)  # On récupère le rôle
+        else:
+            st.sidebar.error("❌ Username or password incorrect.")
+
+else:
+    # === Interface utilisateur une fois connecté ===
+    USERNAME = st.session_state.get("username", None)
+    st.sidebar.success(f"✅ Logged in as {USERNAME}")
+    
+    # Entrée utilisateur
+username = st.sidebar.text_input("👤 Username")
+password = st.sidebar.text_input("🔑 Password", type="password")
+
+if st.sidebar.button("Login"):
         if verify_password(username, password):
             st.session_state["authenticated"] = True  # Stocke l'état connecté
             st.session_state["username"] = username  # Stocke l'username
