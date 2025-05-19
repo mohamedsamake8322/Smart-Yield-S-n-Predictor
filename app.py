@@ -37,13 +37,18 @@ password = st.sidebar.text_input("🔑 Password", type="password")
 # Vérifier les identifiants avec PostgreSQL
 if st.sidebar.button("Login"):
     if verify_password(username, password):
-        st.sidebar.success(f"✅ Logged in as {username}")
-        user_role = get_role(username)  # On récupère le rôle de l'utilisateur depuis PostgreSQL
+        st.session_state["username"] = username  # Stocke l'username après connexion
+        USERNAME = username  # Définit USERNAME
+        st.sidebar.success(f"✅ Logged in as {USERNAME}")
+        user_role = get_role(username)  # On récupère le rôle
     else:
         st.sidebar.error("❌ Username or password incorrect.")
 
+# Récupérer USERNAME après connexion
+USERNAME = st.session_state.get("username", None)  # Vérifie si l’utilisateur est connecté
+
 # === Interface Admin uniquement ===
-if "user_role" in locals() and user_role == "admin":
+if USERNAME and "user_role" in locals() and user_role == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
@@ -57,8 +62,6 @@ if "user_role" in locals() and user_role == "admin":
         if st.button("Create User"):
             register_user(new_username, new_password, new_role)
             st.success(f"✅ User '{new_username}' added successfully.")
-
-
     # === App setup ===
     st.title("🌾 Smart Yield Sènè Predictor")
 
@@ -82,7 +85,7 @@ if "user_role" in locals() and user_role == "admin":
             if r.status_code != 200:
                 return None
             return r.json()
-        except requests.RequestException:
+        except requests.exceptions.RequestException:
             return None
 
     lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
