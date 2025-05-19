@@ -17,7 +17,14 @@ from database import init_db, save_prediction, get_user_predictions, save_locati
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+from streamlit_lottie import st_lottie
 
+# Function to load Lottie animation from URL
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
 # === Interface de connexion ===
 st.title("Smart Yield Sènè Predictor")
 
