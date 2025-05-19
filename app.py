@@ -25,6 +25,7 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model
+from disease_model import predict_disease
 
 # === Vérification et chargement du modèle ===
 MODEL_PATH = "model/model_xgb.pkl"
