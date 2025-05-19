@@ -1,13 +1,14 @@
+import sys
 import os
 
 # Vérifier si bcrypt est installé
 os.system("pip list | grep bcrypt")
 
-# Installer libffi (nécessaire pour bcrypt)
-os.system("apt update && apt install libffi-dev -y")
-
 # Installer bcrypt proprement avant l'importation
-os.system("pip install --no-cache-dir bcrypt")
+os.system("pip install --no-cache-dir --user bcrypt")
+
+# Ajouter le chemin utilisateur aux modules Python
+sys.path.append(os.path.expanduser("~/.local/lib/python3.10/site-packages"))
 
 import bcrypt
 import streamlit as st  
