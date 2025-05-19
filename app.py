@@ -4,6 +4,8 @@ import numpy as np
 import datetime
 import os
 os.system("pip install bcrypt")
+import sys
+sys.path.append("/home/appuser/.local/lib/python3.10/site-packages")
 import bcrypt
 import requests
 import torch
