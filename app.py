@@ -1,31 +1,17 @@
-import sys
-import os
-os.system("pip install opencv-python-headless")
-# Vérifier si bcrypt est installé
-os.system("ldd $(which python) | grep libGL")
-os.system("pip list | grep bcrypt")
-os.system("pip install --user bcrypt")
-# Installer bcrypt proprement avant l'importation
-os.system("pip install --no-cache-dir --user bcrypt")
-
-# Ajouter le chemin utilisateur aux modules Python
-sys.path.append(os.path.expanduser("~/.local/lib/python3.10/site-packages"))
-import cv2
-print(sys.path)  # Vérifier où Python cherche les modules
-import bcrypt
 import streamlit as st  
 import pandas as pd  
 import numpy as np  
 import datetime
+import os
+os.system("pip install bcrypt")
+import bcrypt
 import requests
 import torch
 import matplotlib.pyplot as plt
 import openai
 import shap
 import joblib
-
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
-
 from PIL import Image
 from torchvision import transforms
 from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
