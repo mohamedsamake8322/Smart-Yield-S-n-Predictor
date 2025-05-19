@@ -92,14 +92,14 @@ def get_role(username):
 # --- AUTOMATED TESTS ---
 if __name__ == "__main__":
     print("\n🚀 Test: Registering a user with a secure password...")
-    register_user("test_user", "Moh#7017", "user")  # Password will be securely hashed
+    register_user("mohamedsamake2000", "Moh#7017", "user")  # Password will be securely hashed
 
     print("\n🔎 Test: Verifying the password...")
-    if verify_password("test_user", "Moh#7017"):  # Checking with the raw password
+    if verify_password("mohamedsamake2000", "Moh#7017"):  # Checking with the raw password
         print("✅ Successful login!")
     else:
         print("❌ Login failed.")
 
     print("\n🔹 Test: Retrieving the user's role...")
-    role = get_role("test_user")
-    print(f"🎭 Role of 'test_user': {role}")
+    role = get_role("mohamedsamake2000")
+    print(f"🎭 Role of 'mohamedsamake2000': {role}")
