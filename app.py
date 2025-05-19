@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import os
 os.system("pip install bcrypt")
+os.system("pip install --no-cache-dir scikit-learn==1.1.3")
 import sys
 sys.path.append("/home/appuser/.local/lib/python3.10/site-packages")
 import bcrypt
@@ -24,6 +25,8 @@ from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
+import sklearn
+print("Version de scikit-learn:", sklearn.__version__)
 MODEL_PATH = "model/model_xgb.pkl"
 
 # Vérifier si le fichier existe avant de le charger
