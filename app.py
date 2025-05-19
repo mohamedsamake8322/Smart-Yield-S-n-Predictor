@@ -4,33 +4,56 @@ import numpy as np
 import datetime
 import os
 import requests
-import torch
-import openai
-st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
-from PIL import Image
-from torchvision import transforms
-from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
+import joblib
+import sklearn
 
-from disease_model import load_disease_model, predict_disease
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
+# === Configuration de la page ===
+st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+
+# Vérifier la version de scikit-learn
+print("Version actuelle de scikit-learn :", sklearn.__version__)
+
+# Installer la version correcte si nécessaire
+os.system("pip install --no-cache-dir scikit-learn==1.1.3")
+
+from PIL import Image
+from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
 from database import init_db, save_prediction, get_user_predictions, save_location
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
+from disease_model import load_disease_model
 
-# Function to load Lottie animation from URL
-def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
-# === Interface de connexion ===
-st.title("Smart Yield Sènè Predictor")
+# === Vérification et chargement du modèle ===
+MODEL_PATH = "model/model_xgb.pkl"
+DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
+DB_FILE = "history.db"
+
+init_db()  # Initialisation de la base de données
+
+# Vérifier si le modèle de rendement existe avant de le charger
+if os.path.exists(MODEL_PATH):
+    model = joblib.load(MODEL_PATH)
+    print("✅ Modèle de rendement chargé avec succès.")
+else:
+    print("🛑 Modèle introuvable, réentraînement en cours...")
+    model = train_model()  # Entraîne un nouveau modèle si `model_xgb.pkl` est absent
+    joblib.dump(model, MODEL_PATH)
+    print("✅ Nouveau modèle entraîné et sauvegardé.")
+
+# Vérifier si le modèle de maladie existe avant de le charger
+if os.path.exists(DISEASE_MODEL_PATH):
+    disease_model = load_disease_model(DISEASE_MODEL_PATH)
+    print("✅ Modèle de détection des maladies chargé.")
+else:
+    print("🛑 Modèle de détection des maladies introuvable.")
+
+# === Interface utilisateur ===
+st.title("🌾 Smart Yield Sènè Predictor")
 
 st.sidebar.header("🔐 Authentication")
-
-# Entrée utilisateur
 username = st.sidebar.text_input("👤 Username")
 password = st.sidebar.text_input("🔑 Password", type="password")
 
@@ -38,21 +61,19 @@ password = st.sidebar.text_input("🔑 Password", type="password")
 if st.sidebar.button("Login"):
     if verify_password(username, password):
         st.session_state["username"] = username  # Stocke l'username après connexion
-        USERNAME = username  # Définit USERNAME
+        USERNAME = username
         st.sidebar.success(f"✅ Logged in as {USERNAME}")
         user_role = get_role(username)  # On récupère le rôle
     else:
         st.sidebar.error("❌ Username or password incorrect.")
 
-# Récupérer USERNAME après connexion
 USERNAME = st.session_state.get("username", None)  # Vérifie si l’utilisateur est connecté
 
-# === Interface Admin uniquement ===
+# === Interface Admin ===
 if USERNAME and "user_role" in locals() and user_role == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
-    # Interface pour ajouter un nouvel utilisateur
     with st.expander("➕ Add a new user"):
         new_username = st.text_input("New Username")
         new_password = st.text_input("New Password", type="password")
@@ -62,24 +83,16 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
         if st.button("Create User"):
             register_user(new_username, new_password, new_role)
             st.success(f"✅ User '{new_username}' added successfully.")
-    # === App setup ===
-    st.title("🌾 Smart Yield Sènè Predictor")
 
-    MODEL_PATH = "model/model_xgb.pkl"
-    DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
-    DB_FILE = "history.db"
-    init_db()
-
-    model = load_model(MODEL_PATH)
-    disease_model = load_disease_model(DISEASE_MODEL_PATH)
-    menu = [
-        "Home", "Retrain Model", "History", "Performance",
-        "Disease Detection", "Fertilization Advice", "Field Map"
-    ]
-    choice = st.sidebar.selectbox("Menu", menu)
+# === Menu Principal ===
+menu = [
+    "Home", "Retrain Model", "History", "Performance",
+    "Disease Detection", "Fertilization Advice", "Field Map"
+]
+choice = st.sidebar.selectbox("Menu", menu)
 
     # === Animation helper ===
-    def load_lottieurl(url):
+def load_lottieurl(url):
         try:
             r = requests.get(url, timeout=5)
             if r.status_code != 200:
@@ -88,10 +101,10 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
         except requests.exceptions.RequestException:
             return None
 
-    lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
+lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
 
     # === Home Page ===
-    if choice == "Home":
+if choice == "Home":
         st_lottie(lottie_plant, height=150)
         st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
         st.subheader("📈 Predict Agricultural Yield")
@@ -188,7 +201,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                         st.warning("No data for time trend.")
 
     # === Retrain Model ===
-    elif choice == "Retrain Model":
+elif choice == "Retrain Model":
         st.subheader("🔁 Retrain the Model")
         train_file = st.file_uploader("Upload Training CSV", type=["csv"] )
         if train_file is not None:
@@ -208,7 +221,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                 st.error(f"❗ Training CSV must contain: {required_cols}")
 
     # === History ===
-    elif choice == "History":
+elif choice == "History":
         st.subheader("📚 Prediction History")
         results = get_user_predictions(USERNAME)
         if results:
@@ -218,7 +231,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
             st.info("No predictions found for this user.")
 
     # === Performance ===
-    elif choice == "Performance":
+elif choice == "Performance":
         st.subheader("📊 Model Evaluation")
         eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"] )
         if eval_file is not None:
@@ -237,7 +250,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                 st.error(f"❗ Evaluation CSV must contain: {required_cols}")
 
     # === Disease Detection ===
-    elif choice == "Disease Detection":
+elif choice == "Disease Detection":
         st.subheader("🦠 Plant Disease Detection")
         image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"] )
         if image_file:
@@ -279,7 +292,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
                     st.error("🛑 Disease detection model is not loaded.")
 
     # === Fertilization Advice ===
-    elif choice == "Fertilization Advice":
+elif choice == "Fertilization Advice":
         st.subheader("🧪 Smart Fertilization Recommender")
         crop = st.selectbox("🌾 Select Crop", ["Maize", "Millet", "Rice", "Sorghum", "Tomato", "Okra"] )
         pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
@@ -306,7 +319,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
             st.markdown(f"```markdown\n{advice}\n```")
 
     # === Field Map ===
-    elif choice == "Field Map":
+elif choice == "Field Map":
         import folium
         from streamlit_folium import st_folium
 

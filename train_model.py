@@ -6,7 +6,8 @@ import joblib
 import shap
 import json
 import os
-
+import sklearn
+print("Version de scikit-learn utilisée pour l'entraînement :", sklearn.__version__)
 # Vérifier si le dataset existe
 if not os.path.exists("data.csv"):
     raise FileNotFoundError("❌ data.csv not found. Please check its location.")
