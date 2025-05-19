@@ -1,21 +1,28 @@
+import os
+
+# Vérifier si bcrypt est installé
+os.system("pip list | grep bcrypt")
+
+# Installer libffi (nécessaire pour bcrypt)
+os.system("apt update && apt install libffi-dev -y")
+
+# Installer bcrypt proprement avant l'importation
+os.system("pip install --no-cache-dir bcrypt")
+
+import bcrypt
 import streamlit as st  
 import pandas as pd  
 import numpy as np  
 import datetime
-import os
-os.system("pip install bcrypt")
-import bcrypt
 import requests
 import torch
 import matplotlib.pyplot as plt
 import openai
 import shap
 import joblib
-os.system("pip list | grep bcrypt")  # Vérifier si bcrypt est installé
-os.system("pip install --no-cache-dir bcrypt")  # Force une installation propre
-import bcrypt  # Import après installation
 
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+
 from PIL import Image
 from torchvision import transforms
 from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
