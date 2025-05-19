@@ -25,45 +25,50 @@ def load_lottieurl(url: str):
     if r.status_code != 200:
         return None
     return r.json()
+
 # === Interface de connexion ===
-st.title("Smart Yield Sènè Predictor")
+st.title("🌾🍓🍅 Smart Yield Sènè Predictor 🌽🥕🧄")
 
-st.sidebar.header("🔐 Authentication")
+# Vérifier si l'utilisateur est déjà connecté
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    # Affichage du formulaire d’authentification uniquement si l’utilisateur n’est pas connecté
+    st.sidebar.header("🔐 Authentication")
+    
+    # Entrée utilisateur
+    username = st.sidebar.text_input("👤 Username")
+    password = st.sidebar.text_input("🔑 Password", type="password")
 
-# Entrée utilisateur
-username = st.sidebar.text_input("👤 Username")
-password = st.sidebar.text_input("🔑 Password", type="password")
+    if st.sidebar.button("Login"):
+        if verify_password(username, password):
+            st.session_state["authenticated"] = True  # Stocke l'état connecté
+            st.session_state["username"] = username  # Stocke l'username
+            st.sidebar.success(f"✅ Logged in as {username}")
+            st.session_state["user_role"] = get_role(username)  # On récupère le rôle
+        else:
+            st.sidebar.error("❌ Username or password incorrect.")
 
-# Vérifier les identifiants avec PostgreSQL
-if st.sidebar.button("Login"):
-    if verify_password(username, password):
-        st.session_state["username"] = username  # Stocke l'username après connexion
-        USERNAME = username  # Définit USERNAME
-        st.sidebar.success(f"✅ Logged in as {USERNAME}")
-        user_role = get_role(username)  # On récupère le rôle
-    else:
-        st.sidebar.error("❌ Username or password incorrect.")
+else:
+    # === Interface utilisateur une fois connecté ===
+    USERNAME = st.session_state["username"]
+    st.sidebar.success(f"✅ Logged in as {USERNAME}")
 
-# Récupérer USERNAME après connexion
-USERNAME = st.session_state.get("username", None)  # Vérifie si l’utilisateur est connecté
+    # === Interface Admin uniquement ===
+    if st.session_state.get("user_role") == "admin":
+        st.subheader("👑 Admin Dashboard")
+        st.write("Manage users, view logs, and more.")
 
-# === Interface Admin uniquement ===
-if USERNAME and "user_role" in locals() and user_role == "admin":
-    st.subheader("👑 Admin Dashboard")
-    st.write("Manage users, view logs, and more.")
+        # Interface pour ajouter un nouvel utilisateur
+        with st.expander("➕ Add a new user"):
+            new_username = st.text_input("New Username")
+            new_password = st.text_input("New Password", type="password")
+            new_role = st.selectbox("Role", ["user", "admin"])
 
-    # Interface pour ajouter un nouvel utilisateur
-    with st.expander("➕ Add a new user"):
-        new_username = st.text_input("New Username")
-        new_password = st.text_input("New Password", type="password")
-        new_role = st.selectbox("Role", ["user", "admin"])
-
-        from auth import register_user
-        if st.button("Create User"):
-            register_user(new_username, new_password, new_role)
-            st.success(f"✅ User '{new_username}' added successfully.")
+            from auth import register_user
+            if st.button("Create User"):
+                register_user(new_username, new_password, new_role)
+                st.success(f"✅ User '{new_username}' added successfully.")
     # === App setup ===
-    st.title("🌾 Smart Yield Sènè Predictor")
+    st.title("🌾 Smart Yield Sènè Predictor 🍀🍎🍉")
 
     MODEL_PATH = "model/model_xgb.pkl"
     DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
