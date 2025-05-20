@@ -1,22 +1,22 @@
 import os
 import torch
 import torch.nn as nn
-import timm  # Bibliothèque pour charger EfficientNet-B7
+import timm  # Bibliothèque pour charger EfficientNet-B4
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 # === Paramètres ===
 DATA_DIR = 'plant_disease_dataset'
-MODEL_PATH = 'plant_disease_model.pth'
+MODEL_PATH = 'C:/Mohamed/plant_disease_model.pth'  # Assurer un chemin correct pour la sauvegarde
 BATCH_SIZE = 16
-NUM_EPOCHS = 20  # Augmentation du nombre d'époques pour une meilleure convergence
-LEARNING_RATE = 0.0001  # Réduction du LR pour s’adapter à un modèle plus profond
+NUM_EPOCHS = 30  # Augmenté pour compenser la réduction de puissance du modèle
+LEARNING_RATE = 0.00005  # Ajusté pour un modèle plus léger
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # === Prétraitements optimisés ===
 transform = transforms.Compose([
-    transforms.Resize((300, 300)),  # Adapté à EfficientNet-B7
+    transforms.Resize((300, 300)),  # Adapté à EfficientNet-B4
     transforms.CenterCrop(224),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406],
@@ -34,8 +34,8 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
 num_classes = len(train_dataset.classes)
 print(f"Classes détectées : {train_dataset.classes}")
 
-# === Chargement du modèle EfficientNet-B7 ===
-model = timm.create_model("efficientnet_b4", pretrained=True, checkpoint_path="")
+# === Chargement du modèle EfficientNet-B4 ===
+model = timm.create_model("efficientnet_b4", pretrained=True)
 
 # Modification de la dernière couche pour correspondre au nombre de classes
 model.classifier = nn.Linear(model.classifier.in_features, num_classes)
@@ -83,4 +83,4 @@ for epoch in range(NUM_EPOCHS):
 
 # === Sauvegarde du modèle ===
 torch.save(model.state_dict(), MODEL_PATH)
-print(f"💾 Modèle EfficientNet-B7 sauvegardé dans {MODEL_PATH}")
+print(f"💾 Modèle EfficientNet-B4 sauvegardé dans {MODEL_PATH}")
