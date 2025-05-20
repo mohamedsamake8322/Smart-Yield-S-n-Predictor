@@ -1,10 +1,18 @@
 import psycopg2
 import bcrypt
-import os
 from dotenv import load_dotenv
+import os
 
-# 🔹 Charger les variables d'environnement depuis `.env`
-load_dotenv()
+# 🔹 Assure le bon chargement du fichier `.env`
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")  # 🔍 Recherche `.env` dans le dossier du script
+load_dotenv(dotenv_path)  # 🔥 Charge les variables depuis `.env`
+
+# 🔎 Vérification du chargement des variables
+env_vars = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_SSLMODE"]
+for var in env_vars:
+    value = os.getenv(var)
+    if not value:
+        print(f"🚨 ERREUR : La variable {var} n'est pas chargée correctement !")
 
 # --- Fonction de connexion à PostgreSQL ---
 def get_connection():
@@ -17,6 +25,7 @@ def get_connection():
             port=os.getenv("DB_PORT"),
             sslmode=os.getenv("DB_SSLMODE")
         )
+        print("✅ Connexion à PostgreSQL réussie !") 
         return conn
     except psycopg2.OperationalError as e:
         print(f"🚨 Connection error: {e}")
