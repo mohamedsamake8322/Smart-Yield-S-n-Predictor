@@ -1,6 +1,10 @@
 import psycopg2
 import bcrypt
 import os
+from dotenv import load_dotenv
+
+# 🔹 Charger les variables d'environnement depuis `.env`
+load_dotenv()
 
 # --- Fonction de connexion à PostgreSQL ---
 def get_connection():
@@ -10,13 +14,13 @@ def get_connection():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             host=os.getenv("DB_HOST"),
-            port="5432",
-            sslmode="require"
+            port=os.getenv("DB_PORT"),
+            sslmode=os.getenv("DB_SSLMODE")
         )
         return conn
     except psycopg2.OperationalError as e:
         print(f"🚨 Connection error: {e}")
-        raise RuntimeError("Database connection failed")  # 🔥 Évite de continuer si la connexion échoue
+        return None  # 🔥 Évite que l'application plante, retourne `None` proprement
 
 # --- Fonction de hachage de mot de passe ---
 def hash_password(password):
@@ -26,6 +30,7 @@ def hash_password(password):
 def register_user(username, password, role="user"):
     conn = get_connection()
     if conn is None:
+        print("🚨 Impossible de se connecter à la base de données.")
         return
     
     try:
@@ -47,6 +52,7 @@ def register_user(username, password, role="user"):
 def verify_password(username, provided_password):
     conn = get_connection()
     if conn is None:
+        print("🚨 Impossible de se connecter à la base de données.")
         return False
     
     try:
@@ -55,11 +61,10 @@ def verify_password(username, provided_password):
         stored_password = cur.fetchone()
 
         if stored_password:
-            stored_password = stored_password[0]  # 🔍 Récupérer le hash sans altérer son format
+            stored_password = stored_password[0]
 
             # 🔎 Ajout de logs pour vérifier les valeurs
             print(f"🔍 Stored Password Hash from DB: {stored_password}")  
-            print(f"🔍 Entered Password Hash (bcrypt): {bcrypt.hashpw(provided_password.encode(), bcrypt.gensalt())}")  
 
             # Vérification du hash bcrypt avec conversion correcte
             if stored_password.startswith("$2b$"):
@@ -79,6 +84,7 @@ def verify_password(username, provided_password):
 def get_role(username):
     conn = get_connection()
     if conn is None:
+        print("🚨 Impossible de se connecter à la base de données.")
         return None
     
     try:
