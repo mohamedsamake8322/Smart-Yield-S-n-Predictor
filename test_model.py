@@ -4,11 +4,11 @@ import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn as nn
 # Charger le modèle entraîné
-MODEL_PATH = "plant_disease_model.pth"
+MODEL_PATH = "C:/Mohamed/plant_disease_model.pth"
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-num_classes = 10  # Ajuste selon ton dataset
+num_classes = 4  # Ajuste selon ton dataset
 
-model = timm.create_model("efficientnet_b7", pretrained=False)
+model = timm.create_model("efficientnet_b4", pretrained=False)
 model.classifier = nn.Linear(model.classifier.in_features, num_classes)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
