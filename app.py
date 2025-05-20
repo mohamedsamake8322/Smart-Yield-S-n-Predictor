@@ -63,12 +63,21 @@ if st.sidebar.button("Login"):
     if verify_password(username, password):
         st.session_state["username"] = username  # Stocke l'username après connexion
         USERNAME = username
-        st.sidebar.success(f"✅ Logged in as {USERNAME}")
+        st.session_state["authenticated"] = True  # Ajoute une variable de session pour authentification
         user_role = get_role(username)  # On récupère le rôle
+        st.sidebar.success(f"✅ Logged in as {USERNAME}")
     else:
         st.sidebar.error("❌ Username or password incorrect.")
+        st.session_state["authenticated"] = False  # Bloque l'accès si erreur
 
-USERNAME = st.session_state.get("username", None)  # Vérifie si l’utilisateur est connecté
+# Vérifier si l'utilisateur est connecté
+USERNAME = st.session_state.get("username", None)
+AUTHENTICATED = st.session_state.get("authenticated", False)
+
+# 🔒 Bloquer l’accès si l’utilisateur n'est pas connecté
+if not AUTHENTICATED:
+    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
+    st.stop()  # Stoppe l'exécution si non authentifié
 
 # === Interface Admin ===
 if USERNAME and "user_role" in locals() and user_role == "admin":
@@ -84,6 +93,7 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
         if st.button("Create User"):
             register_user(new_username, new_password, new_role)
             st.success(f"✅ User '{new_username}' added successfully.")
+
 
 # === Menu Principal ===
 menu = [
