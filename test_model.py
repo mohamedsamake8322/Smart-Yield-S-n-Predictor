@@ -32,6 +32,6 @@ def predict_image(image_path):
     return predicted.item()
 
 # Test avec une image
-image_path = "test_leaf.jpg"
+image_path = "C:/Mohamed/IMG_20240720_103446_512.jpg"
 prediction = predict_image(image_path)
 print(f"🌱 Maladie détectée : {prediction}")
