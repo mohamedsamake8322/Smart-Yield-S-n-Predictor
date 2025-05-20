@@ -1,29 +1,28 @@
 import psycopg2
 import bcrypt
 import os
-os.system("pip install --upgrade --force-reinstall bcrypt")
 
-# Function to create a PostgreSQL connection
+# --- Fonction de connexion à PostgreSQL ---
 def get_connection():
     try:
         conn = psycopg2.connect(
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        host=os.getenv("DB_HOST"),
-        port="5432",
-        sslmode="require"
-    )
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port="5432",
+            sslmode="require"
+        )
         return conn
     except psycopg2.OperationalError as e:
         print(f"🚨 Connection error: {e}")
-        return None
+        raise RuntimeError("Database connection failed")  # 🔥 Évite de continuer si la connexion échoue
 
-# Function to hash a password
+# --- Fonction de hachage de mot de passe ---
 def hash_password(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-# Function to register a new user with a properly hashed password
+# --- Fonction d'enregistrement d'un nouvel utilisateur ---
 def register_user(username, password, role="user"):
     conn = get_connection()
     if conn is None:
@@ -31,7 +30,7 @@ def register_user(username, password, role="user"):
     
     try:
         cur = conn.cursor()
-        hashed_password = hash_password(password)  # Ensuring password is hashed before storage
+        hashed_password = hash_password(password)  # 🔒 Hachage sécurisé du mot de passe
         cur.execute(
             "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
             (username, hashed_password, role)
@@ -41,10 +40,10 @@ def register_user(username, password, role="user"):
     except psycopg2.InterfaceError as e:
         print(f"🚨 PostgreSQL connection error: {e}")
     finally:
-        cur.close()
-        conn.close()
+        if cur: cur.close()
+        if conn: conn.close()
 
-# Function to verify a hashed password
+# --- Fonction de vérification d'un mot de passe ---
 def verify_password(username, provided_password):
     conn = get_connection()
     if conn is None:
@@ -56,10 +55,9 @@ def verify_password(username, provided_password):
         stored_password = cur.fetchone()
 
         if stored_password:
-            stored_password = stored_password[0].strip()  # Remove unwanted spaces or characters
-            print(f"🔎 Stored password from DB: {stored_password}")  # Debugging line
+            stored_password = stored_password[0]  # 🔍 Éviter `.strip()` qui peut altérer le hash
             
-            # Ensure that the password is properly formatted before comparison
+            # Vérification du hash bcrypt
             if stored_password.startswith("$2b$"):
                 return bcrypt.checkpw(provided_password.encode(), stored_password.encode())
             else:
@@ -70,10 +68,10 @@ def verify_password(username, provided_password):
         print(f"🚨 PostgreSQL interface error: {e}")
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur: cur.close()
+        if conn: conn.close()
 
-# Function to retrieve a user's role
+# --- Fonction pour récupérer le rôle d'un utilisateur ---
 def get_role(username):
     conn = get_connection()
     if conn is None:
@@ -88,20 +86,20 @@ def get_role(username):
         print(f"🚨 PostgreSQL interface error: {e}")
         return None
     finally:
-        cur.close()
-        conn.close()
+        if cur: cur.close()
+        if conn: conn.close()
 
 # --- AUTOMATED TESTS ---
 if __name__ == "__main__":
     print("\n🚀 Test: Registering a user with a secure password...")
-    register_user("mohamedsamake2000", "Moh#7017", "user")  # Password will be securely hashed
+    register_user("test_user", "test_password", "user")  # Password will be securely hashed
 
     print("\n🔎 Test: Verifying the password...")
-    if verify_password("mohamedsamake2000", "Moh#7017"):  # Checking with the raw password
+    if verify_password("test_user", "test_password"):  # Checking with the raw password
         print("✅ Successful login!")
     else:
         print("❌ Login failed.")
 
     print("\n🔹 Test: Retrieving the user's role...")
-    role = get_role("mohamedsamake2000")
-    print(f"🎭 Role of 'mohamedsamake2000': {role}")
+    role = get_role("test_user")
+    print(f"🎭 Role of 'test_user': {role}")
