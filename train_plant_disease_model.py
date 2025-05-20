@@ -9,7 +9,7 @@ from tqdm import tqdm
 # === Paramètres ===
 DATA_DIR = 'plant_disease_dataset'
 MODEL_PATH = 'plant_disease_model.pth'
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 NUM_EPOCHS = 20  # Augmentation du nombre d'époques pour une meilleure convergence
 LEARNING_RATE = 0.0001  # Réduction du LR pour s’adapter à un modèle plus profond
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
