@@ -35,7 +35,7 @@ num_classes = len(train_dataset.classes)
 print(f"Classes détectées : {train_dataset.classes}")
 
 # === Chargement du modèle EfficientNet-B7 ===
-model = timm.create_model("efficientnet_b7", pretrained=True)
+model = timm.create_model("efficientnet_b7", pretrained=True, checkpoint_path="")
 
 # Modification de la dernière couche pour correspondre au nombre de classes
 model.classifier = nn.Linear(model.classifier.in_features, num_classes)
