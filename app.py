@@ -6,7 +6,6 @@ import os
 import requests
 import joblib
 import sklearn
-
 # === Configuration de la page ===
 st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 
@@ -62,23 +61,37 @@ password = st.sidebar.text_input("🔑 Password", type="password")
 if st.sidebar.button("Login"):
     if verify_password(username, password):
         st.session_state["username"] = username  # Stocke l'username après connexion
-        USERNAME = username
         st.session_state["authenticated"] = True  # Ajoute une variable de session pour authentification
         user_role = get_role(username)  # On récupère le rôle
-        st.sidebar.success(f"✅ Logged in as {USERNAME}")
+        st.sidebar.success(f"✅ Logged in as {username}")
     else:
         st.sidebar.error("❌ Username or password incorrect.")
         st.session_state["authenticated"] = False  # Bloque l'accès si erreur
-
-# Vérifier si l'utilisateur est connecté
-USERNAME = st.session_state.get("username", None)
+USERNAME = st.session_state.get("username", None)  # Assure qu'il est bien défini
 AUTHENTICATED = st.session_state.get("authenticated", False)
-
-# 🔒 Bloquer l’accès si l’utilisateur n'est pas connecté
-if not AUTHENTICATED:
+# 🔒 Vérifier si l'utilisateur est authentifié AVANT de charger l'interface
+if not st.session_state.get("authenticated", False):
     st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
     st.stop()  # Stoppe l'exécution si non authentifié
+# 🔍 Vérifier si l'utilisateur est bien défini avant de l'utiliser
+if USERNAME:
+    user_role = get_role(USERNAME)
+# === Interface Admin (Seulement pour les admins) ===
+if st.session_state.get("username") and st.session_state.get("authenticated"):
+    user_role = get_role(st.session_state["username"])
+    if user_role == "admin":
+        st.subheader("👑 Admin Dashboard")
+        st.write("Manage users, view logs, and more.")
 
+        with st.expander("➕ Add a new user"):
+            new_username = st.text_input("New Username")
+            new_password = st.text_input("New Password", type="password")
+            new_role = st.selectbox("Role", ["user", "admin"])
+
+            from auth import register_user
+            if st.button("Create User"):
+                register_user(new_username, new_password, new_role)
+                st.success(f"✅ User '{new_username}' added successfully.")
 # === Interface Admin ===
 if USERNAME and "user_role" in locals() and user_role == "admin":
     st.subheader("👑 Admin Dashboard")
