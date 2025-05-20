@@ -1,17 +1,19 @@
 import psycopg2
 import bcrypt
+import os
+os.system("pip install --upgrade --force-reinstall bcrypt")
 
 # Function to create a PostgreSQL connection
 def get_connection():
     try:
         conn = psycopg2.connect(
-            dbname="neondb",
-            user="neondb_owner",
-            password="70179877Mohsama#",
-            host="ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech",
-            port="5432",
-            sslmode="require"
-        )
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST"),
+        port="5432",
+        sslmode="require"
+    )
         return conn
     except psycopg2.OperationalError as e:
         print(f"🚨 Connection error: {e}")
