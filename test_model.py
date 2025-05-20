@@ -2,6 +2,7 @@ import torch
 import timm
 import torchvision.transforms as transforms
 from PIL import Image
+import torch.nn as nn
 
 # Charger le modèle entraîné
 MODEL_PATH = "plant_disease_model.pth"
