@@ -7,3 +7,4 @@ __pycache__/
 .vscode/
 smartyield-env/
 create_credentials.py
+.streamlit/secrets.toml
