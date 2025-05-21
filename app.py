@@ -7,10 +7,11 @@ import requests
 import joblib
 import logging
 import sklearn
-
 st.write("🔍 Vérification secrets.toml rechargé")
 st.write("DB_NAME:", st.secrets["connections.postgresql"]["database"])
 st.write("JWT_SECRET_KEY:", st.secrets["authentication"]["jwt_secret_key"])
+st.write("🔍 Vérification des secrets disponibles")
+st.write(st.secrets)
 from PIL import Image
 from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
 from database import init_db, save_prediction, get_user_predictions, save_location
