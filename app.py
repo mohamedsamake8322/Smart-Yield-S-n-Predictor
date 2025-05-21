@@ -156,7 +156,10 @@ if choice == "Home":
                     prediction = predict_single(model, features)
                     st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
                     timestamp = datetime.datetime.now()
-                    save_prediction(USERNAME, features, prediction, timestamp)
+                    
+                    # 🔹 Correction : Ajout de tous les paramètres nécessaires à `save_prediction()`
+                    save_prediction(USERNAME, temperature, humidity, precipitation, pH, fertilizer, prediction)
+                    
                     if st.checkbox("📄 Download PDF Report"):
                         pdf = generate_pdf_report(
                             USERNAME, features, prediction,
@@ -171,8 +174,10 @@ if choice == "Home":
             if csv_file:
                 df = pd.read_csv(csv_file)
                 required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
+                
                 if validate_csv_columns(df, required_cols):
                     df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
+                    
                     if st.button("Predict from CSV"):
                         if model:
                             df["PredictedYield"] = predict_batch(model, df)
@@ -185,12 +190,14 @@ if choice == "Home":
                                 "predictions.csv",
                                 "text/csv"
                             )
+                            
+                            # 🔹 Correction : Ajout des paramètres corrects à `save_prediction()`
                             for _, row in df.iterrows():
                                 features = row[required_cols].to_dict()
                                 prediction = row["PredictedYield"]
                                 save_prediction(
-                                    USERNAME, features, prediction,
-                                    datetime.datetime.now()
+                                    USERNAME, features["Temperature"], features["Humidity"], 
+                                    features["Precipitation"], features["pH"], features["Fertilizer"], prediction
                                 )
                         else:
                             st.error("🛑 Model not trained yet.")
