@@ -5,6 +5,7 @@ import datetime
 import os
 import requests
 import joblib
+import streamlit as st
 import logging
 import sklearn
 
@@ -20,9 +21,17 @@ if st.secrets:
 
     st.write("DB_NAME:", db_name)
     st.write("JWT_SECRET_KEY:", jwt_key)
-    st.write("🔑 Toutes les clés détectées :", list(st.secrets.keys()))
+
+    # 🔍 Vérification des clés disponibles
+    secret_keys = list(st.secrets.keys())
+    if secret_keys:
+        st.write("🔑 Toutes les clés détectées :", secret_keys)
+    else:
+        st.write("❌ Aucune clé trouvée ! Vérifie `Manage App > Secrets`.")
+
 else:
     st.write("❌ Aucun secret détecté ! Vérifie `Manage App > Secrets` et redémarre l'application.")
+
 # 📌 Imports supplémentaires pour ton application
 from PIL import Image
 from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
