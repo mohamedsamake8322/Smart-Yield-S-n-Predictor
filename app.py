@@ -18,16 +18,16 @@ from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
 
 # 🔹 Configuration du logger
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+#logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # === Configuration de la page ===
-st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+#st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
 
 # 🔹 Vérifier la version de scikit-learn
-logging.info(f"✅ Version actuelle de scikit-learn : {sklearn.__version__}")
+#logging.info(f"✅ Version actuelle de scikit-learn : {sklearn.__version__}")
 
 # 🔹 Vérifier et installer la version correcte si nécessaire
-os.system("pip install --no-cache-dir scikit-learn==1.1.3")
+#os.system("pip install --no-cache-dir scikit-learn==1.1.3")
 
 # === Vérification et chargement des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"
@@ -67,7 +67,7 @@ if not username or not password:
     st.stop()
 
 # 🔹 Vérification des identifiants avec PostgreSQL
-if st.sidebar.button("Login"):
+#if st.sidebar.button("Login"):
     try:
         if verify_password(username, password):
             st.session_state["username"] = username
