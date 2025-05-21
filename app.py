@@ -5,95 +5,98 @@ import datetime
 import os
 import requests
 import joblib
+import logging
 import sklearn
-# === Configuration de la page ===
-st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
-
-# Vérifier la version de scikit-learn
-print("Version actuelle de scikit-learn :", sklearn.__version__)
-
-# Installer la version correcte si nécessaire
-os.system("pip install --no-cache-dir scikit-learn==1.1.3")
-
 from PIL import Image
-from auth import verify_password, get_role  # On utilise PostgreSQL maintenant
+from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
-from disease_model import load_disease_model
-from disease_model import predict_disease
+from disease_model import load_disease_model, predict_disease
 
-# === Vérification et chargement du modèle ===
+# 🔹 Configuration du logger
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# === Configuration de la page ===
+st.set_page_config(page_title="Smart Yield Sènè Predictor", layout="wide")
+
+# 🔹 Vérifier la version de scikit-learn
+logging.info(f"✅ Version actuelle de scikit-learn : {sklearn.__version__}")
+
+# 🔹 Vérifier et installer la version correcte si nécessaire
+os.system("pip install --no-cache-dir scikit-learn==1.1.3")
+
+# === Vérification et chargement des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 DB_FILE = "history.db"
 
 init_db()  # Initialisation de la base de données
 
-# Vérifier si le modèle de rendement existe avant de le charger
+# 🔹 Chargement du modèle de rendement
 if os.path.exists(MODEL_PATH):
     model = joblib.load(MODEL_PATH)
-    print("✅ Modèle de rendement chargé avec succès.")
+    logging.info("✅ Modèle de rendement chargé avec succès.")
 else:
-    print("🛑 Modèle introuvable, réentraînement en cours...")
-    model = train_model()  # Entraîne un nouveau modèle si `model_xgb.pkl` est absent
+    logging.warning("🛑 Modèle introuvable, réentraînement en cours...")
+    model = train_model()
     joblib.dump(model, MODEL_PATH)
-    print("✅ Nouveau modèle entraîné et sauvegardé.")
+    logging.info("✅ Nouveau modèle entraîné et sauvegardé.")
 
-# Vérifier si le modèle de maladie existe avant de le charger
+# 🔹 Chargement du modèle de détection des maladies
 if os.path.exists(DISEASE_MODEL_PATH):
     disease_model = load_disease_model(DISEASE_MODEL_PATH)
-    print("✅ Modèle de détection des maladies chargé.")
+    logging.info("✅ Modèle de détection des maladies chargé.")
 else:
-    print("🛑 Modèle de détection des maladies introuvable.")
+    logging.warning("🛑 Modèle de détection des maladies introuvable.")
 
 # === Interface utilisateur ===
 st.title("🌾 Smart Yield Sènè Predictor")
 
+# 🔹 Interface authentification
 st.sidebar.header("🔐 Authentication")
 username = st.sidebar.text_input("👤 Username")
 password = st.sidebar.text_input("🔑 Password", type="password")
 
-# Vérifier les identifiants avec PostgreSQL
+# 🔍 Vérification des identifiants AVANT l'authentification
+if not username or not password:
+    st.sidebar.error("❌ Please enter both username and password.")
+    st.stop()
+
+# 🔹 Vérification des identifiants avec PostgreSQL
 if st.sidebar.button("Login"):
-    if verify_password(username, password):
-        st.session_state["username"] = username  # Stocke l'username après connexion
-        st.session_state["authenticated"] = True  # Ajoute une variable de session pour authentification
-        user_role = get_role(username)  # On récupère le rôle
-        st.sidebar.success(f"✅ Logged in as {username}")
-    else:
-        st.sidebar.error("❌ Username or password incorrect.")
-        st.session_state["authenticated"] = False  # Bloque l'accès si erreur
-USERNAME = st.session_state.get("username", None)  # Assure qu'il est bien défini
+    try:
+        if verify_password(username, password):
+            st.session_state["username"] = username
+            st.session_state["authenticated"] = True
+            user_role = get_role(username)
+            logging.info(f"✅ Successful login: {username} (Role: {user_role})")
+            st.sidebar.success(f"✅ Logged in as {username}")
+        else:
+            logging.warning(f"❌ Failed login attempt: {username}")
+            st.sidebar.error("❌ Username or password incorrect.")
+            st.session_state["authenticated"] = False
+    except Exception as e:
+        logging.error(f"🚨 Database error during login: {e}")
+        st.sidebar.error("❌ Server error. Try again later.")
+        st.stop()
+
+# 🔒 Vérifier si l'utilisateur est authentifié
+USERNAME = st.session_state.get("username", None)
 AUTHENTICATED = st.session_state.get("authenticated", False)
-# 🔒 Vérifier si l'utilisateur est authentifié AVANT de charger l'interface
-if not st.session_state.get("authenticated", False):
+
+if not AUTHENTICATED:
     st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
-    st.stop()  # Stoppe l'exécution si non authentifié
-# 🔍 Vérifier si l'utilisateur est bien défini avant de l'utiliser
-if USERNAME:
-    user_role = get_role(USERNAME)
+    st.stop()
+
+# 🔹 Vérification du rôle utilisateur
+user_role = get_role(USERNAME) if USERNAME else None
+
 # === Interface Admin (Seulement pour les admins) ===
-if st.session_state.get("username") and st.session_state.get("authenticated"):
-    user_role = get_role(st.session_state["username"])
-    if user_role == "admin":
-        st.subheader("👑 Admin Dashboard")
-        st.write("Manage users, view logs, and more.")
-
-        with st.expander("➕ Add a new user"):
-            new_username = st.text_input("New Username")
-            new_password = st.text_input("New Password", type="password")
-            new_role = st.selectbox("Role", ["user", "admin"])
-
-            from auth import register_user
-            if st.button("Create User"):
-                register_user(new_username, new_password, new_role)
-                st.success(f"✅ User '{new_username}' added successfully.")
-# === Interface Admin ===
-if USERNAME and "user_role" in locals() and user_role == "admin":
+if user_role == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
@@ -102,10 +105,14 @@ if USERNAME and "user_role" in locals() and user_role == "admin":
         new_password = st.text_input("New Password", type="password")
         new_role = st.selectbox("Role", ["user", "admin"])
 
-        from auth import register_user
         if st.button("Create User"):
-            register_user(new_username, new_password, new_role)
-            st.success(f"✅ User '{new_username}' added successfully.")
+            try:
+                register_user(new_username, new_password, new_role)
+                logging.info(f"✅ User '{new_username}' added successfully (Role: {new_role})")
+                st.success(f"✅ User '{new_username}' added successfully.")
+            except Exception as e:
+                logging.error(f"🚨 Database error while adding user: {e}")
+                st.error("❌ Server error. User creation failed.")
 
 
 # === Menu Principal ===
