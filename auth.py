@@ -2,6 +2,7 @@ import psycopg2
 import bcrypt
 from dotenv import load_dotenv
 import os
+from auth import verify_password
 
 # 🔹 Assure le bon chargement du fichier `.env`
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")  # 🔍 Recherche `.env` dans le dossier du script
