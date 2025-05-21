@@ -107,7 +107,7 @@ def verify_password(username, provided_password):
             logging.debug("Vérification du mot de passe en cours...")  # Seulement en debug
 
             # 🔹 Vérification correcte avec bcrypt.checkpw()
-            if bcrypt.checkpw(provided_password.encode(), stored_password.encode("utf-8")):
+            if bcrypt.checkpw(provided_password.encode(), stored_password.encode()):
                 return True
             else:
                 logging.warning("❌ Incorrect password")
