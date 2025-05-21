@@ -8,26 +8,26 @@ from dotenv import load_dotenv
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔹 Assure le bon chargement du fichier `.env`
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")  # 🔍 Recherche `.env` dans le dossier du script
-load_dotenv(dotenv_path)  # 🔥 Charge les variables depuis `.env`
+# 🔹 Chargement sécurisé des variables d’environnement
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")  # 🔍 Recherche `.env`
+load_dotenv(dotenv_path)  # 🔥 Charge les variables `.env`
 
-# 🔎 Vérification du chargement des variables
+# 🔎 Vérification des variables essentielles
 env_vars = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_SSLMODE", "JWT_SECRET_KEY"]
-for var in env_vars:
-    if not os.getenv(var):
-        logging.error(f"🚨 ERREUR : La variable {var} n'est pas chargée correctement !")
+missing_vars = [var for var in env_vars if not os.getenv(var)]
+if missing_vars:
+    logging.critical(f"🚨 ERREUR CRITIQUE : Variables manquantes ! {missing_vars}")
+    exit(1)  # 🔥 Stopper le script si des variables sont absentes
 
-# 🔹 Clé secrète pour JWT
+# 🔐 Clé secrète pour JWT
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
-# 🔹 Fonction pour générer un token JWT
+# === 🔹 Gestion des Tokens JWT ===
 def generate_jwt(username):
     payload = {"username": username}
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
-# 🔹 Vérification du token JWT
 def verify_jwt(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
@@ -39,12 +39,12 @@ def verify_jwt(token):
         logging.error("❌ Token invalide")
         return None
 
-# 🔹 Gestion centralisée des erreurs PostgreSQL
+# === 🔹 Gestion centralisée des erreurs PostgreSQL ===
 def handle_pg_error(error):
-    logging.error("🚨 Une erreur s'est produite lors de la connexion à PostgreSQL.")
-    logging.debug(f"🛠 Détails internes de l'erreur : {error}")
+    logging.error("🚨 Erreur PostgreSQL détectée.")
+    logging.debug(f"🛠 Détails internes : {error}")
 
-# 🔹 Fonction de connexion à PostgreSQL
+# === 🔹 Connexion sécurisée à PostgreSQL ===
 def get_connection():
     try:
         conn = psycopg2.connect(
@@ -53,23 +53,22 @@ def get_connection():
             password=os.getenv("DB_PASSWORD"),
             host=os.getenv("DB_HOST"),
             port=os.getenv("DB_PORT"),
-            sslmode=os.getenv("DB_SSLMODE")
+            sslmode=os.getenv("DB_SSLMODE")  # 🔒 Connexion sécurisée SSL
         )
-        logging.info("✅ Connexion à PostgreSQL réussie !")
+        logging.info("✅ Connexion PostgreSQL réussie !")
         return conn
     except psycopg2.OperationalError as e:
         handle_pg_error(e)
         return None
 
-# 🔹 Fonction de hachage de mot de passe
+# === 🔹 Gestion des utilisateurs ===
 def hash_password(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-# 🔹 Fonction d'enregistrement d'un nouvel utilisateur
 def register_user(username, password, role="user"):
     conn = get_connection()
     if conn is None:
-        logging.error("🚨 Impossible de se connecter à la base de données.")
+        logging.error("🚨 Connexion PostgreSQL impossible.")
         return False
 
     try:
@@ -80,21 +79,20 @@ def register_user(username, password, role="user"):
             (username, hashed_password, role)
         )
         conn.commit()
-        logging.info(f"✅ User '{username}' successfully registered.")
+        logging.info(f"✅ Utilisateur '{username}' enregistré avec succès.")
         return True
     except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
         handle_pg_error(e)
         return False
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
+        cur.close()
+        conn.close()
         logging.info("🔹 Connexion PostgreSQL fermée proprement.")
 
-# 🔹 Fonction de vérification d'un mot de passe
 def verify_password(username, provided_password):
     conn = get_connection()
     if conn is None:
-        logging.error("🚨 Impossible de se connecter à la base de données.")
+        logging.error("🚨 Connexion PostgreSQL impossible.")
         return False
 
     try:
@@ -104,29 +102,25 @@ def verify_password(username, provided_password):
 
         if stored_password:
             stored_password = stored_password[0]
-            logging.debug("Vérification du mot de passe en cours...")  # Seulement en debug
-
-            # 🔹 Vérification correcte avec bcrypt.checkpw()
             if bcrypt.checkpw(provided_password.encode(), stored_password.encode()):
                 return True
             else:
-                logging.warning("❌ Incorrect password")
+                logging.warning("❌ Mot de passe incorrect")
                 return False
-        logging.warning("❌ User not found")
+        logging.warning("❌ Utilisateur introuvable")
         return False
     except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
         handle_pg_error(e)
         return False
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
+        cur.close()
+        conn.close()
         logging.info("🔹 Connexion PostgreSQL fermée proprement.")
 
-# 🔹 Fonction pour récupérer le rôle d'un utilisateur
 def get_role(username):
     conn = get_connection()
     if conn is None:
-        logging.error("🚨 Impossible de se connecter à la base de données.")
+        logging.error("🚨 Connexion PostgreSQL impossible.")
         return None
 
     try:
@@ -138,24 +132,24 @@ def get_role(username):
         handle_pg_error(e)
         return None
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
+        cur.close()
+        conn.close()
         logging.info("🔹 Connexion PostgreSQL fermée proprement.")
 
-# 🔹 AUTOMATED TESTS
+# === 🔹 TESTS AUTOMATISÉS ===
 if __name__ == "__main__":
-    logging.info("\n🚀 Test: Registering a user with a secure password...")
+    logging.info("\n🚀 Test: Enregistrement utilisateur...")
     if register_user("test_user", "Test#123", "user"):
         logging.info("✅ Enregistrement réussi !")
     else:
         logging.error("❌ Échec de l'enregistrement.")
 
-    logging.info("\n🔎 Test: Verifying the password...")
+    logging.info("\n🔎 Test: Vérification du mot de passe...")
     if verify_password("test_user", "Test#123"):
-        logging.info("✅ Successful login!")
+        logging.info("✅ Connexion réussie !")
     else:
-        logging.warning("❌ Login failed.")
+        logging.warning("❌ Échec de connexion.")
 
-    logging.info("\n🔹 Test: Retrieving the user's role...")
+    logging.info("\n🔹 Test: Récupération du rôle utilisateur...")
     role = get_role("test_user")
-    logging.info(f"🎭 Role of 'test_user': {role}")
+    logging.info(f"🎭 Rôle de 'test_user' : {role}")
