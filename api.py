@@ -2,30 +2,41 @@ from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import psycopg2
 import bcrypt
-import os
-from dotenv import load_dotenv
 import logging
+import streamlit as st  # ✅ Ajout de Streamlit pour gérer les secrets
 
+# 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔹 Charger les variables d’environnement
-load_dotenv()
+# 🔎 Chargement des variables depuis Streamlit Secrets
+try:
+    DB_NAME = st.secrets["connections.postgresql"]["database"]
+    DB_USER = st.secrets["connections.postgresql"]["username"]
+    DB_PASSWORD = st.secrets["connections.postgresql"]["password"]
+    DB_HOST = st.secrets["connections.postgresql"]["host"]
+    DB_PORT = st.secrets["connections.postgresql"]["port"]
+    DB_SSLMODE = st.secrets["connections.postgresql"]["sslmode"]
+    JWT_SECRET_KEY = st.secrets["authentication"]["jwt_secret_key"]
+except KeyError as e:
+    logging.critical(f"🚨 ERREUR CRITIQUE : Variable manquante ! {e}")
+    st.error(f"🚨 ERREUR : Variable manquante ! {e}")
+    exit(1)  # 🔥 Stopper le script si des variables sont absentes
 
 # 🔐 Initialisation de Flask et JWT
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")  # 🔐 Clé sécurisée
+app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY  # 🔐 Clé sécurisée depuis `st.secrets`
 
 jwt = JWTManager(app)
 
 # 🔹 Fonction pour récupérer une connexion PostgreSQL propre
 def get_db_connection():
     return psycopg2.connect(
-        dbname=os.getenv("DB_NAME"),  
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        sslmode=os.getenv("DB_SSLMODE")  # 🔒 Mode SSL sécurisé
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT,
+        sslmode=DB_SSLMODE
     )
 
 # === 🔹 Endpoint pour l’inscription ===

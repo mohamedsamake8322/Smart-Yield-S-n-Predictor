@@ -1,26 +1,25 @@
 import psycopg2
 import bcrypt
 import jwt
-import os
 import logging
-from dotenv import load_dotenv
+import streamlit as st  # ✅ Ajout de Streamlit pour gérer les secrets
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔹 Chargement sécurisé des variables d’environnement
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")  # 🔍 Recherche `.env`
-load_dotenv(dotenv_path)  # 🔥 Charge les variables `.env`
-
-# 🔎 Vérification des variables essentielles
-env_vars = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_SSLMODE", "JWT_SECRET_KEY"]
-missing_vars = [var for var in env_vars if not os.getenv(var)]
-if missing_vars:
-    logging.critical(f"🚨 ERREUR CRITIQUE : Variables manquantes ! {missing_vars}")
+# 🔎 Chargement des variables depuis Streamlit Secrets
+try:
+    DB_NAME = st.secrets["connections.postgresql"]["database"]
+    DB_USER = st.secrets["connections.postgresql"]["username"]
+    DB_PASSWORD = st.secrets["connections.postgresql"]["password"]
+    DB_HOST = st.secrets["connections.postgresql"]["host"]
+    DB_PORT = st.secrets["connections.postgresql"]["port"]
+    DB_SSLMODE = st.secrets["connections.postgresql"]["sslmode"]
+    SECRET_KEY = st.secrets["authentication"]["jwt_secret_key"]
+except KeyError as e:
+    logging.critical(f"🚨 ERREUR CRITIQUE : Variable manquante ! {e}")
+    st.error(f"🚨 ERREUR : Variable manquante ! {e}")
     exit(1)  # 🔥 Stopper le script si des variables sont absentes
-
-# 🔐 Clé secrète pour JWT
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 # === 🔹 Gestion des Tokens JWT ===
 def generate_jwt(username):
@@ -48,12 +47,12 @@ def handle_pg_error(error):
 def get_connection():
     try:
         conn = psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            sslmode=os.getenv("DB_SSLMODE")  # 🔒 Connexion sécurisée SSL
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode=DB_SSLMODE
         )
         logging.info("✅ Connexion PostgreSQL réussie !")
         return conn
@@ -135,21 +134,3 @@ def get_role(username):
         cur.close()
         conn.close()
         logging.info("🔹 Connexion PostgreSQL fermée proprement.")
-
-# === 🔹 TESTS AUTOMATISÉS ===
-if __name__ == "__main__":
-    logging.info("\n🚀 Test: Enregistrement utilisateur...")
-    if register_user("test_user", "Test#123", "user"):
-        logging.info("✅ Enregistrement réussi !")
-    else:
-        logging.error("❌ Échec de l'enregistrement.")
-
-    logging.info("\n🔎 Test: Vérification du mot de passe...")
-    if verify_password("test_user", "Test#123"):
-        logging.info("✅ Connexion réussie !")
-    else:
-        logging.warning("❌ Échec de connexion.")
-
-    logging.info("\n🔹 Test: Récupération du rôle utilisateur...")
-    role = get_role("test_user")
-    logging.info(f"🎭 Rôle de 'test_user' : {role}")
