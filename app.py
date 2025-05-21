@@ -7,6 +7,13 @@ import requests
 import joblib
 import logging
 import sklearn
+import os
+
+# 🔎 Vérifier si le fichier `auth.py` est bien présent
+if os.path.exists("auth.py"):
+    print("✅ Fichier auth.py trouvé !")
+else:
+    print("🚨 ERREUR : auth.py est introuvable ! Vérifie son emplacement.")
 
 # 🔍 Vérification des secrets disponibles
 st.write("🔍 Vérification secrets.toml rechargé")
