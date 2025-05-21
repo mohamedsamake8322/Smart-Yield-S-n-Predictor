@@ -4,6 +4,8 @@ import psycopg2
 import bcrypt
 import os
 from dotenv import load_dotenv
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Charger les variables d’environnement
 load_dotenv()
@@ -16,11 +18,12 @@ jwt = JWTManager(app)
 # Fonction pour récupérer une connexion PostgreSQL propre
 def get_db_connection():
     return psycopg2.connect(
-        dbname="smart_yield",
-        user="postgres",
+        dbname=os.getenv("DB_NAME"),  # 💡 Prend la valeur depuis `.env`
+        user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        host="localhost",
-        port="5432"
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        sslmode=os.getenv("DB_SSLMODE")  # 💡 Ajout du mode SSL sécurisé
     )
 
 # Endpoint pour l’inscription
@@ -65,15 +68,16 @@ def login():
     cur = conn.cursor()
 
     cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
-    stored_password = cur.fetchone()
+    result = cur.fetchone()
 
     cur.close()
     conn.close()  # On ferme la connexion après usage ✅
 
-    if not stored_password:
-        return jsonify({"error": "❌ User does not exist"}), 404
-    print(f"🔎 Stored password from DB: {stored_password}")
-    if bcrypt.checkpw(password.encode(), stored_password[0].encode()):
+    if not result:
+         return jsonify({"error": "❌ User does not exist"}), 404
+    stored_password = result[0]
+    logging.debug(f"🔎 Stored password hash from DB: {stored_password}")
+    if bcrypt.checkpw(password.encode(), stored_password.encode()):
         access_token = create_access_token(identity=username)
         return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
 
