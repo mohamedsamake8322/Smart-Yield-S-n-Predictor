@@ -5,7 +5,6 @@ import datetime
 import os
 import requests
 import joblib
-import streamlit as st
 import logging
 import sklearn
 
@@ -15,11 +14,22 @@ st.write("🔍 Vérification secrets.toml rechargé")
 # ✅ Vérification sécurisée des secrets
 if st.secrets:
     st.write("✅ Secrets détectés avec succès !")
-    
-    db_name = st.secrets.get("connections.postgresql", {}).get("database", "❌ Non trouvé")
-    jwt_key = st.secrets.get("authentication", {}).get("jwt_secret_key", "❌ Non trouvé")
+
+    db_name = st.secrets.get("connections_postgresql_database", "❌ Non trouvé")
+    username = st.secrets.get("connections_postgresql_username", "❌ Non trouvé")
+    password = st.secrets.get("connections_postgresql_password", "❌ Non trouvé")
+    host = st.secrets.get("connections_postgresql_host", "❌ Non trouvé")
+    port = st.secrets.get("connections_postgresql_port", "❌ Non trouvé")
+    sslmode = st.secrets.get("connections_postgresql_sslmode", "❌ Non trouvé")
+
+    jwt_key = st.secrets.get("authentication_jwt_secret_key", "❌ Non trouvé")
 
     st.write("DB_NAME:", db_name)
+    st.write("USERNAME:", username)
+    st.write("PASSWORD:", password)
+    st.write("HOST:", host)
+    st.write("PORT:", port)
+    st.write("SSLMODE:", sslmode)
     st.write("JWT_SECRET_KEY:", jwt_key)
 
     # 🔍 Vérification des clés disponibles
