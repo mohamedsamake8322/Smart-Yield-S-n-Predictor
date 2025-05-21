@@ -11,7 +11,11 @@ st.write("🔍 Vérification secrets.toml rechargé")
 st.write("DB_NAME:", st.secrets["connections.postgresql"]["database"])
 st.write("JWT_SECRET_KEY:", st.secrets["authentication"]["jwt_secret_key"])
 st.write("🔍 Vérification des secrets disponibles")
-st.write(st.secrets)
+if not st.secrets:
+    st.write("❌ Aucun secret détecté ! Vérifie `Manage App > Secrets` et redémarre l'application.")
+else:
+    for key, value in st.secrets.items():
+        st.write(f"🔑 Clé détectée : {key} → {value}")
 from PIL import Image
 from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
 from database import init_db, save_prediction, get_user_predictions, save_location
