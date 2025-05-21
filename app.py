@@ -7,8 +7,6 @@ import requests
 import joblib
 import logging
 import sklearn
-# 🔹 Vérifier si Streamlit reconnaît les secrets
-st.secrets.load_if_needed()  # 🔥 Recharge les secrets si nécessaire
 
 st.write("🔍 Vérification secrets.toml rechargé")
 st.write("DB_NAME:", st.secrets["connections.postgresql"]["database"])
