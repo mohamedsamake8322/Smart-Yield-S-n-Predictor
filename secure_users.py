@@ -58,7 +58,7 @@ def verify_user(username, password):
         if stored_password:
             stored_password = stored_password[0]
             print(f"🔎 Stored password from DB: {stored_password}")
-            if bcrypt.checkpw(provided_password.encode(), stored_password.encode()):
+            if bcrypt.checkpw(password.encode(), stored_password.encode()):
                 print(f"Connexion réussie pour {username} ! ✅")
                 return True
             else:
@@ -73,6 +73,3 @@ def verify_user(username, password):
     finally:
         cur.close()
         conn.close()
-if not all(os.getenv(var) for var in env_vars):
-    logging.critical("🚨 Erreur critique : Une ou plusieurs variables .env sont manquantes !")
-    exit(1)  # 🔥 Arrête immédiatement le script

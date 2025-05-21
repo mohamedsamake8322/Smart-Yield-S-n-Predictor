@@ -88,9 +88,10 @@ if st.sidebar.button("Login"):
 USERNAME = st.session_state.get("username", None)
 AUTHENTICATED = st.session_state.get("authenticated", False)
 
-if not AUTHENTICATED:
-    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
-    st.stop()
+# if not AUTHENTICATED:
+#     st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
+#     st.stop()
+
 
 # 🔹 Vérification du rôle utilisateur
 user_role = get_role(USERNAME) if USERNAME else None
