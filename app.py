@@ -12,13 +12,14 @@ import os
 # 🔎 Vérifier si le fichier `auth.py` est bien présent
 import streamlit as st
 
-st.write("🔍 Test après suppression des secrets")
+st.write("🔍 Vérification de `authentication_jwt_secret_key`")
 
-if st.secrets:
-    st.write("✅ Secrets détectés !")
-    st.write("🔑 Toutes les clés détectées :", list(st.secrets.keys()))
+jwt_key = st.secrets.get("authentication_jwt_secret_key", "❌ Non trouvé")
+
+if jwt_key != "❌ Non trouvé":
+    st.write("✅ Clé JWT détectée :", jwt_key)
 else:
-    st.write("❌ Aucun secret disponible ! Vérifie `Manage App > Secrets` et redémarre.")
+    st.write("🚨 ERREUR : Clé JWT introuvable ! Vérifie `Manage App > Secrets` et redémarre.")
 
 # 📌 Imports supplémentaires pour ton application
 from PIL import Image
