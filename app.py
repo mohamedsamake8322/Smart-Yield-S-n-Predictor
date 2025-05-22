@@ -149,7 +149,7 @@ if choice == "Home":
             precipitation = st.slider("🌧️ Precipitation (mm)", 0, 300, 50)
             pH = st.slider("🧪 Soil pH", 3.0, 10.0, 6.5)
             fertilizer = st.selectbox("🌱 Fertilizer Type", ["NPK", "Urea", "Compost", "DAP"])
-
+            # 🔹 Définition unique des caractéristiques
             features = {
                 "Temperature": temperature,
                 "Humidity": humidity,
@@ -162,17 +162,9 @@ if choice == "Home":
                 if model:
                     prediction = predict_single(model, features)
                     st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
-                    timestamp = datetime.datetime.now()
-                    
-                    # 🔹 Correction : Ajout de tous les paramètres nécessaires à `save_prediction()`
-                    features_dict = {
-                        "Temperature": temperature,
-                        "Humidity": humidity,
-                        "Precipitation": precipitation,
-                        "pH": pH,
-                        "Fertilizer": fertilizer
-                    }
-                    save_prediction(USERNAME, features_dict, prediction)
+                    # 🔹 Enregistrement de la prédiction
+                    save_prediction(USERNAME, features, prediction)
+                     # 🔹 Génération du rapport PDF
                     if st.checkbox("📄 Download PDF Report"):
                         pdf = generate_pdf_report(
                             USERNAME, features, prediction,
