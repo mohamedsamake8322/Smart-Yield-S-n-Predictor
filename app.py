@@ -10,44 +10,15 @@ import sklearn
 import os
 
 # 🔎 Vérifier si le fichier `auth.py` est bien présent
-if os.path.exists("auth.py"):
-    print("✅ Fichier auth.py trouvé !")
-else:
-    print("🚨 ERREUR : auth.py est introuvable ! Vérifie son emplacement.")
+import streamlit as st
 
-# 🔍 Vérification des secrets disponibles
-st.write("🔍 Vérification secrets.toml rechargé")
+st.write("🔍 Test après suppression des secrets")
 
-# ✅ Vérification sécurisée des secrets
 if st.secrets:
-    st.write("✅ Secrets détectés avec succès !")
-
-    db_name = st.secrets.get("connections_postgresql_database", "❌ Non trouvé")
-    username = st.secrets.get("connections_postgresql_username", "❌ Non trouvé")
-    password = st.secrets.get("connections_postgresql_password", "❌ Non trouvé")
-    host = st.secrets.get("connections_postgresql_host", "❌ Non trouvé")
-    port = st.secrets.get("connections_postgresql_port", "❌ Non trouvé")
-    sslmode = st.secrets.get("connections_postgresql_sslmode", "❌ Non trouvé")
-
-    jwt_key = st.secrets.get("authentication_jwt_secret_key", "❌ Non trouvé")
-
-    st.write("DB_NAME:", db_name)
-    st.write("USERNAME:", username)
-    st.write("PASSWORD:", password)
-    st.write("HOST:", host)
-    st.write("PORT:", port)
-    st.write("SSLMODE:", sslmode)
-    st.write("JWT_SECRET_KEY:", jwt_key)
-
-    # 🔍 Vérification des clés disponibles
-    secret_keys = list(st.secrets.keys())
-    if secret_keys:
-        st.write("🔑 Toutes les clés détectées :", secret_keys)
-    else:
-        st.write("❌ Aucune clé trouvée ! Vérifie `Manage App > Secrets`.")
-
+    st.write("✅ Secrets détectés !")
+    st.write("🔑 Toutes les clés détectées :", list(st.secrets.keys()))
 else:
-    st.write("❌ Aucun secret détecté ! Vérifie `Manage App > Secrets` et redémarre l'application.")
+    st.write("❌ Aucun secret disponible ! Vérifie `Manage App > Secrets` et redémarre.")
 
 # 📌 Imports supplémentaires pour ton application
 from PIL import Image
