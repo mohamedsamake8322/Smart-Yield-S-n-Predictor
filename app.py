@@ -60,41 +60,45 @@ password = st.sidebar.text_input("🔑 Password", type="password")
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
+if "username" not in st.session_state:
+    st.session_state["username"] = None
+
+if "user_role" not in st.session_state:
+    st.session_state["user_role"] = None
+
 if not st.session_state["authenticated"]:
     st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
+    st.sidebar.info("🔐 Veuillez entrer vos identifiants pour vous connecter.")
 
     if st.sidebar.button("Login"):
         if not username or not password:
-            st.sidebar.error("❌ Please enter both username and password.")
+            st.sidebar.error("❌ Veuillez saisir un nom d’utilisateur et un mot de passe.")
         else:
             try:
                 if verify_password(username, password):
                     st.session_state["username"] = username
                     st.session_state["authenticated"] = True
                     st.session_state["user_role"] = get_role(username) or "user"
-                    logging.info(f"✅ Successful login: {username} (Role: {st.session_state['user_role']})")
-                    st.sidebar.success(f"✅ Logged in as {username}")
-                    st.experimental_rerun()  # 🔁 Recharger l'interface après connexion
+                    logging.info(f"✅ Connexion réussie : {username} (Rôle: {st.session_state['user_role']})")
+                    st.sidebar.success(f"✅ Connecté en tant que {username}")
+                    st.experimental_rerun()  # 🔁 Recharge l'interface après connexion
                 else:
-                    logging.warning(f"❌ Failed login attempt: {username}")
-                    st.sidebar.error("❌ Username or password incorrect.")
+                    logging.warning(f"❌ Échec de connexion : {username}")
+                    st.sidebar.error("❌ Identifiants incorrects.")
                     st.session_state["authenticated"] = False
             except Exception as e:
-                logging.error(f"🚨 Database error during login: {e}")
-                st.sidebar.error("❌ Server error. Try again later.")
+                logging.error(f"🚨 Erreur de base de données : {e}")
+                st.sidebar.error("❌ Erreur serveur. Veuillez réessayer plus tard.")
 
-    st.stop()  # 🔥 Bloque totalement l'accès à l'application tant que l'utilisateur n'est pas connecté
-if "username" not in st.session_state:
-    st.session_state["username"] = None
-
-USERNAME = st.session_state["username"]
-AUTHENTICATED = st.session_state.get("authenticated", False)
+    st.stop()  # 🔥 Bloque totalement l'accès tant que l'utilisateur n'est pas connecté
 
 # 🔹 Vérification du rôle utilisateur
-user_role = st.session_state.get("user_role", "user")
+USERNAME = st.session_state["username"]
+AUTHENTICATED = st.session_state.get("authenticated", False)
+USER_ROLE = st.session_state.get("user_role", "user")
 
 # === Interface Admin (Seulement pour les admins) ===
-if user_role == "admin":
+if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
