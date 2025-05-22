@@ -25,7 +25,13 @@ from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_o
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
 from auth import verify_password
+username = "mohamedsamake8322"
+password = "78772652Sama#"
 
+if verify_password(username, password):
+    print("✅ Connexion réussie !")
+else:
+    print("🚨 Erreur d’authentification ! Mot de passe incorrect.")
 st.write("🔍 Débogage Authentification")
 
 # 🔹 Récupération des valeurs depuis l'interface Streamlit
