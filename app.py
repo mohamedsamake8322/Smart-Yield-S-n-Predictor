@@ -165,8 +165,14 @@ if choice == "Home":
                     timestamp = datetime.datetime.now()
                     
                     # 🔹 Correction : Ajout de tous les paramètres nécessaires à `save_prediction()`
-                    save_prediction(USERNAME, temperature, humidity, precipitation, pH, fertilizer, prediction)
-                    
+                    features_dict = {
+                        "Temperature": temperature,
+                        "Humidity": humidity,
+                        "Precipitation": precipitation,
+                        "pH": pH,
+                        "Fertilizer": fertilizer
+                    }
+                    save_prediction(USERNAME, features_dict, prediction)
                     if st.checkbox("📄 Download PDF Report"):
                         pdf = generate_pdf_report(
                             USERNAME, features, prediction,
@@ -202,10 +208,14 @@ if choice == "Home":
                             for _, row in df.iterrows():
                                 features = row[required_cols].to_dict()
                                 prediction = row["PredictedYield"]
-                                save_prediction(
-                                    USERNAME, features["Temperature"], features["Humidity"], 
-                                    features["Precipitation"], features["pH"], features["Fertilizer"], prediction
-                                )
+                                features_dict = {
+                                    "Temperature": features["Temperature"],
+                                    "Humidity": features["Humidity"],
+                                    "Precipitation": features["Precipitation"],
+                                    "pH": features["pH"],
+                                    "Fertilizer": features["Fertilizer"]
+                                }
+                                save_prediction(USERNAME, features_dict, prediction)
                         else:
                             st.error("🛑 Model not trained yet.")
                 else:
