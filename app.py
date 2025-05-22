@@ -24,7 +24,26 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
+from auth import verify_password
 
+st.write("🔍 Débogage Authentification")
+
+# 🔹 Récupération des valeurs depuis l'interface Streamlit
+username = st.text_input("Username")
+password = st.text_input("Password", type="password")
+
+# 🔹 Affichage des valeurs récupérées
+st.write(f"✅ Username reçu : {username}")
+st.write(f"✅ Password reçu : {password}")
+
+# 🔹 Test de `verify_password()`
+if username and password:
+    if verify_password(username, password):
+        st.success("✅ Connexion réussie !")
+    else:
+        st.error("🚨 Identifiants incorrects. Vérifie ton username et mot de passe.")
+else:
+    st.warning("⚠️ Veuillez entrer les deux champs.")
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 st.write("🔍 Vérification des secrets disponibles")
