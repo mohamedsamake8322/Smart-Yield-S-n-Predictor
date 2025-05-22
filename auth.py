@@ -3,9 +3,17 @@ import bcrypt
 import jwt
 import logging
 import streamlit as st  # ✅ Ajout de Streamlit pour gérer les secrets
-
+from auth import verify_password  # ✅ Importation si `verify_password` est dans `auth.py`
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# 🔍 Test de vérification du mot de passe
+test_username = "mohamedsamake8322"
+test_password = "78772652Sama#"
+
+if verify_password(test_username, test_password):
+    print("✅ Authentification réussie !")
+else:
+    print("❌ Erreur d'authentification ! Vérifie le hash du mot de passe.")
 
 # 🔎 Chargement des variables depuis Streamlit Secrets
 # 🔎 Chargement des variables depuis Streamlit Secrets (FORMAT CORRIGÉ)
