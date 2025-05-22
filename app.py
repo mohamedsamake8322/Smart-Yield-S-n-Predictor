@@ -81,7 +81,8 @@ if not st.session_state["authenticated"]:
                     st.session_state["user_role"] = get_role(username) or "user"
                     logging.info(f"✅ Connexion réussie : {username} (Rôle: {st.session_state['user_role']})")
                     st.sidebar.success(f"✅ Connecté en tant que {username}")
-                    st.experimental_rerun()  # 🔁 Recharge l'interface après connexion
+                    st.rerun()
+  # 🔁 Recharge l'interface après connexion
                 else:
                     logging.warning(f"❌ Échec de connexion : {username}")
                     st.sidebar.error("❌ Identifiants incorrects.")
