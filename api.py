@@ -3,30 +3,22 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import psycopg2
 import bcrypt
 import logging
-import streamlit as st  # ✅ Ajout de Streamlit pour gérer les secrets
 
-# 🔹 Configuration du logger (SUPPRESSION DU DOUBLON)
+# 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔎 Chargement sécurisé des variables depuis Streamlit Secrets
-try:
-    DB_NAME = st.secrets.get("connections_postgresql_database", None)
-    DB_USER = st.secrets.get("connections_postgresql_username", None)
-    DB_PASSWORD = st.secrets.get("connections_postgresql_password", None)
-    DB_HOST = st.secrets.get("connections_postgresql_host", None)
-    DB_PORT = st.secrets.get("connections_postgresql_port", None)
-    DB_SSLMODE = st.secrets.get("connections_postgresql_sslmode", None)
-    JWT_SECRET_KEY = st.secrets.get("authentication_jwt_secret_key", None)
-
-    if None in [DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_SSLMODE, JWT_SECRET_KEY]:
-        raise KeyError("🚨 ERREUR : Certaines variables sont manquantes dans `Manage App > Secrets`")
-except KeyError as e:
-    logging.critical(f"🚨 ERREUR CRITIQUE : {e}")
-    exit(1)  # 🔥 Stopper le script si des variables sont absentes
+# 🔎 Configuration PostgreSQL et JWT
+DB_NAME = "neondb"
+DB_USER = "neondb_owner"
+DB_PASSWORD = "78772652Sama#"
+DB_HOST = "ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech"
+DB_PORT = "5432"
+DB_SSLMODE = "require"
+JWT_SECRET_KEY = "TON_SECRET_JWT"
 
 # 🔐 Initialisation de Flask et JWT
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY  # 🔐 Clé sécurisée depuis `st.secrets`
+app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
 
 # 🔹 Fonction pour récupérer une connexion PostgreSQL sécurisée
@@ -70,9 +62,10 @@ def register():
             (username, hashed_password, role)
         )
         conn.commit()
+        logging.info(f"✅ User '{username}' registered successfully!")
         return jsonify({"message": f"✅ User '{username}' registered successfully!"}), 201
 
-    except Exception as e:
+    except psycopg2.Error as e:
         logging.error(f"🚨 Registration failed: {e}")
         return jsonify({"error": f"🚨 Registration failed: {str(e)}"}), 500
 
@@ -91,30 +84,42 @@ def login():
     if not conn:
         return jsonify({"error": "🚨 Database connection failed"}), 500
 
-    cur = conn.cursor()
-    cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
-    result = cur.fetchone()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
+        result = cur.fetchone()
 
-    cur.close()
-    conn.close()  # 🔒 Fermeture propre de la connexion ✅
+        if not result:
+            logging.warning(f"❌ User `{username}` does not exist.")
+            return jsonify({"error": "❌ User does not exist"}), 404
 
-    if not result:
-        return jsonify({"error": "❌ User does not exist"}), 404
+        stored_password = result[0].encode()
+        provided_password = password.encode()
 
-    stored_password = result[0]
-    logging.debug(f"🔎 Stored password hash from DB: {stored_password}")
+        logging.debug(f"🔎 Stored password hash from DB: {stored_password}")
 
-    if bcrypt.checkpw(password.encode(), stored_password.encode()):
-        access_token = create_access_token(identity=username)
-        return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
+        if bcrypt.checkpw(provided_password, stored_password):
+            access_token = create_access_token(identity=username)
+            logging.info(f"✅ Login successful for `{username}`!")
+            return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
 
-    return jsonify({"error": "❌ Incorrect password"}), 401
+        logging.warning(f"❌ Incorrect password for `{username}`.")
+        return jsonify({"error": "❌ Incorrect password"}), 401
+
+    except psycopg2.Error as e:
+        logging.error(f"🚨 Database error during login: {e}")
+        return jsonify({"error": "🚨 Server error. Try again later."}), 500
+
+    finally:
+        cur.close()
+        conn.close()
 
 # === 🔹 Endpoint sécurisé (JWT requis) ===
 @app.route("/protected", methods=["GET"])
 @jwt_required()  # ⛔ Accès uniquement aux utilisateurs authentifiés
 def protected():
-    current_user = get_jwt_identity()  # 🔎 Récupère l'utilisateur connecté via JWT
+    current_user = get_jwt_identity()
+    logging.info(f"🔒 Access granted for `{current_user}`.")
     return jsonify({"message": f"🔒 Welcome {current_user}, you have access to this protected route!"}), 200
 
 # === 🔹 Lancer l'application ===
