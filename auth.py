@@ -22,7 +22,37 @@ try:
 except KeyError as e:
     logging.critical(f"🚨 ERREUR CRITIQUE : {e}")
     exit(1)
+def verify_password(username, provided_password):
+    conn = get_connection()
+    if not conn:
+        logging.error("🚨 Connexion PostgreSQL impossible.")
+        return False
 
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
+        stored_password = cur.fetchone()
+
+        if not stored_password:
+            logging.warning(f"❌ Utilisateur `{username}` introuvable")
+            return False
+
+        logging.info(f"🔍 Hash récupéré depuis la base : {stored_password[0]}")
+
+        is_valid = bcrypt.checkpw(provided_password.encode(), stored_password[0].encode())
+        if is_valid:
+            logging.info(f"✅ Authentification réussie pour `{username}`.")
+        else:
+            logging.warning(f"❌ Mot de passe incorrect pour `{username}`.")
+
+        return is_valid
+
+    except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
+        handle_pg_error(e)
+        return False
+    finally:
+        cur.close()
+        conn.close()
 # === 🔹 Gestion des Tokens JWT ===
 def generate_jwt(username):
     payload = {"username": username}
