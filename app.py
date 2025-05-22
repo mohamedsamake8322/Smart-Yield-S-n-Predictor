@@ -1,4 +1,5 @@
 import streamlit as st  
+st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
 import pandas as pd  
 import numpy as np  
 import datetime
@@ -44,7 +45,6 @@ from disease_model import load_disease_model, predict_disease
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # === Configuration de la page ===
-st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
 
 # 🔹 Vérifier la version de scikit-learn
 logging.info(f"✅ Version actuelle de scikit-learn : {sklearn.__version__}")
