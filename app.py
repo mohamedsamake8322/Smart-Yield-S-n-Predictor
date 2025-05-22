@@ -1,5 +1,6 @@
 import streamlit as st  
 st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
+
 import pandas as pd  
 import numpy as np  
 import datetime
@@ -8,14 +9,11 @@ import requests
 import joblib
 import logging
 import sklearn
-import os
-import psycopg2  # ✅ Import de psycopg2 pour gérer PostgreSQL
-import jwt  # ✅ Import de PyJWT pour gérer l'authentification
-
-# 🔎 Vérifier si le fichier `auth.py` est bien présent
-
-# 📌 Imports supplémentaires pour ton application
+import psycopg2  # ✅ PostgreSQL
+import jwt  # ✅ Authentification JWT
 from PIL import Image
+
+# 📌 Importation des modules nécessaires
 from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
@@ -24,45 +22,13 @@ from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
-from auth import verify_password
-username = "mohamedsamake8322"
-password = "78772652Sama#"
 
-if verify_password(username, password):
-    print("✅ Connexion réussie !")
-else:
-    print("🚨 Erreur d’authentification ! Mot de passe incorrect.")
-st.write("🔍 Débogage Authentification")
-
-# 🔹 Récupération des valeurs depuis l'interface Streamlit
-username = st.text_input("Username")
-password = st.text_input("Password", type="password")
-
-# 🔹 Affichage des valeurs récupérées
-st.write(f"✅ Username reçu : {username}")
-st.write(f"✅ Password reçu : {password}")
-
-# 🔹 Test de `verify_password()`
-if username and password:
-    if verify_password(username, password):
-        st.success("✅ Connexion réussie !")
-    else:
-        st.error("🚨 Identifiants incorrects. Vérifie ton username et mot de passe.")
-else:
-    st.warning("⚠️ Veuillez entrer les deux champs.")
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-st.write("🔍 Vérification des secrets disponibles")
-st.write("🔑 Toutes les clés détectées :", list(st.secrets.keys()))
-# === Configuration de la page ===
-
-# 🔹 Vérifier la version de scikit-learn
-logging.info(f"✅ Version actuelle de scikit-learn : {sklearn.__version__}")
 
 # === Vérification et chargement des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
-DB_FILE = "history.db"
 
 init_db()  # Initialisation de la base de données
 
