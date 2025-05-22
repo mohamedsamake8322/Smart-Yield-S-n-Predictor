@@ -1,36 +1,21 @@
-import psycopg2
 import bcrypt
 
-def debug_verify_password(username, provided_password):
-    conn = psycopg2.connect(
-        dbname="neondb",
-        user="neondb_owner",
-        password="78772652Sama#",
-        host="ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech",
-        port="5432",
-        sslmode="require"
-    )
+def test_password_verification(stored_password, provided_password):
+    try:
+        # 🔹 Vérification du mot de passe avec bcrypt
+        is_valid = bcrypt.checkpw(provided_password.encode(), stored_password.encode())
 
-    cur = conn.cursor()
-
-    cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
-    stored_password = cur.fetchone()
-
-    # 🔹 Fermeture de la connexion PostgreSQL
-    cur.close()
-    conn.close()
-
-    if stored_password:
-        print(f"🔍 Hash récupéré depuis la base : {stored_password[0]}")
-        if bcrypt.checkpw(provided_password.encode(), stored_password[0].encode()):
+        if is_valid:
             print("✅ Mot de passe vérifié avec succès !")
             return True
         else:
             print("🚨 Mot de passe incorrect !")
             return False
-    else:
-        print("🚨 Aucun utilisateur trouvé.")
+
+    except Exception as e:
+        print(f"🚨 Erreur de vérification : {e}")
         return False
 
-# 🔹 Test rapide
-debug_verify_password("mohamedsamake8322", "78772652Sama#")
+# 🔹 Test rapide avec ton hash actuel
+stored_hash = "$2b$12$dcBw.YGbSHmq87W5fMWtZuXQ1U7G92J2hl4DfFblR0vCzKAi30jju"
+test_password_verification(stored_hash, "78772652Sama#")
