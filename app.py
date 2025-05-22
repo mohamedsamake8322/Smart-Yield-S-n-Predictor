@@ -8,12 +8,20 @@ import joblib
 import logging
 import sklearn
 import os
+import psycopg2  # ✅ Import de psycopg2 pour gérer PostgreSQL
+import jwt  # ✅ Import de PyJWT pour gérer l'authentification
 
 # 🔎 Vérifier si le fichier `auth.py` est bien présent
 import streamlit as st
+st.write("🔍 Vérification des dépendances")
 
+st.write("✅ Version de Streamlit :", st.__version__)
+st.write("✅ Version de psycopg2 :", psycopg2.__version__)
+st.write("✅ Version de PyJWT :", jwt.__version__)
+st.write("✅ Version de scikit-learn :", sklearn.__version__)
 st.write("🔍 Vérification de `authentication_jwt_secret_key`")
-
+st.write("✅ psycopg2 est bien importé :", psycopg2.__version__)
+st.write("✅ PyJWT est bien importé :", jwt.__version__)
 jwt_key = st.secrets.get("authentication_jwt_secret_key", "❌ Non trouvé")
 
 if jwt_key != "❌ Non trouvé":
