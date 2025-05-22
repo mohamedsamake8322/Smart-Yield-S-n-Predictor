@@ -84,8 +84,10 @@ def register_user(username, password, role="user"):
         handle_pg_error(e)
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 def verify_password(username, provided_password):
     conn = get_connection()
@@ -93,21 +95,28 @@ def verify_password(username, provided_password):
         logging.error("🚨 Connexion PostgreSQL impossible.")
         return False
 
+    cur = None  
     try:
         cur = conn.cursor()
         cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
         stored_password = cur.fetchone()
 
-        if stored_password and bcrypt.checkpw(provided_password.encode(), stored_password[0].encode()):
+        if not stored_password:
+            logging.warning(f"❌ Utilisateur `{username}` introuvable")
+            return False
+
+        if bcrypt.checkpw(provided_password.encode(), stored_password[0].encode()):
             return True
-        logging.warning(f"❌ Erreur de connexion pour l'utilisateur `{username}`")
+        logging.warning(f"❌ Mot de passe incorrect pour `{username}`")
         return False
     except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
         handle_pg_error(e)
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 def get_role(username):
     conn = get_connection()
@@ -115,6 +124,7 @@ def get_role(username):
         logging.error("🚨 Connexion PostgreSQL impossible.")
         return None
 
+    cur = None
     try:
         cur = conn.cursor()
         cur.execute("SELECT role FROM users WHERE username = %s;", (username,))
@@ -124,5 +134,7 @@ def get_role(username):
         handle_pg_error(e)
         return None
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
