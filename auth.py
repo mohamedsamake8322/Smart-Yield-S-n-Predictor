@@ -3,6 +3,16 @@ import bcrypt
 import jwt
 import logging
 import streamlit as st  # ✅ Streamlit pour gérer les secrets
+import streamlit as st
+from auth import verify_password
+
+username = "mohamedsamake8322"
+password = "78772652Sama#"
+
+if verify_password(username, password):
+    print("✅ Connexion réussie depuis `auth.py` !")
+else:
+    print("🚨 Erreur d’authentification ! Mot de passe incorrect.")
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
