@@ -1,11 +1,42 @@
-__pycache__/
-*.pyc
+# 🔒 Fichiers contenant des mots de passe ou des clés secrètes
 .env
-*.pkl
-.DS_Store
+config.json
+settings.yaml
+secrets.json
+private_key.pem
+.streamlit/secrets.toml
+create_credentials.py
+
+# 🔹 Dépendances et environnement virtuel
+venv/
+smartyield-env/
 .idea/
 .vscode/
-smartyield-env/
-create_credentials.py
-.streamlit/secrets.toml
-script.py
+
+# 🔹 Fichiers temporaires et caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+temp/
+cache/
+
+# 🔹 Logs et bases de données locales
+logs/
+*.log
+*.sqlite
+
+# 🔹 Modèles d’apprentissage automatique
+model/
+*.pkl
+*.h5
+*.pt
+
+# 🔹 Fichiers CSV ou Excel contenant des données sensibles
+data/
+*.csv
+*.xlsx
+
+# 🔹 Streamlit et ses fichiers de sessions
+.streamlit/
