@@ -1,31 +1,4 @@
 import streamlit as st  
-st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
-# 🔹 Interface authentification
-st.sidebar.header("🔐 Authentication")
-username = st.sidebar.text_input("👤 Username")
-password = st.sidebar.text_input("🔑 Password", type="password")
-
-# 🔍 Vérification des identifiants AVANT l'authentification
-if not username or not password:
-    st.sidebar.error("❌ Please enter both username and password.")
-    st.stop()
-
-# 🔹 **Ajoute le script ici !**
-if st.button("Login"):
-    if verify_password(username, password):
-        st.success("✅ Connexion réussie !")
-        st.write("🔍 Debug info : Mot de passe validé via Streamlit.")
-    else:
-        st.error("🚨 Identifiants incorrects.")
-        st.write("🔍 Debug info : Échec de la validation du mot de passe.")
-
-# 🔒 Vérifier si l'utilisateur est authentifié
-USERNAME = st.session_state.get("username", None)
-AUTHENTICATED = st.session_state.get("authenticated", False)
-
-if not AUTHENTICATED:
-    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
-    st.stop()
 import pandas as pd  
 import numpy as np  
 import datetime
@@ -50,6 +23,8 @@ from disease_model import load_disease_model, predict_disease
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
 
 # === Vérification et chargement des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"

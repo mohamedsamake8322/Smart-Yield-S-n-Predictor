@@ -104,13 +104,20 @@ def verify_password(username, provided_password):
             logging.warning(f"❌ Utilisateur `{username}` introuvable")
             return False
 
-        return bcrypt.checkpw(provided_password.encode(), stored_password[0].encode())
+        is_valid = bcrypt.checkpw(provided_password.encode(), stored_password[0].encode())
+        if is_valid:
+            logging.info(f"✅ Authentification réussie pour `{username}`.")
+        else:
+            logging.warning(f"❌ Mot de passe incorrect pour `{username}`.")
+        return is_valid
     except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
         handle_pg_error(e)
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 def get_role(username):
     conn = get_connection()
@@ -127,8 +134,10 @@ def get_role(username):
         handle_pg_error(e)
         return None
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 # === ✅ Test final ===
 if verify_password("mohamedsamake8322", "78772652Sama#"):

@@ -5,43 +5,46 @@ import bcrypt
 import logging
 import streamlit as st  # ✅ Ajout de Streamlit pour gérer les secrets
 
-# 🔹 Configuration du logger
+# 🔹 Configuration du logger (SUPPRESSION DU DOUBLON)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# 🔎 Chargement des variables depuis Streamlit Secrets
+# 🔎 Chargement sécurisé des variables depuis Streamlit Secrets
 try:
-    DB_NAME = st.secrets.get("connections_postgresql_database", "❌ Non trouvé")
-    DB_USER = st.secrets.get("connections_postgresql_username", "❌ Non trouvé")
-    DB_PASSWORD = st.secrets.get("connections_postgresql_password", "❌ Non trouvé")
-    DB_HOST = st.secrets.get("connections_postgresql_host", "❌ Non trouvé")
-    DB_PORT = st.secrets.get("connections_postgresql_port", "❌ Non trouvé")
-    DB_SSLMODE = st.secrets.get("connections_postgresql_sslmode", "❌ Non trouvé")
+    DB_NAME = st.secrets.get("connections_postgresql_database", None)
+    DB_USER = st.secrets.get("connections_postgresql_username", None)
+    DB_PASSWORD = st.secrets.get("connections_postgresql_password", None)
+    DB_HOST = st.secrets.get("connections_postgresql_host", None)
+    DB_PORT = st.secrets.get("connections_postgresql_port", None)
+    DB_SSLMODE = st.secrets.get("connections_postgresql_sslmode", None)
+    JWT_SECRET_KEY = st.secrets.get("authentication_jwt_secret_key", None)
 
-    JWT_SECRET_KEY = st.secrets.get("authentication_jwt_secret_key", "❌ Non trouvé")
+    if None in [DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_SSLMODE, JWT_SECRET_KEY]:
+        raise KeyError("🚨 ERREUR : Certaines variables sont manquantes dans `Manage App > Secrets`")
 except KeyError as e:
-    logging.critical(f"🚨 ERREUR CRITIQUE : Variable manquante ! {e}")
-    st.error(f"🚨 ERREUR : Variable manquante ! {e}")
+    logging.critical(f"🚨 ERREUR CRITIQUE : {e}")
     exit(1)  # 🔥 Stopper le script si des variables sont absentes
-  # 🔥 Stopper le script si des variables sont absentes
 
 # 🔐 Initialisation de Flask et JWT
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY  # 🔐 Clé sécurisée depuis `st.secrets`
-
 jwt = JWTManager(app)
 
-# 🔹 Fonction pour récupérer une connexion PostgreSQL propre
+# 🔹 Fonction pour récupérer une connexion PostgreSQL sécurisée
 def get_db_connection():
-    return psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT,
-        sslmode=DB_SSLMODE
-    )
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode=DB_SSLMODE
+        )
+        logging.info("✅ Connexion PostgreSQL réussie !")
+        return conn
+    except psycopg2.OperationalError as e:
+        logging.error(f"🚨 Erreur de connexion PostgreSQL : {e}")
+        return None
 
 # === 🔹 Endpoint pour l’inscription ===
 @app.route("/register", methods=["POST"])
@@ -57,9 +60,11 @@ def register():
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     conn = get_db_connection()
-    cur = conn.cursor()
+    if not conn:
+        return jsonify({"error": "🚨 Database connection failed"}), 500
 
     try:
+        cur = conn.cursor()
         cur.execute(
             "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
             (username, hashed_password, role)
@@ -68,6 +73,7 @@ def register():
         return jsonify({"message": f"✅ User '{username}' registered successfully!"}), 201
 
     except Exception as e:
+        logging.error(f"🚨 Registration failed: {e}")
         return jsonify({"error": f"🚨 Registration failed: {str(e)}"}), 500
 
     finally:
@@ -82,8 +88,10 @@ def login():
     password = data.get("password")
 
     conn = get_db_connection()
-    cur = conn.cursor()
+    if not conn:
+        return jsonify({"error": "🚨 Database connection failed"}), 500
 
+    cur = conn.cursor()
     cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
     result = cur.fetchone()
 
