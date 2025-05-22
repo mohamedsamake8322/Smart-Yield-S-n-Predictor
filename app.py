@@ -27,7 +27,8 @@ from disease_model import load_disease_model, predict_disease
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
+st.write("🔍 Vérification des secrets disponibles")
+st.write("🔑 Toutes les clés détectées :", list(st.secrets.keys()))
 # === Configuration de la page ===
 
 # 🔹 Vérifier la version de scikit-learn
