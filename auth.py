@@ -3,16 +3,6 @@ import bcrypt
 import jwt
 import logging
 import streamlit as st  # ✅ Streamlit pour gérer les secrets
-import streamlit as st
-from auth import verify_password
-
-username = "mohamedsamake8322"
-password = "78772652Sama#"
-
-if verify_password(username, password):
-    print("✅ Connexion réussie depuis `auth.py` !")
-else:
-    print("🚨 Erreur d’authentification ! Mot de passe incorrect.")
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -31,7 +21,7 @@ try:
         raise KeyError("🚨 ERREUR : Certaines variables sont manquantes dans `Manage App > Secrets`")
 except KeyError as e:
     logging.critical(f"🚨 ERREUR CRITIQUE : {e}")
-    exit(1)  # 🔥 Arrêt du script si des variables sont absentes
+    exit(1)
 
 # === 🔹 Gestion des Tokens JWT ===
 def generate_jwt(username):
@@ -105,7 +95,6 @@ def verify_password(username, provided_password):
         logging.error("🚨 Connexion PostgreSQL impossible.")
         return False
 
-    cur = None  
     try:
         cur = conn.cursor()
         cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
@@ -115,18 +104,13 @@ def verify_password(username, provided_password):
             logging.warning(f"❌ Utilisateur `{username}` introuvable")
             return False
 
-        if bcrypt.checkpw(provided_password.encode(), stored_password[0].encode()):
-            return True
-        logging.warning(f"❌ Mot de passe incorrect pour `{username}`")
-        return False
+        return bcrypt.checkpw(provided_password.encode(), stored_password[0].encode())
     except (psycopg2.InterfaceError, psycopg2.DatabaseError) as e:
         handle_pg_error(e)
         return False
     finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+        cur.close()
+        conn.close()
 
 def get_role(username):
     conn = get_connection()
@@ -134,7 +118,6 @@ def get_role(username):
         logging.error("🚨 Connexion PostgreSQL impossible.")
         return None
 
-    cur = None
     try:
         cur = conn.cursor()
         cur.execute("SELECT role FROM users WHERE username = %s;", (username,))
@@ -144,7 +127,11 @@ def get_role(username):
         handle_pg_error(e)
         return None
     finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+        cur.close()
+        conn.close()
+
+# === ✅ Test final ===
+if verify_password("mohamedsamake8322", "78772652Sama#"):
+    print("✅ Connexion réussie via `auth.py` !")
+else:
+    print("🚨 Erreur d’authentification !")
