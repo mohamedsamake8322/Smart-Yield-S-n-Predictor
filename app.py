@@ -56,54 +56,61 @@ st.sidebar.header("🔐 Authentication")
 username = st.sidebar.text_input("👤 Username")
 password = st.sidebar.text_input("🔑 Password", type="password")
 
-# 🔹 Vérification des identifiants avec PostgreSQL
-if st.sidebar.button("Login"):
-    if not username or not password:
-        st.sidebar.error("❌ Please enter both username and password.")
-    else:
-        try:
-            if verify_password(username, password):
-                st.session_state["username"] = username
-                st.session_state["authenticated"] = True
-                user_role = get_role(username) or "user"
-                logging.info(f"✅ Successful login: {username} (Role: {user_role})")
-                st.sidebar.success(f"✅ Logged in as {username}")
-            else:
-                logging.warning(f"❌ Failed login attempt: {username}")
-                st.sidebar.error("❌ Username or password incorrect.")
-                st.session_state["authenticated"] = False
-        except Exception as e:
-            logging.error(f"🚨 Database error during login: {e}")
-            st.sidebar.error("❌ Server error. Try again later.")
-
 # 🔒 Vérifier si l'utilisateur est authentifié
-USERNAME = st.session_state.get("username", None)
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+if not st.session_state["authenticated"]:
+    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
+
+    if st.sidebar.button("Login"):
+        if not username or not password:
+            st.sidebar.error("❌ Please enter both username and password.")
+        else:
+            try:
+                if verify_password(username, password):
+                    st.session_state["username"] = username
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_role"] = get_role(username) or "user"
+                    logging.info(f"✅ Successful login: {username} (Role: {st.session_state['user_role']})")
+                    st.sidebar.success(f"✅ Logged in as {username}")
+                    st.experimental_rerun()  # 🔁 Recharger l'interface après connexion
+                else:
+                    logging.warning(f"❌ Failed login attempt: {username}")
+                    st.sidebar.error("❌ Username or password incorrect.")
+                    st.session_state["authenticated"] = False
+            except Exception as e:
+                logging.error(f"🚨 Database error during login: {e}")
+                st.sidebar.error("❌ Server error. Try again later.")
+
+    st.stop()  # 🔥 Bloque totalement l'accès à l'application tant que l'utilisateur n'est pas connecté
+if "username" not in st.session_state:
+    st.session_state["username"] = None
+
+USERNAME = st.session_state["username"]
 AUTHENTICATED = st.session_state.get("authenticated", False)
 
-if not AUTHENTICATED:
-    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
-else:
-    # 🔹 Vérification du rôle utilisateur
-    user_role = get_role(USERNAME) if USERNAME else None
+# 🔹 Vérification du rôle utilisateur
+user_role = st.session_state.get("user_role", "user")
 
-    # === Interface Admin (Seulement pour les admins) ===
-    if user_role == "admin":
-        st.subheader("👑 Admin Dashboard")
-        st.write("Manage users, view logs, and more.")
+# === Interface Admin (Seulement pour les admins) ===
+if user_role == "admin":
+    st.subheader("👑 Admin Dashboard")
+    st.write("Manage users, view logs, and more.")
 
-        with st.expander("➕ Add a new user"):
-            new_username = st.text_input("New Username")
-            new_password = st.text_input("New Password", type="password")
-            new_role = st.selectbox("Role", ["user", "admin"])
+    with st.expander("➕ Add a new user"):
+        new_username = st.text_input("New Username")
+        new_password = st.text_input("New Password", type="password")
+        new_role = st.selectbox("Role", ["user", "admin"])
 
-            if st.button("Create User"):
-                try:
-                    register_user(new_username, new_password, new_role)
-                    logging.info(f"✅ User '{new_username}' added successfully (Role: {new_role})")
-                    st.success(f"✅ User '{new_username}' added successfully.")
-                except Exception as e:
-                    logging.error(f"🚨 Database error while adding user: {e}")
-                    st.error("❌ Server error. User creation failed.")
+        if st.button("Create User"):
+            try:
+                register_user(new_username, new_password, new_role)
+                logging.info(f"✅ User '{new_username}' added successfully (Role: {new_role})")
+                st.success(f"✅ User '{new_username}' added successfully.")
+            except Exception as e:
+                logging.error(f"🚨 Database error while adding user: {e}")
+                st.error("❌ Server error. User creation failed.")
 
 # === Menu Principal ===
 menu = [

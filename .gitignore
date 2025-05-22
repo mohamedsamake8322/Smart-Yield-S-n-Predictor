@@ -8,3 +8,4 @@ __pycache__/
 smartyield-env/
 create_credentials.py
 .streamlit/secrets.toml
+script.py
