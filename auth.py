@@ -82,7 +82,12 @@ def verify_password(username, provided_password):
             logging.warning(f"❌ Aucun mot de passe trouvé pour `{username}`")
             return False
 
-        stored_password = stored_password[0].encode()  # 🔥 Assurer un encodage correct
+        stored_password = stored_password[0].strip()  # 🔹 Supprimer les éventuels espaces
+        if not stored_password.startswith("$2b$"):
+            logging.error(f"🚨 Format du mot de passe incorrect pour `{username}`. Hash récupéré : {stored_password}")
+            return False
+
+        stored_password = stored_password.encode()  # 🔥 Assurer un encodage correct
         provided_password = provided_password.encode()
 
         logging.info(f"🔍 Hash récupéré depuis PostgreSQL : {stored_password}")
@@ -119,9 +124,3 @@ def get_role(username):
     finally:
         cur.close()
         conn.close()
-
-# === ✅ Test final ===
-if verify_password("mohamedsamake8322", "78772652Sama#"):
-    print("✅ Connexion réussie via `auth.py` !")
-else:
-    print("🚨 Erreur d’authentification !")
