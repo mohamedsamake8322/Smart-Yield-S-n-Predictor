@@ -8,11 +8,10 @@ import joblib
 import logging
 import psycopg2  # ✅ PostgreSQL
 import jwt  # ✅ Authentification JWT
-import bcrypt
 from PIL import Image
 
-# 📌 Importation des modules essentiels
-from auth import verify_password, get_role, register_user  
+# 📌 Importation des modules nécessaires
+from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
@@ -26,57 +25,78 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
 
-# === Initialisation des modèles ===
+# === Vérification et chargement des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
 init_db()  # Initialisation de la base de données
 
 # 🔹 Chargement du modèle de rendement
-model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train_model()
-if not os.path.exists(MODEL_PATH):
+if os.path.exists(MODEL_PATH):
+    model = joblib.load(MODEL_PATH)
+    logging.info("✅ Modèle de rendement chargé avec succès.")
+else:
+    logging.warning("🛑 Modèle introuvable, réentraînement en cours...")
+    model = train_model()
     joblib.dump(model, MODEL_PATH)
+    logging.info("✅ Nouveau modèle entraîné et sauvegardé.")
 
 # 🔹 Chargement du modèle de détection des maladies
-disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
+if os.path.exists(DISEASE_MODEL_PATH):
+    disease_model = load_disease_model(DISEASE_MODEL_PATH)
+    logging.info("✅ Modèle de détection des maladies chargé.")
+else:
+    logging.warning("🛑 Modèle de détection des maladies introuvable.")
 
 # === Interface utilisateur ===
 st.title("🌾 Smart Yield Sènè Predictor")
 
-# 🔹 Gestion de l'authentification avec `st.session_state`
+# 🔹 Interface authentification
+st.sidebar.header("🔐 Authentication")
+username = st.sidebar.text_input("👤 Username")
+password = st.sidebar.text_input("🔑 Password", type="password")
+
+# 🔒 Vérifier si l'utilisateur est authentifié
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+
 if "username" not in st.session_state:
     st.session_state["username"] = None
+
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
-# 🔐 Interface de connexion (masquée après connexion)
 if not st.session_state["authenticated"]:
-    st.sidebar.header("🔐 Authentication")
-    username = st.sidebar.text_input("👤 Username")
-    password = st.sidebar.text_input("🔑 Password", type="password")
+    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
+    st.sidebar.info("🔐 Veuillez entrer vos identifiants pour vous connecter.")
 
     if st.sidebar.button("Login"):
-        if username and password:  # ✅ Vérifie que les champs sont bien remplis
-            if verify_password(username, password):
-                st.session_state["authenticated"] = True
-                st.session_state["username"] = username
-                st.session_state["user_role"] = get_role(username) or "user"
-                st.sidebar.success(f"✅ Connecté en tant que {username}")
-                print("TEST STREAMLIT AUTH: Authentification réussie !")  # 🔹 Test affiché dans la console
-                st.rerun()  # 🔁 Recharge l’interface pour masquer le formulaire
-            else:
-                print("TEST STREAMLIT AUTH: Échec d'authentification !")  # 🔹 Test affiché dans la console
-                st.sidebar.error("❌ Identifiants incorrects.")
+        if not username or not password:
+            st.sidebar.error("❌ Veuillez saisir un nom d’utilisateur et un mot de passe.")
         else:
-            st.sidebar.error("❌ Veuillez entrer un nom d'utilisateur et un mot de passe.")
+            try:
+                if verify_password(username, password):
+                    st.session_state["username"] = username
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_role"] = get_role(username) or "user"
+                    logging.info(f"✅ Connexion réussie : {username} (Rôle: {st.session_state['user_role']})")
+                    st.sidebar.success(f"✅ Connecté en tant que {username}")
+                    st.rerun()
+  # 🔁 Recharge l'interface après connexion
+                else:
+                    logging.warning(f"❌ Échec de connexion : {username}")
+                    st.sidebar.error("❌ Identifiants incorrects.")
+                    st.session_state["authenticated"] = False
+            except Exception as e:
+                logging.error(f"🚨 Erreur de base de données : {e}")
+                st.sidebar.error("❌ Erreur serveur. Veuillez réessayer plus tard.")
 
-    st.stop()  # 🔥 Empêche l’accès sans connexion
+    st.stop()  # 🔥 Bloque totalement l'accès tant que l'utilisateur n'est pas connecté
 
 # 🔹 Vérification du rôle utilisateur
 USERNAME = st.session_state["username"]
-USER_ROLE = st.session_state["user_role"]
+AUTHENTICATED = st.session_state.get("authenticated", False)
+USER_ROLE = st.session_state.get("user_role", "user")
 
 # === Interface Admin (Seulement pour les admins) ===
 if USER_ROLE == "admin":
@@ -89,8 +109,13 @@ if USER_ROLE == "admin":
         new_role = st.selectbox("Role", ["user", "admin"])
 
         if st.button("Create User"):
-            register_user(new_username, new_password, new_role)
-            st.success(f"✅ User '{new_username}' added successfully.")
+            try:
+                register_user(new_username, new_password, new_role)
+                logging.info(f"✅ User '{new_username}' added successfully (Role: {new_role})")
+                st.success(f"✅ User '{new_username}' added successfully.")
+            except Exception as e:
+                logging.error(f"🚨 Database error while adding user: {e}")
+                st.error("❌ Server error. User creation failed.")
 
 # === Menu Principal ===
 menu = [
@@ -99,15 +124,17 @@ menu = [
 ]
 choice = st.sidebar.selectbox("Menu", menu)
 
-# 🔹 Animation helper
+    # === Animation helper ===
 def load_lottieurl(url):
-    try:
-        return requests.get(url, timeout=5).json() if requests.get(url, timeout=5).status_code == 200 else None
-    except requests.exceptions.RequestException:
-        return None
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code != 200:
+                return None
+            return r.json()
+        except requests.exceptions.RequestException:
+            return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
-
 
     # === Home Page ===
 if choice == "Home":
