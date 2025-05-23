@@ -2,7 +2,7 @@
 .env
 config.json
 settings.yaml
-secrets.json
+secrets.toml
 private_key.pem
 .streamlit/secrets.toml
 create_credentials.py

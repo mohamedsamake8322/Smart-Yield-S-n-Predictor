@@ -6,14 +6,19 @@ import logging
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔎 Configuration PostgreSQL et JWT
-DB_NAME = "neondb"
-DB_USER = "neondb_owner"
-DB_PASSWORD = "78772652Sama#"
-DB_HOST = "ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech"
-DB_PORT = "5432"
-DB_SSLMODE = "require"
-SECRET_KEY = "TON_SECRET_JWT"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_SSLMODE = os.getenv("DB_SSLMODE")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
 
 # === 🔹 Gestion des erreurs PostgreSQL ===
 def handle_pg_error(error):
