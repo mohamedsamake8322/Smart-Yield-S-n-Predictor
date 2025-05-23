@@ -7,14 +7,22 @@ import logging
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔎 Configuration PostgreSQL et JWT
-DB_NAME = "neondb"
-DB_USER = "neondb_owner"
-DB_PASSWORD = "78772652Sama#"
-DB_HOST = "ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech"
-DB_PORT = "5432"
-DB_SSLMODE = "require"
-JWT_SECRET_KEY = "TON_SECRET_JWT"
+import os
+from dotenv import load_dotenv
+from flask import Flask
+from flask_jwt_extended import JWTManager
+
+# 🔹 Charge les variables d'environnement depuis `.env`
+load_dotenv()
+
+# 🔎 Configuration PostgreSQL et JWT (récupérées de `.env`)
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_SSLMODE = os.getenv("DB_SSLMODE")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # 🔹 Récupération sécurisée
 
 # 🔐 Initialisation de Flask et JWT
 app = Flask(__name__)
