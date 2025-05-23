@@ -6,8 +6,8 @@ import os
 import requests
 import joblib
 import logging
-import psycopg2  # ✅ PostgreSQL
-import jwt  # ✅ Authentification JWT
+import psycopg2  
+import jwt  
 import bcrypt
 from PIL import Image
 
@@ -58,21 +58,30 @@ if not st.session_state["authenticated"]:
     password = st.sidebar.text_input("🔑 Password", type="password")
 
     if st.sidebar.button("Login"):
-        if username and password:  # ✅ Vérifie que les champs sont bien remplis
+        if username and password:  
             if verify_password(username, password):
                 st.session_state["authenticated"] = True
                 st.session_state["username"] = username
                 st.session_state["user_role"] = get_role(username) or "user"
                 st.sidebar.success(f"✅ Connecté en tant que {username}")
-                print("TEST STREAMLIT AUTH: Authentification réussie !")  # 🔹 Test affiché dans la console
-                st.rerun()  # 🔁 Recharge l’interface pour masquer le formulaire
+                logging.info("✅ Authentification réussie !")
+                st.rerun()  
             else:
-                print("TEST STREAMLIT AUTH: Échec d'authentification !")  # 🔹 Test affiché dans la console
+                logging.warning("❌ Échec d'authentification !")
                 st.sidebar.error("❌ Identifiants incorrects.")
         else:
             st.sidebar.error("❌ Veuillez entrer un nom d'utilisateur et un mot de passe.")
 
-    st.stop()  # 🔥 Empêche l’accès sans connexion
+    st.stop()  
+
+# 🔹 Ajout d'un bouton de déconnexion
+if st.sidebar.button("Logout"):
+    st.session_state["authenticated"] = False
+    st.session_state["username"] = None
+    st.session_state["user_role"] = None
+    st.sidebar.success("✅ Déconnexion réussie !")
+    logging.info("✅ Déconnexion effectuée avec succès.")
+    st.rerun()
 
 # 🔹 Vérification du rôle utilisateur
 USERNAME = st.session_state["username"]
@@ -107,6 +116,7 @@ def load_lottieurl(url):
         return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
+
 
 
     # === Home Page ===

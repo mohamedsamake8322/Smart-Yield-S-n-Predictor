@@ -16,7 +16,7 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
-DB_SSLMODE = os.getenv("DB_SSLMODE", "require")  # ✅ Ajout de `require` pour forcer la connexion SSL
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # === 🔹 Gestion des erreurs PostgreSQL ===
@@ -42,9 +42,11 @@ def get_connection():
 
 # === 🔹 Gestion des utilisateurs ===
 def hash_password(password):
+    """ Hashage sécurisé du mot de passe avec bcrypt. """
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def register_user(username, password, role="user"):
+    """ Enregistre un utilisateur dans la base de données avec un mot de passe sécurisé. """
     conn = get_connection()
     if not conn:
         logging.error("🚨 Connexion PostgreSQL impossible.")
@@ -68,6 +70,7 @@ def register_user(username, password, role="user"):
         conn.close()
 
 def verify_password(username, provided_password):
+    """ Vérifie si le mot de passe fourni correspond au hash stocké en base. """
     conn = get_connection()
     if not conn:
         logging.error("🚨 Connexion PostgreSQL impossible.")
@@ -78,26 +81,20 @@ def verify_password(username, provided_password):
         cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
         stored_password = cur.fetchone()
 
-        if not stored_password or not stored_password[0]:  # ✅ Vérification améliorée
+        if not stored_password or not stored_password[0]:
             logging.warning(f"❌ Aucun mot de passe trouvé pour `{username}`")
             return False
 
-        stored_password = stored_password[0].strip()  # 🔹 Supprimer les éventuels espaces
+        stored_password = stored_password[0].strip()
         if not stored_password.startswith("$2b$"):
             logging.error(f"🚨 Format du mot de passe incorrect pour `{username}`. Hash récupéré : {stored_password}")
             return False
 
-        stored_password = stored_password.encode()  # 🔥 Assurer un encodage correct
+        stored_password = stored_password.encode()
         provided_password = provided_password.encode()
 
-        logging.info(f"🔍 Hash récupéré depuis PostgreSQL : {stored_password}")
-        logging.info(f"🔍 Mot de passe fourni encodé : {provided_password}")
-
         is_valid = bcrypt.checkpw(provided_password, stored_password)
-        if is_valid:
-            logging.info(f"✅ Authentification réussie pour `{username}`.")
-        else:
-            logging.warning(f"❌ Mot de passe incorrect pour `{username}`.")
+        logging.info(f"🔍 Authentification réussie pour `{username}`.") if is_valid else logging.warning(f"❌ Mot de passe incorrect.")
 
         return is_valid
     except psycopg2.Error as e:
@@ -108,6 +105,7 @@ def verify_password(username, provided_password):
         conn.close()
 
 def get_role(username):
+    """ Récupère le rôle d'un utilisateur. """
     conn = get_connection()
     if not conn:
         logging.error("🚨 Connexion PostgreSQL impossible.")
