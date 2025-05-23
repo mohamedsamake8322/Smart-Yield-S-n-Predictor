@@ -2,6 +2,12 @@ import psycopg2
 import bcrypt
 import jwt
 import logging
+import bcrypt
+
+input_password = "78772652Sama#"  # 🔹 Le mot de passe que tu entres
+stored_hash = b"$2b$12$dcBw.YGbSHmq87W5fMWtZuXQ1U7G92J2hl4DfFblR0vCzKAi30jju"  # 🔹 Le hash récupéré
+
+print("TEST PASSWORD:", bcrypt.checkpw(input_password.encode(), stored_hash))
 
 # 🔹 Configuration du logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
