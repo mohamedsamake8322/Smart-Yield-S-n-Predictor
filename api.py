@@ -12,19 +12,29 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # 🔹 Charge les variables d'environnement depuis `.env`
 load_dotenv()
 
-# 🔎 Configuration PostgreSQL et JWT (récupérées de `.env`)
+# 🔎 Configuration PostgreSQL et JWT
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
-DB_SSLMODE = os.getenv("DB_SSLMODE", "require")  # ✅ Ajout de `require` pour forcer la connexion sécurisée
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 # 🔐 Initialisation de Flask et JWT
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
+
+# === 🔹 Route d’accueil pour éviter `404 Not Found` ===
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "✅ Smart Yield API is running!"}), 200
+
+# === 🔹 Ignorer `/favicon.ico` pour éviter les erreurs de requêtes inutiles ===
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204  # ✅ Réponse vide avec code `204 No Content`
 
 # 🔹 Fonction pour récupérer une connexion PostgreSQL sécurisée
 def get_db_connection():
@@ -104,8 +114,7 @@ def login():
             access_token = create_access_token(identity=username)
             logging.info(f"✅ Login successful for `{username}`!")
             return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
-        access_token = create_access_token(identity=username)
-        print(f"✅ Token généré pour `{username}` : {access_token}")
+
         logging.warning(f"❌ Incorrect password for `{username}`.")
         return jsonify({"error": "❌ Incorrect password"}), 401
     except psycopg2.Error as e:
