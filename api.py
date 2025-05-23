@@ -104,7 +104,8 @@ def login():
             access_token = create_access_token(identity=username)
             logging.info(f"✅ Login successful for `{username}`!")
             return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
-
+        access_token = create_access_token(identity=username)
+        print(f"✅ Token généré pour `{username}` : {access_token}")
         logging.warning(f"❌ Incorrect password for `{username}`.")
         return jsonify({"error": "❌ Incorrect password"}), 401
     except psycopg2.Error as e:
