@@ -10,8 +10,8 @@ import psycopg2  # ✅ PostgreSQL
 import jwt  # ✅ Authentification JWT
 from PIL import Image
 
-# 📌 Importation des modules nécessaires
-from auth import verify_password, get_role, register_user  # 🔹 Auth via PostgreSQL
+# 📌 Importation des modules essentiels
+from auth import verify_password, get_role, register_user  
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
@@ -25,78 +25,52 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
 
-# === Vérification et chargement des modèles ===
+# === Initialisation des modèles ===
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
 init_db()  # Initialisation de la base de données
 
 # 🔹 Chargement du modèle de rendement
-if os.path.exists(MODEL_PATH):
-    model = joblib.load(MODEL_PATH)
-    logging.info("✅ Modèle de rendement chargé avec succès.")
-else:
-    logging.warning("🛑 Modèle introuvable, réentraînement en cours...")
-    model = train_model()
+model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train_model()
+if not os.path.exists(MODEL_PATH):
     joblib.dump(model, MODEL_PATH)
-    logging.info("✅ Nouveau modèle entraîné et sauvegardé.")
 
 # 🔹 Chargement du modèle de détection des maladies
-if os.path.exists(DISEASE_MODEL_PATH):
-    disease_model = load_disease_model(DISEASE_MODEL_PATH)
-    logging.info("✅ Modèle de détection des maladies chargé.")
-else:
-    logging.warning("🛑 Modèle de détection des maladies introuvable.")
+disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === Interface utilisateur ===
 st.title("🌾 Smart Yield Sènè Predictor")
 
-# 🔹 Interface authentification
-st.sidebar.header("🔐 Authentication")
-username = st.sidebar.text_input("👤 Username")
-password = st.sidebar.text_input("🔑 Password", type="password")
-
-# 🔒 Vérifier si l'utilisateur est authentifié
+# 🔹 Gestion de l'authentification avec `st.session_state`
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
-
 if "username" not in st.session_state:
     st.session_state["username"] = None
-
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
+# 🔐 Interface de connexion (masquée après connexion)
 if not st.session_state["authenticated"]:
-    st.warning("🚫 Vous devez être connecté pour accéder à cette application.")
-    st.sidebar.info("🔐 Veuillez entrer vos identifiants pour vous connecter.")
+    st.sidebar.header("🔐 Authentication")
+    username = st.sidebar.text_input("👤 Username")
+    password = st.sidebar.text_input("🔑 Password", type="password")
 
     if st.sidebar.button("Login"):
-        if not username or not password:
-            st.sidebar.error("❌ Veuillez saisir un nom d’utilisateur et un mot de passe.")
+        if username and password and verify_password(username, password):
+            st.session_state["username"] = username
+            st.session_state["authenticated"] = True
+            st.session_state["user_role"] = get_role(username) or "user"
+            st.sidebar.success(f"✅ Connecté en tant que {username}")
+            st.rerun()  # 🔁 Recharge l’interface pour masquer le formulaire
         else:
-            try:
-                if verify_password(username, password):
-                    st.session_state["username"] = username
-                    st.session_state["authenticated"] = True
-                    st.session_state["user_role"] = get_role(username) or "user"
-                    logging.info(f"✅ Connexion réussie : {username} (Rôle: {st.session_state['user_role']})")
-                    st.sidebar.success(f"✅ Connecté en tant que {username}")
-                    st.rerun()
-  # 🔁 Recharge l'interface après connexion
-                else:
-                    logging.warning(f"❌ Échec de connexion : {username}")
-                    st.sidebar.error("❌ Identifiants incorrects.")
-                    st.session_state["authenticated"] = False
-            except Exception as e:
-                logging.error(f"🚨 Erreur de base de données : {e}")
-                st.sidebar.error("❌ Erreur serveur. Veuillez réessayer plus tard.")
+            st.sidebar.error("❌ Identifiants incorrects.")
 
-    st.stop()  # 🔥 Bloque totalement l'accès tant que l'utilisateur n'est pas connecté
+    st.stop()  # 🔥 Empêche l’accès sans connexion
 
 # 🔹 Vérification du rôle utilisateur
 USERNAME = st.session_state["username"]
-AUTHENTICATED = st.session_state.get("authenticated", False)
-USER_ROLE = st.session_state.get("user_role", "user")
+USER_ROLE = st.session_state["user_role"]
 
 # === Interface Admin (Seulement pour les admins) ===
 if USER_ROLE == "admin":
@@ -109,13 +83,8 @@ if USER_ROLE == "admin":
         new_role = st.selectbox("Role", ["user", "admin"])
 
         if st.button("Create User"):
-            try:
-                register_user(new_username, new_password, new_role)
-                logging.info(f"✅ User '{new_username}' added successfully (Role: {new_role})")
-                st.success(f"✅ User '{new_username}' added successfully.")
-            except Exception as e:
-                logging.error(f"🚨 Database error while adding user: {e}")
-                st.error("❌ Server error. User creation failed.")
+            register_user(new_username, new_password, new_role)
+            st.success(f"✅ User '{new_username}' added successfully.")
 
 # === Menu Principal ===
 menu = [
@@ -124,15 +93,12 @@ menu = [
 ]
 choice = st.sidebar.selectbox("Menu", menu)
 
-    # === Animation helper ===
+# 🔹 Animation helper
 def load_lottieurl(url):
-        try:
-            r = requests.get(url, timeout=5)
-            if r.status_code != 200:
-                return None
-            return r.json()
-        except requests.exceptions.RequestException:
-            return None
+    try:
+        return requests.get(url, timeout=5).json() if requests.get(url, timeout=5).status_code == 200 else None
+    except requests.exceptions.RequestException:
+        return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
 
