@@ -8,6 +8,7 @@ import joblib
 import logging
 import psycopg2  # ✅ PostgreSQL
 import jwt  # ✅ Authentification JWT
+import bcrypt
 from PIL import Image
 
 # 📌 Importation des modules essentiels
@@ -57,14 +58,19 @@ if not st.session_state["authenticated"]:
     password = st.sidebar.text_input("🔑 Password", type="password")
 
     if st.sidebar.button("Login"):
-        if username and password and verify_password(username, password):
-            st.session_state["username"] = username
-            st.session_state["authenticated"] = True
-            st.session_state["user_role"] = get_role(username) or "user"
-            st.sidebar.success(f"✅ Connecté en tant que {username}")
-            st.rerun()  # 🔁 Recharge l’interface pour masquer le formulaire
+        if username and password:  # ✅ Vérifie que les champs sont bien remplis
+            if verify_password(username, password):
+                st.session_state["authenticated"] = True
+                st.session_state["username"] = username
+                st.session_state["user_role"] = get_role(username) or "user"
+                st.sidebar.success(f"✅ Connecté en tant que {username}")
+                print("TEST STREAMLIT AUTH: Authentification réussie !")  # 🔹 Test affiché dans la console
+                st.rerun()  # 🔁 Recharge l’interface pour masquer le formulaire
+            else:
+                print("TEST STREAMLIT AUTH: Échec d'authentification !")  # 🔹 Test affiché dans la console
+                st.sidebar.error("❌ Identifiants incorrects.")
         else:
-            st.sidebar.error("❌ Identifiants incorrects.")
+            st.sidebar.error("❌ Veuillez entrer un nom d'utilisateur et un mot de passe.")
 
     st.stop()  # 🔥 Empêche l’accès sans connexion
 
