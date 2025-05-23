@@ -29,6 +29,7 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
 
+
 # 🔹 Fonction pour récupérer une connexion PostgreSQL sécurisée
 def get_db_connection():
     try:
