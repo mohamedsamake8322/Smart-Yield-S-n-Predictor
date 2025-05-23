@@ -40,3 +40,4 @@ data/
 
 # 🔹 Streamlit et ses fichiers de sessions
 .streamlit/
+script.py
