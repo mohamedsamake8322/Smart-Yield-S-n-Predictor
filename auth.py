@@ -2,20 +2,21 @@ import psycopg2
 import bcrypt
 import jwt
 import logging
-# 🔹 Configuration du logger
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # 🔹 Charge les variables du fichier `.env`
+# 🔹 Configuration du logger
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# 🔹 Charge les variables d'environnement
+load_dotenv()
 
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
-DB_SSLMODE = os.getenv("DB_SSLMODE")
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")  # ✅ Ajout de `require` pour forcer la connexion SSL
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # === 🔹 Gestion des erreurs PostgreSQL ===
@@ -77,8 +78,8 @@ def verify_password(username, provided_password):
         cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
         stored_password = cur.fetchone()
 
-        if not stored_password:
-            logging.warning(f"❌ Utilisateur `{username}` introuvable")
+        if not stored_password or not stored_password[0]:  # ✅ Vérification améliorée
+            logging.warning(f"❌ Aucun mot de passe trouvé pour `{username}`")
             return False
 
         stored_password = stored_password[0].encode()  # 🔥 Assurer un encodage correct
