@@ -7,29 +7,39 @@ import requests
 import joblib
 import logging
 import jwt
+import xgboost as xgb
 from PIL import Image
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
+# 🔹 Importing project modules (Unique import to avoid duplicates)
 from auth import login_google, logout, get_user_role  
-from utils import validate_csv_columns, generate_pdf_report
-from visualizations import plot_yield_distribution
-from streamlit_lottie import st_lottie
-from disease_model import load_disease_model, predict_disease
+from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
+from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
-from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
-from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from disease_model import load_disease_model, predict_disease
+from streamlit_lottie import st_lottie
+
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
 # === Model Initialization ===
-MODEL_PATH = "model/model_xgb.pkl"
+MODEL_PATH = "model/yield_model_v3.json"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
-# 🔹 Load prediction models
-model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train_model()
+# 🔹 Load prediction models securely
+if os.path.exists(MODEL_PATH):
+    model = xgb.Booster()
+    model.load_model(MODEL_PATH)
+    logging.info("✅ XGBoost Booster model loaded successfully.")
+else:
+    logging.warning("⚠ Model JSON not found, training a new model as fallback.")
+    model = train_model()
+    save_model(model)
+
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === User Interface ===
@@ -79,9 +89,9 @@ if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
-# === Main Menu ===
-menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
-choice = st.sidebar.selectbox("Menu", menu)
+# === Main Menu (Improved navigation) ===
+menu = ["🏠 Home", "📊 Retrain Model", "📜 History", "📈 Performance", "🌿 Disease Detection"]
+choice = st.sidebar.selectbox("📌 Select Menu", menu)
 
 # 🔹 Animation Helper
 def load_lottieurl(url):
@@ -92,83 +102,63 @@ def load_lottieurl(url):
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
 
-    # === Home Page ===
-if choice == "Home":
-        st_lottie(lottie_plant, height=150)
-        st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
-        st.subheader("📈 Predict Agricultural Yield")
-        input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
+# === Home Page ===
+if choice == "🏠 Home":
+    st_lottie(lottie_plant, height=150)
+    st.subheader("👋 Welcome to Smart Yield Predictor")
+    st.subheader("📈 Predict Agricultural Yield")
 
-        if input_method == "Manual Input":
-            temperature = st.slider("🌡️ Temperature (°C)", 10, 50, 25)
-            humidity = st.slider("💧 Humidity (%)", 10, 100, 60)
-            precipitation = st.slider("🌧️ Precipitation (mm)", 0, 300, 50)
-            pH = st.slider("🧪 Soil pH", 3.0, 10.0, 6.5)
-            fertilizer = st.selectbox("🌱 Fertilizer Type", ["NPK", "Urea", "Compost", "DAP"])
-            # 🔹 Définition unique des caractéristiques
-            features = {
-                "Temperature": temperature,
-                "Humidity": humidity,
-                "Precipitation": precipitation,
-                "pH": pH,
-                "Fertilizer": fertilizer
-            }
+    input_method = st.radio("Choose input method", ("🖊 Manual Input", "📁 Upload CSV"))
 
-            if st.button("Predict Yield"):
-                if model:
-                    prediction = predict_single(model, features)
-                    st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
-                    # 🔹 Enregistrement de la prédiction
-                    save_prediction(USERNAME, features, prediction)
-                     # 🔹 Génération du rapport PDF
-                    if st.checkbox("📄 Download PDF Report"):
-                        pdf = generate_pdf_report(
-                            USERNAME, features, prediction,
-                            "Use appropriate fertilizer and monitor pH."
-                        )
-                        st.download_button("Download PDF", data=pdf, file_name="report.pdf")
-                else:
-                    st.error("🛑 Model not trained yet.")
-        else:
-            st.markdown("### 📁 Batch Prediction from CSV")
-            csv_file = st.file_uploader("Upload CSV", type=["csv"] )
-            if csv_file:
-                df = pd.read_csv(csv_file)
-                required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
-                
-                if validate_csv_columns(df, required_cols):
-                    df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-                    
-                    if st.button("Predict from CSV"):
-                        if model:
-                            df["PredictedYield"] = predict_batch(model, df)
-                            st.success("✅ Prediction completed.")
-                            st.subheader("🧾 Prediction Results")
-                            st.dataframe(df)
-                            st.download_button(
-                                "Download Results CSV",
-                                convert_df_to_csv(df),
-                                "predictions.csv",
-                                "text/csv"
-                            )
-                            
-                            # 🔹 Correction : Ajout des paramètres corrects à `save_prediction()`
-                            for _, row in df.iterrows():
-                                features = row[required_cols].to_dict()
-                                prediction = row["PredictedYield"]
-                                features_dict = {
-                                    "Temperature": features["Temperature"],
-                                    "Humidity": features["Humidity"],
-                                    "Precipitation": features["Precipitation"],
-                                    "pH": features["pH"],
-                                    "Fertilizer": features["Fertilizer"]
-                                }
-                                save_prediction(USERNAME, features_dict, prediction)
-                        else:
-                            st.error("🛑 Model not trained yet.")
-                else:
-                    st.error(f"❗ CSV must contain columns: {required_cols}")
+    if input_method == "🖊 Manual Input":
+        temperature = st.slider("🌡️ Temperature (°C)", 10, 50, 25)
+        humidity = st.slider("💧 Humidity (%)", 10, 100, 60)
+        precipitation = st.slider("🌧️ Precipitation (mm)", 0, 300, 50)
+        pH = st.slider("🧪 Soil pH", 3.0, 10.0, 6.5)
+        fertilizer = st.selectbox("🌱 Fertilizer Type", ["NPK", "Urea", "Compost", "DAP"])
 
+        features = {
+            "Temperature": temperature,
+            "Humidity": humidity,
+            "Precipitation": precipitation,
+            "pH": pH,
+            "Fertilizer": fertilizer
+        }
+
+        if st.button("🚀 Predict Yield"):
+            if model:
+                prediction = predict_single(model, features)
+                st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
+                save_prediction(USERNAME, features, prediction)
+
+                if st.checkbox("📄 Download PDF Report"):
+                    pdf = generate_pdf_report(USERNAME, features, prediction, "Optimize fertilizer usage.")
+                    st.download_button("📥 Download PDF", data=pdf, file_name="report.pdf")
+            else:
+                st.error("🛑 Model not trained yet.")
+    else:
+        csv_file = st.file_uploader("📁 Upload CSV for Batch Prediction", type=["csv"])
+        if csv_file:
+            df = pd.read_csv(csv_file)
+            required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
+
+            if validate_csv_columns(df, required_cols):
+                df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
+
+                if st.button("🚀 Predict from CSV"):
+                    if model:
+                        df["PredictedYield"] = predict_batch(model, df)
+                        st.success("✅ Prediction completed.")
+                        st.dataframe(df)
+                        st.download_button("📥 Download Results CSV", convert_df_to_csv(df), "predictions.csv")
+
+                        for _, row in df.iterrows():
+                            features_dict = row[required_cols].to_dict()
+                            save_prediction(USERNAME, features_dict, row["PredictedYield"])
+                    else:
+                        st.error("🛑 Model not trained yet.")
+            else:
+                st.error(f"❗ CSV must contain columns: {required_cols}")
                 st.subheader("📊 Visualizations")
                 tab1, tab2, tab3 = st.tabs([
                     "Histogram", "Pie Chart", "Trend Over Time"
@@ -197,6 +187,19 @@ if choice == "Home":
                         st.pyplot(fig3)
                     else:
                         st.warning("No data for time trend.")
+st.markdown("---")
+st.subheader("🧪 Test XGBoost Booster Prediction from CSV")
+test_csv_file = st.file_uploader("Upload CSV for XGBoost Booster", type=["csv"])
+if test_csv_file:
+    df_test = pd.read_csv(test_csv_file)
+    if not df_test.empty:
+        ddata = xgb.DMatrix(df_test)
+        predictions = model.predict(ddata)
+        df_test["PredictedYield"] = predictions
+        st.dataframe(df_test)
+        st.download_button("📥 Download Predictions CSV", convert_df_to_csv(df_test), "xgboost_predictions.csv")
+    else:
+        st.error("🛑 The uploaded CSV is empty.")
 
     # === Retrain Model ===
 elif choice == "Retrain Model":
