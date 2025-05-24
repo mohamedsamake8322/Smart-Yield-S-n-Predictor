@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # 🔹 Load environment variables
 load_dotenv()
 
+# 🔐 Security Configuration
 APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé par défaut
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -57,10 +58,10 @@ def auth_callback():
         logging.error("❌ User information retrieval failed!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
 
-    session["user"] = user_info
-    jwt_token = create_access_token(identity=user_info["email"])
-    logging.info(f"✅ User {user_info['email']} authenticated successfully!")
-    return jsonify({"access_token": jwt_token, "user": user_info["email"], "message": "✅ Login successful!"})
+    session["user"] = user_info.get("email", "Unknown")
+    jwt_token = create_access_token(identity=user_info.get("email", "Unknown"))
+    logging.info(f"✅ User `{user_info.get('email', 'Unknown')}` authenticated successfully!")
+    return jsonify({"access_token": jwt_token, "user": user_info.get("email", "Unknown"), "message": "✅ Login successful!"})
 
 # === 🔹 Get User Role ===
 @app.route("/get_role", methods=["GET"])

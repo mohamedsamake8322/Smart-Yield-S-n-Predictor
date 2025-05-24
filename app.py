@@ -19,6 +19,7 @@ from disease_model import load_disease_model, predict_disease
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
+
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -29,42 +30,35 @@ MODEL_PATH = "model/yield_model_v3.json"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
 # 🔹 Load prediction models securely
-if os.path.exists(MODEL_PATH):
-    model = xgb.Booster()
-    model.load_model(MODEL_PATH)
-    logging.info("✅ XGBoost Booster model loaded successfully.")
-else:
-    logging.warning("⚠ Model JSON not found. Please retrain it using the Retrain Model section.")
-    model = None
+def load_xgb_model(path):
+    if os.path.exists(path):
+        model = xgb.Booster()
+        model.load_model(path)
+        logging.info("✅ XGBoost Booster model loaded successfully.")
+        return model
+    else:
+        logging.warning("⚠ Model JSON not found. Please retrain it using the Retrain Model section.")
+        return None
 
+model = load_xgb_model(MODEL_PATH)
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === User Interface ===
 st.title("🌾 Smart Yield Sènè Predictor")
 
 # Initialiser les variables de session si elles n'existent pas encore
-if "jwt_token" not in st.session_state:
-    st.session_state["jwt_token"] = None
-if "username" not in st.session_state:
-    st.session_state["username"] = None
-if "user_role" not in st.session_state:
-    st.session_state["user_role"] = None
+st.session_state.setdefault("jwt_token", None)
+st.session_state.setdefault("username", None)
+st.session_state.setdefault("user_role", None)
 
-# Si l'utilisateur n'est pas encore connecté
+# 🔹 User Authentication
 if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
         if st.button("Login with Google"):
             webbrowser.open_new("http://127.0.0.1:5000/login/google")
-            st.info("🌐 Redirecting to Google login... please complete login in the browser.")
-    st.stop()
-    if auth_response and "access_token" in auth_response:
-                st.session_state["jwt_token"] = auth_response["access_token"]
-                st.session_state["username"] = auth_response["user"]
-                st.session_state["user_role"] = get_user_role(auth_response["user"])
-                st.success(f"✅ Logged in as {auth_response['user']}")
-                logging.info("✅ Authentication successful!")
-                st.rerun()
+            st.info("🌐 Redirecting to Google login... Please complete login in the browser.")
+
     st.stop()
 
 with st.sidebar:
@@ -87,13 +81,16 @@ if USER_ROLE == "admin":
 menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
 choice = st.sidebar.selectbox("Menu", menu)
 
+# 🔹 Lottie Animation Loader
 def load_lottieurl(url):
     try:
-        return requests.get(url, timeout=5).json() if requests.get(url, timeout=5).status_code == 200 else None
+        response = requests.get(url, timeout=5)
+        return response.json() if response.status_code == 200 else None
     except requests.exceptions.RequestException:
         return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
+
 
 if choice == "Home":
     st_lottie(lottie_plant, height=150)

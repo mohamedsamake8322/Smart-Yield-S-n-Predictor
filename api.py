@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
-from auth import app, oauth
+
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -20,10 +20,10 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 GOOGLE_AUTH_URL = os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth")
 GOOGLE_TOKEN_URL = os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token")
 
+# 🔹 Flask & JWT Setup
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
-
 jwt = JWTManager(app)
 oauth = OAuth(app)
 
@@ -46,10 +46,7 @@ def home():
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    redirect_uri = url_for("auth_callback", _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
-
-
+    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)  # 🔥 Correction du `redirect_uri`
 
 @app.route("/auth/callback")
 def auth_callback():
