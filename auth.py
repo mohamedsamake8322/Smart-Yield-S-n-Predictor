@@ -27,6 +27,10 @@ app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 
 oauth = OAuth(app)
 jwt = JWTManager(app)
+print("🔍 GOOGLE_AUTH_URL:", GOOGLE_AUTH_URL)
+print("🔍 GOOGLE_TOKEN_URL:", GOOGLE_TOKEN_URL)
+print("🔍 GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID)
+print("🔍 GOOGLE_CLIENT_SECRET:", GOOGLE_CLIENT_SECRET)
 
 # 🔹 Configure OAuth2 (Google Login)
 oauth.register(
