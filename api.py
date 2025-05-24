@@ -50,6 +50,7 @@ def login_google():
     return oauth.google.authorize_redirect(redirect_uri)
 
 
+
 @app.route("/auth/callback")
 def auth_callback():
     token = oauth.google.authorize_access_token()
