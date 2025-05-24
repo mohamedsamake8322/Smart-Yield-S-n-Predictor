@@ -8,24 +8,24 @@ from dotenv import load_dotenv
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# === Load environment variables ===
+# 🔹 Load environment variables
 load_dotenv()
 
-APP_SECRET_KEY = os.getenv("APP_SECRET_KEY")
+APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé par défaut si .env est manquant
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
-# === Flask & JWT Setup ===
+# 🔐 Flask & JWT Setup
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
-app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé secrète
+
 oauth = OAuth(app)
 jwt = JWTManager(app)
 
-# === Configure OAuth2 (Google Login) ===
+# 🔹 Configure OAuth2 (Google Login)
 oauth.register(
     "google",
     client_id=GOOGLE_CLIENT_ID,
@@ -36,11 +36,10 @@ oauth.register(
     client_kwargs={"scope": "openid email profile"}
 )
 
-# === Google OAuth Login ===
+# === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    with app.app_context():  # ✅ Ajout du contexte d'application Flask
-        return oauth.google.authorize_redirect(url_for("auth_callback", _external=True))
+    return oauth.google.authorize_redirect(url_for("auth_callback", _external=True))
 
 @app.route("/auth/callback")
 def auth_callback():
@@ -55,7 +54,7 @@ def auth_callback():
     logging.info(f"✅ User {user_info['email']} authenticated successfully!")
     return jsonify({"access_token": jwt_token, "user": user_info["email"], "message": "✅ Login successful!"})
 
-# === Get User Role ===
+# === 🔹 Get User Role ===
 @app.route("/get_role", methods=["GET"])
 @jwt_required()
 def get_user_role():
@@ -63,14 +62,14 @@ def get_user_role():
     role = session.get("role", "user")
     return jsonify({"user": current_user, "role": role})
 
-# === Logout ===
+# === 🔹 Logout ===
 @app.route("/logout", methods=["GET"])
 def logout():
     session.clear()
     logging.info("✅ User logged out successfully.")
     return jsonify({"message": "✅ Logged out!"})
 
-# === Protected Route ===
+# === 🔹 Protected Route ===
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
