@@ -30,7 +30,7 @@ jwt = JWTManager(app)
 
 # 🔹 Vérification du chargement des variables OAuth
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
-    logging.error("❌ Missing Google OAuth credentials in `.env`!")
+    logging.error("❌ Erreur: Les variables OAuth Google ne sont pas correctement définies dans `.env`!")
 else:
     logging.info("✅ Google OAuth environment variables loaded successfully.")
 
@@ -48,31 +48,28 @@ oauth.register(
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    if not GOOGLE_REDIRECT_URI:
-        logging.error("❌ Redirect URI is missing!")
-        return jsonify({"error": "❌ Authentication configuration error!"}), 500
-
-    logging.info(f"🔍 Redirecting user to Google OAuth: {GOOGLE_REDIRECT_URI}")
-    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
+    redirect_url = url_for("auth_callback", _external=True)
+    logging.info(f"🔍 Redirection vers Google OAuth: {redirect_url}")
+    return oauth.google.authorize_redirect(redirect_url)
 
 @app.route("/auth/callback")
 def auth_callback():
     token = oauth.google.authorize_access_token()
 
     if not token:
-        logging.error("❌ Token retrieval failed!")
+        logging.error("❌ Échec de récupération du token Google OAuth!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
 
     user_info = oauth.google.parse_id_token(token)
 
     if not user_info:
-        logging.error("❌ User information retrieval failed!")
+        logging.error("❌ Échec de récupération des informations utilisateur!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
 
     session["user"] = user_info.get("email", "Unknown")
     jwt_token = create_access_token(identity=user_info.get("email", "Unknown"))
-    logging.info(f"✅ User `{user_info.get('email', 'Unknown')}` authenticated successfully!")
-    return jsonify({"access_token": jwt_token, "user": user_info.get("email", "Unknown"), "message": "✅ Login successful!"})
+    logging.info(f"✅ Utilisateur `{user_info.get('email', 'Unknown')}` authentifié avec succès!")
+    return jsonify({"access_token": jwt_token, "user": user_info.get("email", "Unknown"), "message": "✅ Connexion réussie!"})
 
 # === 🔹 Get User Role ===
 @app.route("/get_role", methods=["GET"])
@@ -86,16 +83,16 @@ def get_user_role():
 @app.route("/logout", methods=["GET"])
 def logout():
     session.clear()
-    logging.info("✅ User logged out successfully.")
-    return jsonify({"message": "✅ Logged out!"})
+    logging.info("✅ Déconnexion réussie.")
+    return jsonify({"message": "✅ Déconnecté!"})
 
 # === 🔹 Protected Route ===
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
-    logging.info(f"🔐 Access granted for `{current_user}`.")
-    return jsonify({"message": f"🔐 Welcome {current_user}, access granted!"})
+    logging.info(f"🔐 Accès autorisé pour `{current_user}`.")
+    return jsonify({"message": f"🔐 Bienvenue {current_user}, accès autorisé!"})
 
 # === Run App ===
 if __name__ == "__main__":

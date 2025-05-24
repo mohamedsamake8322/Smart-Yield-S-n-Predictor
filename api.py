@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 load_dotenv()
 
 # 🔐 JWT & OAuth Configuration
-APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé par défaut si .env est absent
+APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "supersecretkey")  
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -50,20 +50,19 @@ def home():
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    if not GOOGLE_REDIRECT_URI:
-        logging.error("❌ Erreur: `GOOGLE_REDIRECT_URI` n'est pas défini!")
-        return jsonify({"error": "❌ Configuration OAuth incorrecte!"}), 500
-
-    logging.info(f"🔍 Redirection vers Google OAuth: {GOOGLE_REDIRECT_URI}")
-    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
+    redirect_url = url_for("auth_callback", _external=True)
+    logging.info(f"🔍 Redirection vers Google OAuth: {redirect_url}")
+    return oauth.google.authorize_redirect(redirect_url)
 
 @app.route("/auth/callback")
 def auth_callback():
     token = oauth.google.authorize_access_token()
 
     if not token:
-        logging.error("❌ Échec de récupération du token!")
+        logging.error("❌ Échec de récupération du token Google OAuth!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
+
+    logging.info(f"✅ Token récupéré avec succès: {token}")
 
     user_info = oauth.google.parse_id_token(token)
 
