@@ -1,11 +1,9 @@
 import logging
 import os
 from dotenv import load_dotenv
-load_dotenv()
 from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
-from dotenv import load_dotenv
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -29,6 +27,10 @@ app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
 oauth = OAuth(app)
 
+# 🔹 Vérification des variables `.env`
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
+    logging.error("❌ Erreur: les variables OAuth Google ne sont pas correctement définies dans `.env`!")
+
 # 🔹 Configure OAuth2 (Google Login)
 oauth.register(
     "google",
@@ -48,41 +50,46 @@ def home():
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)  # 🔥 Correction du `redirect_uri`
+    if not GOOGLE_REDIRECT_URI:
+        logging.error("❌ Erreur: `GOOGLE_REDIRECT_URI` n'est pas défini!")
+        return jsonify({"error": "❌ Configuration OAuth incorrecte!"}), 500
+
+    logging.info(f"🔍 Redirection vers Google OAuth: {GOOGLE_REDIRECT_URI}")
+    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
 
 @app.route("/auth/callback")
 def auth_callback():
     token = oauth.google.authorize_access_token()
 
     if not token:
-        logging.error("❌ Token retrieval failed!")
+        logging.error("❌ Échec de récupération du token!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
 
     user_info = oauth.google.parse_id_token(token)
 
     if not user_info:
-        logging.error("❌ User information retrieval failed!")
+        logging.error("❌ Échec de récupération des informations utilisateur!")
         return jsonify({"error": "❌ Authentication failed!"}), 400
 
     session["user"] = user_info["email"]
     access_token = create_access_token(identity=user_info["email"])
-    logging.info(f"✅ User {user_info['email']} authenticated successfully!")
-    return jsonify({"access_token": access_token, "user": user_info["email"], "message": "✅ Login successful!"})
+    logging.info(f"✅ Utilisateur `{user_info['email']}` authentifié avec succès!")
+    return jsonify({"access_token": access_token, "user": user_info["email"], "message": "✅ Connexion réussie!"})
 
 # === 🔹 Protected Endpoint (JWT Required) ===
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
-    logging.info(f"🔒 Access granted for `{current_user}`.")
-    return jsonify({"message": f"🔒 Welcome {current_user}, you have access to this protected route!"})
+    logging.info(f"🔒 Accès autorisé pour `{current_user}`.")
+    return jsonify({"message": f"🔒 Bienvenue {current_user}, accès autorisé!"})
 
 # === 🔹 Logout ===
 @app.route("/logout", methods=["GET"])
 def logout():
     session.clear()
-    logging.info("✅ User logged out successfully.")
-    return jsonify({"message": "✅ Logged out!"})
+    logging.info("✅ Déconnexion réussie.")
+    return jsonify({"message": "✅ Déconnecté!"})
 
 # === Run the Application ===
 if __name__ == "__main__":

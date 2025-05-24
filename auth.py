@@ -1,11 +1,9 @@
 import logging
 import os
 from dotenv import load_dotenv
-load_dotenv()
 from flask import Flask, request, session, jsonify, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from dotenv import load_dotenv
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -29,10 +27,12 @@ app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 
 oauth = OAuth(app)
 jwt = JWTManager(app)
-print("🔍 GOOGLE_AUTH_URL:", GOOGLE_AUTH_URL)
-print("🔍 GOOGLE_TOKEN_URL:", GOOGLE_TOKEN_URL)
-print("🔍 GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID)
-print("🔍 GOOGLE_CLIENT_SECRET:", GOOGLE_CLIENT_SECRET)
+
+# 🔹 Vérification du chargement des variables OAuth
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
+    logging.error("❌ Missing Google OAuth credentials in `.env`!")
+else:
+    logging.info("✅ Google OAuth environment variables loaded successfully.")
 
 # 🔹 Configure OAuth2 (Google Login)
 oauth.register(
@@ -48,6 +48,11 @@ oauth.register(
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
+    if not GOOGLE_REDIRECT_URI:
+        logging.error("❌ Redirect URI is missing!")
+        return jsonify({"error": "❌ Authentication configuration error!"}), 500
+
+    logging.info(f"🔍 Redirecting user to Google OAuth: {GOOGLE_REDIRECT_URI}")
     return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
 
 @app.route("/auth/callback")
