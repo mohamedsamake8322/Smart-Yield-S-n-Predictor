@@ -21,7 +21,7 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
-
+app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé secrète
 oauth = OAuth(app)
 jwt = JWTManager(app)
 
