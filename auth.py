@@ -1,5 +1,7 @@
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, session, jsonify, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -46,7 +48,7 @@ oauth.register(
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    return oauth.google.authorize_redirect(url_for("auth_callback", _external=True))
+    return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
 
 @app.route("/auth/callback")
 def auth_callback():

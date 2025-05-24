@@ -1,5 +1,7 @@
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
