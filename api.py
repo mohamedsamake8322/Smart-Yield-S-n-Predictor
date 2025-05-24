@@ -46,7 +46,9 @@ def home():
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    return oauth.google.authorize_redirect(url_for("auth_callback", _external=True))
+    redirect_uri = url_for("auth_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
 
 @app.route("/auth/callback")
 def auth_callback():
