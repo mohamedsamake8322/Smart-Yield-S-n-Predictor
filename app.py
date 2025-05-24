@@ -7,6 +7,8 @@ import requests
 import joblib
 import logging
 import jwt
+import xgboost as xgb
+import webbrowser
 from PIL import Image
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from auth import login_google, logout, get_user_role  
@@ -17,8 +19,6 @@ from disease_model import load_disease_model, predict_disease
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
-import xgboost as xgb
-
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -40,8 +40,9 @@ else:
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === User Interface ===
-st.title("🌾 Smart Yield Predictor")
+st.title("🌾 Smart Yield Sènè Predictor")
 
+# Initialiser les variables de session si elles n'existent pas encore
 if "jwt_token" not in st.session_state:
     st.session_state["jwt_token"] = None
 if "username" not in st.session_state:
@@ -49,12 +50,15 @@ if "username" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
+# Si l'utilisateur n'est pas encore connecté
 if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
         if st.button("Login with Google"):
-            auth_response = login_google()
-            if auth_response and "access_token" in auth_response:
+            webbrowser.open_new("http://127.0.0.1:5000/login/google")
+            st.info("🌐 Redirecting to Google login... please complete login in the browser.")
+    st.stop()
+    if auth_response and "access_token" in auth_response:
                 st.session_state["jwt_token"] = auth_response["access_token"]
                 st.session_state["username"] = auth_response["user"]
                 st.session_state["user_role"] = get_user_role(auth_response["user"])
