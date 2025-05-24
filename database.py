@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import logging
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -46,9 +47,11 @@ def init_db():
     finally:
         conn.close()
 
-# === Save Prediction ===
-def save_prediction(username, features, predicted_yield):
-    """ Saves a prediction to the database. """
+# === Save Prediction (JWT Required) ===
+@jwt_required()
+def save_prediction(features, predicted_yield):
+    """ Saves a prediction to the database securely. """
+    username = get_jwt_identity()
     timestamp = datetime.now().isoformat()
     features_str = ",".join(map(str, features))
 
@@ -66,17 +69,33 @@ def save_prediction(username, features, predicted_yield):
     finally:
         conn.close()
 
-# === Load Prediction History ===
-def load_history():
-    """ Loads all predictions from the database as a DataFrame. """
+# === Load Prediction History (JWT Required) ===
+@jwt_required()
+def get_user_predictions():
+    """ Loads all predictions for the authenticated user. """
+    username = get_jwt_identity()
+
     try:
         conn = sqlite3.connect(DB_FILE)
-        df = pd.read_sql_query("SELECT * FROM predictions", conn)
-        logging.info("✅ Prediction history loaded successfully.")
-        return df
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT features, predicted_yield, timestamp
+            FROM predictions
+            WHERE username = ?
+            ORDER BY timestamp DESC
+        """, (username,))
+        
+        rows = cursor.fetchall()
+        logging.info(f"✅ Predictions retrieved for {username}.")
+        
+        results = [
+            {"Features": row[0].split(","), "Predicted Yield": row[1], "Timestamp": row[2]}
+            for row in rows
+        ]
+        return results
     except sqlite3.Error as e:
-        logging.error(f"🚨 Error loading history: {e}")
-        return pd.DataFrame()
+        logging.error(f"🚨 Error retrieving predictions: {e}")
+        return []
     finally:
         conn.close()
 
@@ -113,32 +132,5 @@ def save_location(lat, lon):
         logging.info(f"✅ Location saved: ({lat}, {lon}).")
     except sqlite3.Error as e:
         logging.error(f"🚨 Error saving location: {e}")
-    finally:
-        conn.close()
-
-# === Retrieve User Predictions ===
-def get_user_predictions(username):
-    """ Retrieves all predictions for a specific user. """
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT username, features, predicted_yield, timestamp
-            FROM predictions
-            WHERE username = ?
-            ORDER BY timestamp DESC
-        """, (username,))
-        
-        rows = cursor.fetchall()
-        logging.info(f"✅ Predictions retrieved for {username}.")
-        
-        results = [
-            {"Username": row[0], "Features": row[1].split(","), "Predicted Yield": row[2], "Timestamp": row[3]}
-            for row in rows
-        ]
-        return results
-    except sqlite3.Error as e:
-        logging.error(f"🚨 Error retrieving predictions: {e}")
-        return []
     finally:
         conn.close()

@@ -1,75 +1,39 @@
-import psycopg2
-import bcrypt
+import logging
+import os
+from flask import session, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from dotenv import load_dotenv
+from flask import Flask, session, jsonify, request
+# Ajoute cette ligne
+app = Flask(__name__)
 
-# Fonction pour créer une connexion PostgreSQL
-def get_connection():
-    try:
-        conn = psycopg2.connect(
-            dbname="neondb",
-            user="neondb_owner",
-            password="70179877Mohsama#",
-            host="ep-quiet-feather-a4yxx4vt-pooler.us-east-1.aws.neon.tech",
-            port="5432",
-            sslmode="require"
-        )
-        return conn
-    except psycopg2.OperationalError as e:
-        print(f"🚨 Erreur de connexion : {e}")
-        return None
+# 🔹 Logger Configuration
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Fonction pour hacher un mot de passe
-def hash_password(password):
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode(), salt)
-    return hashed.decode()
+# 🔹 Load environment variables
+load_dotenv()
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
-# Insérer un utilisateur avec un mot de passe haché
-def register_user(username, password, role="user"):
-    conn = get_connection()
-    if conn is None:
-        return
-    
-    try:
-        cur = conn.cursor()
-        hashed_password = hash_password(password)
-        cur.execute(
-            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
-            (username, hashed_password, role)
-        )
-        conn.commit()
-        print(f"✅ Utilisateur '{username}' ajouté avec succès.")
-    except psycopg2.InterfaceError as e:
-        print(f"🚨 Erreur de connexion PostgreSQL : {e}")
-    finally:
-        cur.close()
-        conn.close()
+# === 🔹 Manage User Session with JWT ===
+def get_user_role():
+    """ Retrieves the role of the authenticated user. """
+    current_user = session.get("user", None)
+    role = session.get("role", "user")  # Default role is 'user'
+    return jsonify({"user": current_user, "role": role})
 
-# Vérifier un utilisateur et son mot de passe
-def verify_user(username, password):
-    conn = get_connection()
-    if conn is None:
-        return False
-    
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
-        stored_password = cur.fetchone()
+@app.route("/user/info", methods=["GET"])
+@jwt_required()
+def user_info():
+    """ Returns information about the logged-in user. """
+    current_user = get_jwt_identity()
+    logging.info(f"✅ User '{current_user}' accessed account info.")
+    return jsonify({"user": current_user, "message": "✅ User info retrieved successfully!"})
 
-        if stored_password:
-            stored_password = stored_password[0]
-            print(f"🔎 Stored password from DB: {stored_password}")
-            if bcrypt.checkpw(password.encode(), stored_password.encode()):
-                print(f"Connexion réussie pour {username} ! ✅")
-                return True
-            else:
-                print("Mot de passe incorrect ❌")
-                return False
-        else:
-            print(f"L'utilisateur {username} n'existe pas !")
-            return False
-    except psycopg2.InterfaceError as e:
-        print(f"🚨 Erreur de connexion PostgreSQL : {e}")
-        return False
-    finally:
-        cur.close()
-        conn.close()
+# === 🔹 Manage Logout ===
+@app.route("/logout", methods=["GET"])
+def logout():
+    """ Clears user session. """
+    session.clear()
+    logging.info("✅ User logged out successfully.")
+    return jsonify({"message": "✅ Logged out!"})
+

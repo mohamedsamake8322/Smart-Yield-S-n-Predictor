@@ -6,20 +6,19 @@ import os
 import requests
 import joblib
 import logging
-import jwt  
-import bcrypt
+import jwt
 from PIL import Image
-
-# 📌 Importing essential modules
-from auth import verify_password, get_role, register_user  
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
-from evaluate import evaluate_model
-from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
-from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from auth import login_google, logout, get_user_role  
+from utils import validate_csv_columns, generate_pdf_report
+from visualizations import plot_yield_distribution
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
+from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
-
+from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
+from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -29,53 +28,42 @@ st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
-# 🔹 Load yield prediction model
+# 🔹 Load prediction models
 model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train_model()
-if not os.path.exists(MODEL_PATH):
-    joblib.dump(model, MODEL_PATH)
-
-# 🔹 Load plant disease detection model
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === User Interface ===
 st.title("🌾 Smart Yield Predictor")
 
 # 🔹 Authentication Management using `st.session_state`
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
+if "jwt_token" not in st.session_state:
+    st.session_state["jwt_token"] = None
 if "username" not in st.session_state:
     st.session_state["username"] = None
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
 # 🔐 Login Section (Hidden after authentication)
-if not st.session_state["authenticated"]:
+if not st.session_state["jwt_token"]:
     with st.sidebar:
-        st.header("🔐 Login")
-        username = st.text_input("👤 Username")
-        password = st.text_input("🔑 Password", type="password")
-
-        if st.button("Login"):
-            if username and password:
-                if verify_password(username, password):
-                    st.session_state["authenticated"] = True
-                    st.session_state["username"] = username
-                    st.session_state["user_role"] = get_role(username) or "user"
-                    st.success(f"✅ Logged in as {username}")
-                    logging.info("✅ Authentication successful!")
-                    st.rerun()
-                else:
-                    logging.warning("❌ Authentication failed!")
-                    st.error("❌ Incorrect credentials.")
-            else:
-                st.error("❌ Please enter both username and password.")
+        st.header("🔐 Login with Google")
+        if st.button("Login with Google"):
+            auth_response = login_google()
+            if auth_response and "access_token" in auth_response:
+                st.session_state["jwt_token"] = auth_response["access_token"]
+                st.session_state["username"] = auth_response["user"]
+                st.session_state["user_role"] = get_user_role(auth_response["user"])
+                st.success(f"✅ Logged in as {auth_response['user']}")
+                logging.info("✅ Authentication successful!")
+                st.rerun()
 
     st.stop()
 
 # 🔹 Logout Button
 with st.sidebar:
     if st.button("Logout"):
-        st.session_state["authenticated"] = False
+        logout()
+        st.session_state["jwt_token"] = None
         st.session_state["username"] = None
         st.session_state["user_role"] = None
         st.success("✅ Successfully logged out!")
@@ -91,17 +79,8 @@ if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
-    with st.expander("➕ Add a new user"):
-        new_username = st.text_input("New Username")
-        new_password = st.text_input("New Password", type="password")
-        new_role = st.selectbox("Role", ["user", "admin"])
-
-        if st.button("Create User"):
-            register_user(new_username, new_password, new_role)
-            st.success(f"✅ User '{new_username}' added successfully.")
-
 # === Main Menu ===
-menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection", "Fertilization Advice", "Field Map"]
+menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
 choice = st.sidebar.selectbox("Menu", menu)
 
 # 🔹 Animation Helper

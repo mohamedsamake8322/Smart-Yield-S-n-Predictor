@@ -1,8 +1,10 @@
-import bcrypt
-import jwt
 import logging
 import os
+from flask import request, session, jsonify, redirect, url_for
+from authlib.integrations.flask_client import OAuth
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from dotenv import load_dotenv
+from flask import Flask
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -10,43 +12,79 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # 🔹 Load environment variables
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+APP_SECRET_KEY = os.getenv("APP_SECRET_KEY")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
-# === 🔹 User Management ===
-users_db = {}  # Temporary in-memory user storage
+# 🔐 Flask & JWT Setup
+oauth = OAuth()
+jwt = JWTManager()
 
-def hash_password(password):
-    """ Secure password hashing using bcrypt. """
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+def create_app():
+    app = Flask(__name__)
+    app.secret_key = APP_SECRET_KEY
+    app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+    oauth.init_app(app)
+    jwt.init_app(app)
 
-def register_user(username, password, role="user"):
-    """ Registers a user with a securely hashed password. """
-    if username in users_db:
-        logging.error(f"❌ Username '{username}' already exists.")
-        return False
+    # 🔹 Configure OAuth2 (Google Login)
+    oauth.register(
+        "google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        authorize_url="https://accounts.google.com/o/oauth2/auth",
+        token_url="https://oauth2.googleapis.com/token",
+        redirect_uri=GOOGLE_REDIRECT_URI,
+        client_kwargs={"scope": "openid email profile"}
+    )
 
-    hashed_password = hash_password(password)
-    users_db[username] = {"password": hashed_password, "role": role}
+    return app
 
-    logging.info(f"✅ User '{username}' registered successfully.")
-    return True
+app = create_app()
 
-def verify_password(username, provided_password):
-    """ Verifies the provided password against the stored hash. """
-    user = users_db.get(username)
-    if not user:
-        logging.warning(f"❌ No password found for `{username}`.")
-        return False
+# === 🔹 Google OAuth Login ===
+@app.route("/login/google")
+def login_google():
+    return oauth.google.authorize_redirect(url_for("auth_callback", _external=True))
 
-    stored_password = user["password"].encode()
-    provided_password = provided_password.encode()
+@app.route("/auth/callback")
+def auth_callback():
+    token = oauth.google.authorize_access_token()
+    user_info = oauth.google.parse_id_token(token)
 
-    is_valid = bcrypt.checkpw(provided_password, stored_password)
-    logging.info(f"🔍 Authentication successful for `{username}`.") if is_valid else logging.warning(f"❌ Incorrect password.")
+    if not user_info:
+        return jsonify({"error": "❌ Authentication failed!"}), 400
 
-    return is_valid
+    session["user"] = user_info
+    jwt_token = create_access_token(identity=user_info["email"])
+    logging.info(f"✅ User {user_info['email']} authenticated successfully!")
+    return jsonify({"access_token": jwt_token, "user": user_info["email"], "message": "✅ Login successful!"})
 
-def get_role(username):
-    """ Retrieves the role of a user. """
-    user = users_db.get(username)
-    return user["role"] if user else None
+# === 🔹 Get User Role ===
+@app.route("/get_role", methods=["GET"])
+@jwt_required()
+def get_user_role():
+    current_user = get_jwt_identity()
+    role = session.get("role", "user")
+    return jsonify({"user": current_user, "role": role})
+
+# === 🔹 Logout ===
+@app.route("/logout", methods=["GET"])
+def logout():
+    session.clear()
+    logging.info("✅ User logged out successfully.")
+    return jsonify({"message": "✅ Logged out!"})
+
+# === 🔹 Protected Route ===
+@app.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    logging.info(f"🔐 Access granted for `{current_user}`.")
+    return jsonify({"message": f"🔐 Welcome {current_user}, access granted!"})
+
+# === Run App ===
+if __name__ == "__main__":
+    app.run(debug=True)
