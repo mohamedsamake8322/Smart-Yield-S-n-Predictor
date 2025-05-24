@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
-
+from auth import app, oauth
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
