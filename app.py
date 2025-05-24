@@ -7,19 +7,17 @@ import requests
 import joblib
 import logging
 import jwt
-import xgboost as xgb
 from PIL import Image
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
-# 🔹 Importing project modules (Unique import to avoid duplicates)
 from auth import login_google, logout, get_user_role  
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from streamlit_lottie import st_lottie
+from disease_model import load_disease_model, predict_disease
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
-from disease_model import load_disease_model, predict_disease
-from streamlit_lottie import st_lottie
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
+import xgboost as xgb
 
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -36,16 +34,14 @@ if os.path.exists(MODEL_PATH):
     model.load_model(MODEL_PATH)
     logging.info("✅ XGBoost Booster model loaded successfully.")
 else:
-    logging.warning("⚠ Model JSON not found, training a new model as fallback.")
-    model = train_model()
-    save_model(model)
+    logging.warning("⚠ Model JSON not found. Please retrain it using the Retrain Model section.")
+    model = None
 
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
 # === User Interface ===
 st.title("🌾 Smart Yield Predictor")
 
-# 🔹 Authentication Management using `st.session_state`
 if "jwt_token" not in st.session_state:
     st.session_state["jwt_token"] = None
 if "username" not in st.session_state:
@@ -53,7 +49,6 @@ if "username" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
-# 🔐 Login Section (Hidden after authentication)
 if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
@@ -66,10 +61,8 @@ if not st.session_state["jwt_token"]:
                 st.success(f"✅ Logged in as {auth_response['user']}")
                 logging.info("✅ Authentication successful!")
                 st.rerun()
-
     st.stop()
 
-# 🔹 Logout Button
 with st.sidebar:
     if st.button("Logout"):
         logout()
@@ -80,20 +73,16 @@ with st.sidebar:
         logging.info("✅ Logged out successfully.")
         st.rerun()
 
-# 🔹 User Role Verification
 USERNAME = st.session_state["username"]
 USER_ROLE = st.session_state["user_role"]
 
-# === Admin Dashboard (Visible only to admins) ===
 if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
 
-# === Main Menu (Improved navigation) ===
-menu = ["🏠 Home", "📊 Retrain Model", "📜 History", "📈 Performance", "🌿 Disease Detection"]
-choice = st.sidebar.selectbox("📌 Select Menu", menu)
+menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
+choice = st.sidebar.selectbox("Menu", menu)
 
-# 🔹 Animation Helper
 def load_lottieurl(url):
     try:
         return requests.get(url, timeout=5).json() if requests.get(url, timeout=5).status_code == 200 else None
@@ -102,15 +91,13 @@ def load_lottieurl(url):
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
 
-# === Home Page ===
-if choice == "🏠 Home":
+if choice == "Home":
     st_lottie(lottie_plant, height=150)
-    st.subheader("👋 Welcome to Smart Yield Predictor")
+    st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
     st.subheader("📈 Predict Agricultural Yield")
+    input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
 
-    input_method = st.radio("Choose input method", ("🖊 Manual Input", "📁 Upload CSV"))
-
-    if input_method == "🖊 Manual Input":
+    if input_method == "Manual Input":
         temperature = st.slider("🌡️ Temperature (°C)", 10, 50, 25)
         humidity = st.slider("💧 Humidity (%)", 10, 100, 60)
         precipitation = st.slider("🌧️ Precipitation (mm)", 0, 300, 50)
@@ -125,173 +112,124 @@ if choice == "🏠 Home":
             "Fertilizer": fertilizer
         }
 
-        if st.button("🚀 Predict Yield"):
+        if st.button("Predict Yield"):
             if model:
-                prediction = predict_single(model, features)
+                ddata = xgb.DMatrix(pd.DataFrame([features]))
+                prediction = model.predict(ddata)[0]
                 st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
                 save_prediction(USERNAME, features, prediction)
-
                 if st.checkbox("📄 Download PDF Report"):
-                    pdf = generate_pdf_report(USERNAME, features, prediction, "Optimize fertilizer usage.")
-                    st.download_button("📥 Download PDF", data=pdf, file_name="report.pdf")
+                    pdf = generate_pdf_report(USERNAME, features, prediction, "Use appropriate fertilizer and monitor pH.")
+                    st.download_button("Download PDF", data=pdf, file_name="report.pdf")
             else:
-                st.error("🛑 Model not trained yet.")
+                st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
+
     else:
-        csv_file = st.file_uploader("📁 Upload CSV for Batch Prediction", type=["csv"])
+        st.markdown("### 📁 Batch Prediction from CSV")
+        csv_file = st.file_uploader("Upload CSV", type=["csv"])
         if csv_file:
             df = pd.read_csv(csv_file)
             required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
 
             if validate_csv_columns(df, required_cols):
                 df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-
-                if st.button("🚀 Predict from CSV"):
+                if st.button("Predict from CSV"):
                     if model:
-                        df["PredictedYield"] = predict_batch(model, df)
+                        ddata = xgb.DMatrix(df[required_cols])
+                        df["PredictedYield"] = model.predict(ddata)
                         st.success("✅ Prediction completed.")
+                        st.subheader("🧾 Prediction Results")
                         st.dataframe(df)
-                        st.download_button("📥 Download Results CSV", convert_df_to_csv(df), "predictions.csv")
-
+                        st.download_button("Download Results CSV", convert_df_to_csv(df), "predictions.csv", "text/csv")
                         for _, row in df.iterrows():
                             features_dict = row[required_cols].to_dict()
                             save_prediction(USERNAME, features_dict, row["PredictedYield"])
                     else:
-                        st.error("🛑 Model not trained yet.")
+                        st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
             else:
                 st.error(f"❗ CSV must contain columns: {required_cols}")
-                st.subheader("📊 Visualizations")
-                tab1, tab2, tab3 = st.tabs([
-                    "Histogram", "Pie Chart", "Trend Over Time"
-                ])
-                with tab1:
-                    fig1 = plot_yield_distribution(df)
-                    if fig1:
-                        st.pyplot(fig1)
-                    else:
-                        st.warning("No predicted yield data to plot.")
-                with tab2:
-                    fig2 = plot_yield_pie(df)
-                    if fig2:
-                        st.pyplot(fig2)
-                    else:
-                        st.warning("No predicted yield data to plot.")
-                with tab3:
-                    if "timestamp" not in df.columns:
-                        df["timestamp"] = pd.date_range(
-                            end=datetime.datetime.now(),
-                            periods=len(df),
-                            freq='D'
-                        )
-                    fig3 = plot_yield_over_time(df)
-                    if fig3:
-                        st.pyplot(fig3)
-                    else:
-                        st.warning("No data for time trend.")
-st.markdown("---")
-st.subheader("🧪 Test XGBoost Booster Prediction from CSV")
-test_csv_file = st.file_uploader("Upload CSV for XGBoost Booster", type=["csv"])
-if test_csv_file:
-    df_test = pd.read_csv(test_csv_file)
-    if not df_test.empty:
-        ddata = xgb.DMatrix(df_test)
-        predictions = model.predict(ddata)
-        df_test["PredictedYield"] = predictions
-        st.dataframe(df_test)
-        st.download_button("📥 Download Predictions CSV", convert_df_to_csv(df_test), "xgboost_predictions.csv")
-    else:
-        st.error("🛑 The uploaded CSV is empty.")
 
-    # === Retrain Model ===
 elif choice == "Retrain Model":
-        st.subheader("🔁 Retrain the Model")
-        train_file = st.file_uploader("Upload Training CSV", type=["csv"] )
-        if train_file is not None:
-            train_df = pd.read_csv(train_file)
-            required_cols = [
-                "Temperature", "Humidity", "Precipitation",
-                "pH", "Fertilizer", "Yield"
-            ]
-            if validate_csv_columns(train_df, required_cols):
-                if st.button("Retrain"):
-                    model = train_model(train_df)
-                    save_model(model)
-                    # reload model for immediate use
-                    model = load_model(MODEL_PATH)
-                    st.success("✅ Model retrained successfully!")
-            else:
-                st.error(f"❗ Training CSV must contain: {required_cols}")
-
-    # === History ===
-elif choice == "History":
-        st.subheader("📚 Prediction History")
-        results = get_user_predictions(USERNAME)
-        if results:
-            hist_df = pd.DataFrame(results)
-            st.dataframe(hist_df)
+    st.subheader("🔁 Retrain the Model")
+    train_file = st.file_uploader("Upload Training CSV", type=["csv"])
+    if train_file is not None:
+        train_df = pd.read_csv(train_file)
+        required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
+        if validate_csv_columns(train_df, required_cols):
+            if st.button("Retrain"):
+                new_model = train_model(train_df)
+                new_model.save_model(MODEL_PATH)
+                st.success("✅ Model retrained and saved successfully!")
         else:
-            st.info("No predictions found for this user.")
+            st.error(f"❗ Training CSV must contain: {required_cols}")
 
-    # === Performance ===
+elif choice == "History":
+    st.subheader("📚 Prediction History")
+    results = get_user_predictions(USERNAME)
+    if results:
+        hist_df = pd.DataFrame(results)
+        st.dataframe(hist_df)
+    else:
+        st.info("No predictions found for this user.")
+
 elif choice == "Performance":
-        st.subheader("📊 Model Evaluation")
-        eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"] )
-        if eval_file is not None:
-            eval_df = pd.read_csv(eval_file)
-            required_cols = [
-                "Temperature", "Humidity", "Precipitation",
-                "pH", "Fertilizer", "Yield"
-            ]
-            if validate_csv_columns(eval_df, required_cols):
-                if model:
-                    mae, r2 = evaluate_model(model, eval_df)
-                    st.success(f"✅ MAE: {mae:.2f}, R² Score: {r2:.2f}")
-                else:
-                    st.error("🛑 Model not trained yet.")
+    st.subheader("📊 Model Evaluation")
+    eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"])
+    if eval_file is not None:
+        eval_df = pd.read_csv(eval_file)
+        required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
+        if validate_csv_columns(eval_df, required_cols):
+            if model:
+                ddata = xgb.DMatrix(eval_df[required_cols])
+                predictions = model.predict(ddata)
+                mae = np.mean(np.abs(predictions - eval_df["Yield"]))
+                r2 = 1 - np.sum((predictions - eval_df["Yield"]) ** 2) / np.sum((eval_df["Yield"] - np.mean(eval_df["Yield"])) ** 2)
+                st.success(f"✅ MAE: {mae:.2f}, R² Score: {r2:.2f}")
             else:
-                st.error(f"❗ Evaluation CSV must contain: {required_cols}")
+                st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
+        else:
+            st.error(f"❗ Evaluation CSV must contain: {required_cols}")
 
-    # === Disease Detection ===
 elif choice == "Disease Detection":
-        st.subheader("🦠 Plant Disease Detection")
-        image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"] )
-        if image_file:
-            image = Image.open(image_file).convert("RGB")
-            st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
-            if st.button("🔍 Detect Disease"):
-                if disease_model:
-                    label = predict_disease(disease_model, image)
-                    detected_plant = label.split()[0] if label else "Unknown"
-                    st.success(f"✅ Disease Detection Result: **{label}**")
-                    st.info(f"🪴 Detected Plant: **{detected_plant}**")
-                    if "healthy" in label.lower():
-                        st.success("✅ This leaf appears healthy.")
-                        st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
-                    else:
-                        st.error("⚠️ Disease detected!")
-                        st.markdown(
-                            """
-                            <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
-                            <b>👩‍⚕️ Suggested Advice:</b>
-                            <ul>
-                                <li>Isolate the infected plant if possible</li>
-                                <li>Use appropriate fungicides or pesticides</li>
-                                <li>Improve soil drainage and avoid overwatering</li>
-                                <li>Consult an agronomist for accurate diagnosis and treatment</li>
-                            </ul>
-                            </div>
-                            """, unsafe_allow_html=True
-                        )
-                    if st.checkbox("📄 Generate PDF Report"):
-                        report_pdf = generate_pdf_report(
-                            USERNAME,
-                            features={"Detected Plant": detected_plant, "Detected Disease": label},
-                            prediction="N/A",
-                            recommendation="Follow treatment guidelines and monitor the plant closely."
-                        )
-                        st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
+    st.subheader("🦠 Plant Disease Detection")
+    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
+    if image_file:
+        image = Image.open(image_file).convert("RGB")
+        st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
+        if st.button("🔍 Detect Disease"):
+            if disease_model:
+                label = predict_disease(disease_model, image)
+                detected_plant = label.split()[0] if label else "Unknown"
+                st.success(f"✅ Disease Detection Result: **{label}**")
+                st.info(f"🪴 Detected Plant: **{detected_plant}**")
+                if "healthy" in label.lower():
+                    st.success("✅ This leaf appears healthy.")
+                    st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
                 else:
-                    st.error("🛑 Disease detection model is not loaded.")
-
+                    st.error("⚠️ Disease detected!")
+                    st.markdown(
+                        """
+                        <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
+                        <b>👩‍⚕️ Suggested Advice:</b>
+                        <ul>
+                            <li>Isolate the infected plant if possible</li>
+                            <li>Use appropriate fungicides or pesticides</li>
+                            <li>Improve soil drainage and avoid overwatering</li>
+                            <li>Consult an agronomist for accurate diagnosis and treatment</li>
+                        </ul>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
+                if st.checkbox("📄 Generate PDF Report"):
+                    report_pdf = generate_pdf_report(
+                        USERNAME,
+                        features={"Detected Plant": detected_plant, "Detected Disease": label},
+                        prediction="N/A",
+                        recommendation="Follow treatment guidelines and monitor the plant closely."
+                    )
+                    st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
+            else:
+                st.error("🛑 Disease detection model is not loaded.")
     # === Fertilization Advice ===
 elif choice == "Fertilization Advice":
         st.subheader("🧪 Smart Fertilization Recommender")
