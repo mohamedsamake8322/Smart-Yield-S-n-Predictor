@@ -3,14 +3,14 @@ import pandas as pd
 from datetime import datetime
 import logging
 
-# 📌 Configuration du logger
+# 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 DB_FILE = "history.db"
 
-# === 🔹 Initialisation de la base de données ===
+# === Initialize Database ===
 def init_db():
-    """ Initialise la base de données SQLite avec les tables nécessaires. """
+    """ Initializes SQLite database with required tables. """
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
@@ -40,15 +40,15 @@ def init_db():
         """)
 
         conn.commit()
-        logging.info("✅ Base de données initialisée avec succès !")
+        logging.info("✅ Database initialized successfully!")
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors de l'initialisation de la base de données : {e}")
+        logging.error(f"🚨 Error initializing database: {e}")
     finally:
         conn.close()
 
-# === 🔹 Enregistrer une prédiction ===
+# === Save Prediction ===
 def save_prediction(username, features, predicted_yield):
-    """ Enregistre une prédiction dans la base de données. """
+    """ Saves a prediction to the database. """
     timestamp = datetime.now().isoformat()
     features_str = ",".join(map(str, features))
 
@@ -60,29 +60,29 @@ def save_prediction(username, features, predicted_yield):
             VALUES (?, ?, ?, ?)
         """, (username, features_str, predicted_yield, timestamp))
         conn.commit()
-        logging.info(f"✅ Prédiction enregistrée pour {username}.")
+        logging.info(f"✅ Prediction saved for {username}.")
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors de l'enregistrement de la prédiction : {e}")
+        logging.error(f"🚨 Error saving prediction: {e}")
     finally:
         conn.close()
 
-# === 🔹 Charger l'historique des prédictions ===
+# === Load Prediction History ===
 def load_history():
-    """ Charge toutes les prédictions depuis la base de données sous forme de DataFrame. """
+    """ Loads all predictions from the database as a DataFrame. """
     try:
         conn = sqlite3.connect(DB_FILE)
         df = pd.read_sql_query("SELECT * FROM predictions", conn)
-        logging.info("✅ Historique des prédictions chargé avec succès.")
+        logging.info("✅ Prediction history loaded successfully.")
         return df
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors du chargement de l'historique : {e}")
+        logging.error(f"🚨 Error loading history: {e}")
         return pd.DataFrame()
     finally:
         conn.close()
 
-# === 🔹 Enregistrer une observation ===
+# === Save Observation ===
 def save_observation(name, note):
-    """ Enregistre une observation dans la base de données. """
+    """ Saves an observation to the database. """
     timestamp = datetime.now().isoformat()
     try:
         conn = sqlite3.connect(DB_FILE)
@@ -92,15 +92,15 @@ def save_observation(name, note):
             VALUES (?, ?, ?)
         """, (name, note, timestamp))
         conn.commit()
-        logging.info(f"✅ Observation enregistrée : {name}.")
+        logging.info(f"✅ Observation saved: {name}.")
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors de l'enregistrement de l'observation : {e}")
+        logging.error(f"🚨 Error saving observation: {e}")
     finally:
         conn.close()
 
-# === 🔹 Enregistrer la localisation ===
+# === Save Location ===
 def save_location(lat, lon):
-    """ Enregistre une localisation géographique. """
+    """ Saves a geographic location to the database. """
     timestamp = datetime.now().isoformat()
     try:
         conn = sqlite3.connect(DB_FILE)
@@ -110,15 +110,15 @@ def save_location(lat, lon):
             VALUES (?, ?, ?)
         """, (lat, lon, timestamp))
         conn.commit()
-        logging.info(f"✅ Localisation enregistrée : ({lat}, {lon}).")
+        logging.info(f"✅ Location saved: ({lat}, {lon}).")
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors de l'enregistrement de la localisation : {e}")
+        logging.error(f"🚨 Error saving location: {e}")
     finally:
         conn.close()
 
-# === 🔹 Récupérer les prédictions d'un utilisateur ===
+# === Retrieve User Predictions ===
 def get_user_predictions(username):
-    """ Récupère toutes les prédictions pour un utilisateur spécifique. """
+    """ Retrieves all predictions for a specific user. """
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
@@ -130,7 +130,7 @@ def get_user_predictions(username):
         """, (username,))
         
         rows = cursor.fetchall()
-        logging.info(f"✅ Prédictions récupérées pour {username}.")
+        logging.info(f"✅ Predictions retrieved for {username}.")
         
         results = [
             {"Username": row[0], "Features": row[1].split(","), "Predicted Yield": row[2], "Timestamp": row[3]}
@@ -138,7 +138,7 @@ def get_user_predictions(username):
         ]
         return results
     except sqlite3.Error as e:
-        logging.error(f"🚨 Erreur lors de la récupération des prédictions : {e}")
+        logging.error(f"🚨 Error retrieving predictions: {e}")
         return []
     finally:
         conn.close()

@@ -1,5 +1,6 @@
-# 🔒 Fichiers contenant des mots de passe ou des clés secrètes
+# 🔒 Security files (API keys, secrets, and config files)
 .env
+.env.*
 config.json
 settings.yaml
 secrets.toml
@@ -7,13 +8,13 @@ private_key.pem
 .streamlit/secrets.toml
 create_credentials.py
 
-# 🔹 Dépendances et environnement virtuel
+# 🔹 Dependencies and virtual environments
 venv/
 smartyield-env/
 .idea/
 .vscode/
 
-# 🔹 Fichiers temporaires et caches
+# 🔹 Temporary files and caches
 __pycache__/
 *.pyc
 *.pyo
@@ -22,22 +23,27 @@ __pycache__/
 temp/
 cache/
 
-# 🔹 Logs et bases de données locales
+# 🔹 Logs and local databases
 logs/
 *.log
 *.sqlite
 
-# 🔹 Modèles d’apprentissage automatique
+# 🔹 Machine Learning models
 model/
 *.pkl
 *.h5
 *.pt
+*.joblib
+*.onnx
 
-# 🔹 Fichiers CSV ou Excel contenant des données sensibles
+# 🔹 CSV or Excel data files (Sensitive Data)
 data/
 *.csv
 *.xlsx
 
-# 🔹 Streamlit et ses fichiers de sessions
+# 🔹 Jupyter Notebook metadata
+*.ipynb_checkpoints/
+
+# 🔹 Streamlit session files
 .streamlit/
 script.py

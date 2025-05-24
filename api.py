@@ -1,137 +1,89 @@
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-import psycopg2
 import bcrypt
 import logging
 import os
 from dotenv import load_dotenv
 
-# 🔹 Configuration du logger
+# 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 🔹 Charge les variables d'environnement depuis `.env`
+# 🔹 Load environment variables from `.env`
 load_dotenv()
 
-# 🔎 Configuration PostgreSQL et JWT
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
+# 🔐 JWT Configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
-# 🔐 Initialisation de Flask et JWT
+# 🔹 Initialize Flask and JWT
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
 
-# === 🔹 Route d’accueil pour éviter `404 Not Found` ===
+# === Home Route ===
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "✅ Smart Yield API is running!"}), 200
 
-# === 🔹 Ignorer `/favicon.ico` pour éviter les erreurs de requêtes inutiles ===
+# === Ignore `/favicon.ico` to prevent unnecessary requests ===
 @app.route("/favicon.ico")
 def favicon():
-    return "", 204  # ✅ Réponse vide avec code `204 No Content`
+    return "", 204  # ✅ Empty response with `204 No Content`
 
-# 🔹 Fonction pour récupérer une connexion PostgreSQL sécurisée
-def get_db_connection():
-    try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT,
-            sslmode=DB_SSLMODE
-        )
-        logging.info("✅ Connexion PostgreSQL réussie !")
-        return conn
-    except psycopg2.OperationalError as e:
-        logging.error(f"🚨 Erreur de connexion PostgreSQL : {e}")
-        return None
+# === User Registration ===
+users_db = {}  # Temporary in-memory user storage
 
-# === 🔹 Endpoint pour l’inscription ===
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
     username = data.get("username")
     password = data.get("password")
-    role = data.get("role", "user") 
+    role = data.get("role", "user")  
 
     if not username or not password:
         return jsonify({"error": "❌ Username and password are required"}), 400
 
+    if username in users_db:
+        return jsonify({"error": "❌ Username already exists"}), 409
+
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({"error": "🚨 Database connection failed"}), 500
+    users_db[username] = {"password": hashed_password, "role": role}
 
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING;",
-            (username, hashed_password, role)
-        )
-        conn.commit()
-        logging.info(f"✅ User '{username}' registered successfully!")
-        return jsonify({"message": f"✅ User '{username}' registered successfully!"}), 201
-    except psycopg2.Error as e:
-        logging.error(f"🚨 Registration failed: {e}")
-        return jsonify({"error": f"🚨 Registration failed: {str(e)}"}), 500
-    finally:
-        cur.close()
-        conn.close()
+    logging.info(f"✅ User '{username}' registered successfully!")
+    return jsonify({"message": f"✅ User '{username}' registered successfully!"}), 201
 
-# === 🔹 Endpoint pour l’authentification ===
+# === User Authentication ===
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
     username = data.get("username")
     password = data.get("password")
 
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({"error": "🚨 Database connection failed"}), 500
+    user = users_db.get(username)
+    if not user:
+        logging.warning(f"❌ User `{username}` does not exist.")
+        return jsonify({"error": "❌ User does not exist"}), 404
 
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
-        result = cur.fetchone()
+    stored_password = user["password"].encode()
+    provided_password = password.encode()
 
-        if not result or not result[0]:  
-            logging.warning(f"❌ User `{username}` does not exist.")
-            return jsonify({"error": "❌ User does not exist"}), 404
+    logging.debug(f"🔎 Stored password hash: {stored_password}")
 
-        stored_password = result[0].encode()
-        provided_password = password.encode()
+    if bcrypt.checkpw(provided_password, stored_password):
+        access_token = create_access_token(identity=username)
+        logging.info(f"✅ Login successful for `{username}`!")
+        return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
 
-        logging.debug(f"🔎 Stored password hash from DB: {stored_password}")
+    logging.warning(f"❌ Incorrect password for `{username}`.")
+    return jsonify({"error": "❌ Incorrect password"}), 401
 
-        if bcrypt.checkpw(provided_password, stored_password):
-            access_token = create_access_token(identity=username)
-            logging.info(f"✅ Login successful for `{username}`!")
-            return jsonify({"access_token": access_token, "message": "✅ Login successful!"}), 200
-
-        logging.warning(f"❌ Incorrect password for `{username}`.")
-        return jsonify({"error": "❌ Incorrect password"}), 401
-    except psycopg2.Error as e:
-        logging.error(f"🚨 Database error during login: {e}")
-        return jsonify({"error": "🚨 Server error. Try again later."}), 500
-    finally:
-        cur.close()
-        conn.close()
-
-# === 🔹 Endpoint sécurisé (JWT requis) ===
+# === Protected Endpoint (JWT Required) ===
 @app.route("/protected", methods=["GET"])
-@jwt_required()  
+@jwt_required()
 def protected():
     current_user = get_jwt_identity()
     logging.info(f"🔒 Access granted for `{current_user}`.")
     return jsonify({"message": f"🔒 Welcome {current_user}, you have access to this protected route!"}), 200
 
-# === 🔹 Lancer l'application ===
+# === Run the Application ===
 if __name__ == "__main__":
     app.run(debug=True)

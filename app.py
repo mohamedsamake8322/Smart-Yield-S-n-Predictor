@@ -6,44 +6,41 @@ import os
 import requests
 import joblib
 import logging
-import psycopg2  
 import jwt  
 import bcrypt
 from PIL import Image
 
-# 📌 Importation des modules essentiels
+# 📌 Importing essential modules
 from auth import verify_password, get_role, register_user  
-from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 from disease_model import load_disease_model, predict_disease
+from database import save_prediction, get_user_predictions
 
-# 🔹 Configuration du logger
+# 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-st.set_page_config(page_title="🌾 Smart Yield Sènè Predictor", layout="wide")
+st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
-# === Initialisation des modèles ===
+# === Model Initialization ===
 MODEL_PATH = "model/model_xgb.pkl"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
-init_db()  # Initialisation de la base de données
-
-# 🔹 Chargement du modèle de rendement
+# 🔹 Load yield prediction model
 model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train_model()
 if not os.path.exists(MODEL_PATH):
     joblib.dump(model, MODEL_PATH)
 
-# 🔹 Chargement du modèle de détection des maladies
+# 🔹 Load plant disease detection model
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
-# === Interface utilisateur ===
-st.title("🌾 Smart Yield Sènè Predictor")
+# === User Interface ===
+st.title("🌾 Smart Yield Predictor")
 
-# 🔹 Gestion de l'authentification avec `st.session_state`
+# 🔹 Authentication Management using `st.session_state`
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "username" not in st.session_state:
@@ -51,43 +48,45 @@ if "username" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
-# 🔐 Interface de connexion (masquée après connexion)
+# 🔐 Login Section (Hidden after authentication)
 if not st.session_state["authenticated"]:
-    st.sidebar.header("🔐 Authentication")
-    username = st.sidebar.text_input("👤 Username")
-    password = st.sidebar.text_input("🔑 Password", type="password")
+    with st.sidebar:
+        st.header("🔐 Login")
+        username = st.text_input("👤 Username")
+        password = st.text_input("🔑 Password", type="password")
 
-    if st.sidebar.button("Login"):
-        if username and password:  
-            if verify_password(username, password):
-                st.session_state["authenticated"] = True
-                st.session_state["username"] = username
-                st.session_state["user_role"] = get_role(username) or "user"
-                st.sidebar.success(f"✅ Connecté en tant que {username}")
-                logging.info("✅ Authentification réussie !")
-                st.rerun()  
+        if st.button("Login"):
+            if username and password:
+                if verify_password(username, password):
+                    st.session_state["authenticated"] = True
+                    st.session_state["username"] = username
+                    st.session_state["user_role"] = get_role(username) or "user"
+                    st.success(f"✅ Logged in as {username}")
+                    logging.info("✅ Authentication successful!")
+                    st.rerun()
+                else:
+                    logging.warning("❌ Authentication failed!")
+                    st.error("❌ Incorrect credentials.")
             else:
-                logging.warning("❌ Échec d'authentification !")
-                st.sidebar.error("❌ Identifiants incorrects.")
-        else:
-            st.sidebar.error("❌ Veuillez entrer un nom d'utilisateur et un mot de passe.")
+                st.error("❌ Please enter both username and password.")
 
-    st.stop()  
+    st.stop()
 
-# 🔹 Ajout d'un bouton de déconnexion
-if st.sidebar.button("Logout"):
-    st.session_state["authenticated"] = False
-    st.session_state["username"] = None
-    st.session_state["user_role"] = None
-    st.sidebar.success("✅ Déconnexion réussie !")
-    logging.info("✅ Déconnexion effectuée avec succès.")
-    st.rerun()
+# 🔹 Logout Button
+with st.sidebar:
+    if st.button("Logout"):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = None
+        st.session_state["user_role"] = None
+        st.success("✅ Successfully logged out!")
+        logging.info("✅ Logged out successfully.")
+        st.rerun()
 
-# 🔹 Vérification du rôle utilisateur
+# 🔹 User Role Verification
 USERNAME = st.session_state["username"]
 USER_ROLE = st.session_state["user_role"]
 
-# === Interface Admin (Seulement pour les admins) ===
+# === Admin Dashboard (Visible only to admins) ===
 if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
     st.write("Manage users, view logs, and more.")
@@ -101,14 +100,11 @@ if USER_ROLE == "admin":
             register_user(new_username, new_password, new_role)
             st.success(f"✅ User '{new_username}' added successfully.")
 
-# === Menu Principal ===
-menu = [
-    "Home", "Retrain Model", "History", "Performance",
-    "Disease Detection", "Fertilization Advice", "Field Map"
-]
+# === Main Menu ===
+menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection", "Fertilization Advice", "Field Map"]
 choice = st.sidebar.selectbox("Menu", menu)
 
-# 🔹 Animation helper
+# 🔹 Animation Helper
 def load_lottieurl(url):
     try:
         return requests.get(url, timeout=5).json() if requests.get(url, timeout=5).status_code == 200 else None
@@ -116,8 +112,6 @@ def load_lottieurl(url):
         return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
-
-
 
     # === Home Page ===
 if choice == "Home":
