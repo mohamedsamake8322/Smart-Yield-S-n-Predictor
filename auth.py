@@ -48,9 +48,9 @@ oauth.register(
 # === 🔹 Google OAuth Login ===
 @app.route("/login/google")
 def login_google():
-    redirect_url = url_for("auth_callback", _external=True)
-    logging.info(f"🔍 Redirection vers Google OAuth: {redirect_url}")
-    return oauth.google.authorize_redirect(redirect_url)
+    redirect_uri = url_for("auth_callback", _external=True)
+    logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
+    return oauth.google.authorize_redirect(redirect_uri)
 
 @app.route("/auth/callback")
 def auth_callback():
