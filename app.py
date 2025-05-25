@@ -13,6 +13,7 @@ from PIL import Image
 from flask import Flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
+from dotenv import load_dotenv
 from auth import auth_bp  # 🔹 Import du Blueprint d'authentification
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
@@ -25,8 +26,13 @@ from predictor import load_model, save_model, predict_single, predict_batch, tra
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# 🔹 Chargement des variables d’environnement
+load_dotenv()  
+
 # 🔹 Flask Setup
-app = Flask(__name__)
+app = Flask(__name__)  # 🔹 Création de l’application Flask
+
+# 🔹 Configuration de sécurité
 app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
@@ -35,6 +41,7 @@ oauth = OAuth(app)
 
 # 🔹 Enregistrement du module d'authentification
 app.register_blueprint(auth_bp)
+
 
 # === Streamlit UI Configuration ===
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
