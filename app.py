@@ -41,7 +41,7 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 # 🔹 Initialisation correcte de OAuth avec Flask
 oauth = OAuth(app)
 
-# 🔹 Configuration de Google OAuth (AVANT d'enregistrer le Blueprint)
+# 🔹 Enregistrement du client Google OAuth (AVANT d'enregistrer le Blueprint)
 oauth.register(
     "google",
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
@@ -52,12 +52,10 @@ oauth.register(
     client_kwargs={"scope": "openid email profile"}
 )
 
-# 🔹 Vérification des clients OAuth enregistrés
-logging.info(f"✅ Clients OAuth enregistrés: {oauth._clients.keys()}")
+logging.info(f"✅ Clients OAuth enregistrés: {oauth._clients.keys()}")  # 🔥 Vérifie l'enregistrement
 
-# 🔹 Enregistrement du module d'authentification (APRÈS l’enregistrement de Google OAuth)
+# 🔹 Enregistrement du module d'authentification APRÈS OAuth
 app.register_blueprint(auth_bp)
-
 # === Streamlit UI Configuration ===
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 

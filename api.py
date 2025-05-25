@@ -36,17 +36,6 @@ oauth = OAuth(app)
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
     logging.error("❌ Erreur: les variables OAuth Google ne sont pas correctement définies dans `.env`!")
 
-# 🔹 Configure OAuth2 (Google Login)
-oauth.register(
-    "google",
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    authorize_url=GOOGLE_AUTH_URL,
-    token_url=GOOGLE_TOKEN_URL,
-    redirect_uri=GOOGLE_REDIRECT_URI,
-    client_kwargs={"scope": "openid email profile"}
-)
-
 # === 🔹 Home Route ===
 @app.route("/", methods=["GET"])
 def home():

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
+from app import oauth  # 🔥 Importe l’instance OAuth correctement enregistrée dans `app.py`
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -29,22 +30,6 @@ else:
 # 🔹 Création du Blueprint et JWTManager
 auth_bp = Blueprint("auth_routes", __name__)
 jwt = JWTManager()
-oauth = OAuth()
-
-def init_oauth(app):
-    oauth.init_app(app)
-    oauth.register(
-        name="google",
-        client_id=GOOGLE_CLIENT_ID,
-        client_secret=GOOGLE_CLIENT_SECRET,
-        access_token_url=GOOGLE_TOKEN_URL,
-        authorize_url=GOOGLE_AUTH_URL,
-        userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
-        client_kwargs={"scope": "openid email profile"},
-    )
-oauth = OAuth()  # 🔹 Définition globale de `oauth`
-
-
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
