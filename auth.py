@@ -42,17 +42,27 @@ def init_jwt(app):
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
-    oauth = get_oauth()  # ✅ Utilisation de la fonction pour récupérer `oauth`
+    oauth = get_oauth()
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback").strip()
 
-    # 🔹 Vérification renforcée avant utilisation
+    # 🔹 Vérification renforcée avant l'utilisation
     if not redirect_uri or redirect_uri.lower() == "none" or not redirect_uri.startswith("http"):
         logger.error(f"❌ GOOGLE_REDIRECT_URI is invalid or missing! Valeur actuelle: {redirect_uri}")
         return jsonify({"error": f"Redirect URI not configured correctly: {redirect_uri}"}), 500
 
     logger.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
-    return oauth.google.authorize_redirect(redirect_uri)  # ✅ `oauth` est bien défini
-  # ✅ `oauth` est bien défini
+
+    # 🔹 Vérification finale avant l'appel de `authorize_redirect()`
+    if redirect_uri:
+        try:
+            return oauth.google.authorize_redirect(redirect_uri)
+        except Exception as e:
+            logger.error(f"🚨 Erreur critique lors de la redirection OAuth: {str(e)}")
+            return jsonify({"error": f"OAuth redirection failed - {str(e)}"}), 500
+    else:
+        logger.error("🚨 `redirect_uri` est toujours None après vérification !")
+        return jsonify({"error": "Critical error: Redirect URI still invalid."}), 500
+
 
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
