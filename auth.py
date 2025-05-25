@@ -13,12 +13,18 @@ load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+GOOGLE_AUTH_URL = os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/v2/auth")
+GOOGLE_TOKEN_URL = os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token")
 
 # 🔹 Vérification des variables OAuth
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
     logging.error("❌ Erreur: Les variables OAuth Google ne sont pas correctement définies dans `.env`!")
 else:
-    logging.info("✅ Google OAuth environment variables loaded successfully.")
+    logging.info(f"✅ GOOGLE_CLIENT_ID: {GOOGLE_CLIENT_ID}")
+    logging.info(f"✅ GOOGLE_CLIENT_SECRET: [HIDDEN]")
+    logging.info(f"✅ GOOGLE_REDIRECT_URI: {GOOGLE_REDIRECT_URI}")
+    logging.info(f"✅ GOOGLE_AUTH_URL: {GOOGLE_AUTH_URL}")
+    logging.info(f"✅ GOOGLE_TOKEN_URL: {GOOGLE_TOKEN_URL}")
 
 # 🔹 Création du Blueprint et JWTManager
 auth_bp = Blueprint("auth_routes", __name__)
@@ -31,38 +37,40 @@ def init_oauth(app):
         name="google",
         client_id=GOOGLE_CLIENT_ID,
         client_secret=GOOGLE_CLIENT_SECRET,
-        access_token_url="https://oauth2.googleapis.com/token",
-        authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
+        access_token_url=GOOGLE_TOKEN_URL,
+        authorize_url=GOOGLE_AUTH_URL,
         userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
         client_kwargs={"scope": "openid email profile"},
     )
-    # 🔹 Attache l'instance OAuth au Blueprint
-    auth_bp.oauth = oauth  # 🔥 Correction de `oauth` pour l'utiliser dans `auth.py`
+    # 🔹 Attache OAuth au Blueprint
+    auth_bp.oauth = oauth
 
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")  # Récupère dans .env
+    redirect_uri = GOOGLE_REDIRECT_URI if GOOGLE_REDIRECT_URI else "http://127.0.0.1:5000/auth/callback"
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
-    if not redirect_uri:
-        logging.error("❌ GOOGLE_REDIRECT_URI is not set in environment variables!")
+
+    if not redirect_uri or redirect_uri == "None":
+        logging.error("❌ GOOGLE_REDIRECT_URI is invalid or missing!")
         return jsonify({"error": "Redirect URI not configured."}), 500
+
     return auth_bp.oauth.google.authorize_redirect(redirect_uri)
+
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
     try:
-        token = auth_bp.oauth.google.authorize_access_token()  # 🔥 Correction : `auth_bp.oauth`
+        token = auth_bp.oauth.google.authorize_access_token()
         if not token:
             logging.error("❌ Échec de récupération du token Google OAuth!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
 
-        user_info = auth_bp.oauth.google.parse_id_token(token)  # 🔥 Correction : `auth_bp.oauth`
+        user_info = auth_bp.oauth.google.parse_id_token(token)
         if not user_info:
             logging.error("❌ Échec de récupération des informations utilisateur!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
 
-        # 🔹 Stockage des informations utilisateur
         session["user"] = user_info.get("email", "Unknown")
         jwt_token = create_access_token(identity=user_info.get("email", "Unknown"))
 
