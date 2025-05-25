@@ -42,8 +42,8 @@ def init_oauth(app):
         userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
         client_kwargs={"scope": "openid email profile"},
     )
-    # 🔹 Attache OAuth au Blueprint
-    auth_bp.oauth = oauth
+oauth = OAuth()  # 🔹 Définition globale de `oauth`
+
 
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
@@ -55,18 +55,19 @@ def login_google():
         logging.error("❌ GOOGLE_REDIRECT_URI is invalid or missing!")
         return jsonify({"error": "Redirect URI not configured."}), 500
 
-    return auth_bp.oauth.google.authorize_redirect(redirect_uri)
+    return oauth.google.authorize_redirect(redirect_uri)  # ✅ `oauth` est défini globalement
+
 
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
     try:
-        token = auth_bp.oauth.google.authorize_access_token()
+        token = oauth.google.authorize_access_token()  # ✅ Utilisation directe de `oauth`
         if not token:
             logging.error("❌ Échec de récupération du token Google OAuth!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
 
-        user_info = auth_bp.oauth.google.parse_id_token(token)
+        user_info = oauth.google.parse_id_token(token)
         if not user_info:
             logging.error("❌ Échec de récupération des informations utilisateur!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
