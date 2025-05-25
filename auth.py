@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from authlib.integrations.flask_client import OAuth
+
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -11,7 +13,6 @@ load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 # 🔹 Vérification des variables OAuth
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
@@ -19,31 +20,42 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
 else:
     logging.info("✅ Google OAuth environment variables loaded successfully.")
 
-# 🔹 Setup Flask Blueprint & JWT
-auth_bp = Blueprint("auth_routes", __name__)  # 🔹 Création du Blueprint
+# 🔹 Création du Blueprint et JWTManager
+auth_bp = Blueprint("auth_routes", __name__)
 jwt = JWTManager()
+oauth = OAuth()
 
-# === 🔹 Google OAuth Login ===
+def init_oauth(app):
+    oauth.init_app(app)
+    oauth.register(
+        name="google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        access_token_url="https://oauth2.googleapis.com/token",
+        authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
+        userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
+        client_kwargs={"scope": "openid email profile"},
+    )
+    # 🔹 Attache l'instance OAuth au Blueprint
+    auth_bp.oauth = oauth  # 🔥 Correction de `oauth` pour l'utiliser dans `auth.py`
+
+# 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
     redirect_uri = url_for("auth_routes.auth_callback", _external=True)
-
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
+    return auth_bp.oauth.google.authorize_redirect(redirect_uri)  # 🔥 Correction : utilise `auth_bp.oauth`
 
-    # 🔹 Correction : Utilisation de `auth_bp.oauth` pour éviter l'erreur `oauth not defined`
-    return auth_bp.oauth.google.authorize_redirect(redirect_uri)
-
+# 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
     try:
-        token = auth_bp.oauth.google.authorize_access_token()
-
+        token = auth_bp.oauth.google.authorize_access_token()  # 🔥 Correction : `auth_bp.oauth`
         if not token:
             logging.error("❌ Échec de récupération du token Google OAuth!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
 
-        user_info = auth_bp.oauth.google.parse_id_token(token)
-
+        user_info = auth_bp.oauth.google.parse_id_token(token)  # 🔥 Correction : `auth_bp.oauth`
         if not user_info:
             logging.error("❌ Échec de récupération des informations utilisateur!")
             return jsonify({"error": "❌ Authentication failed!"}), 400
@@ -61,17 +73,16 @@ def auth_callback():
 
     except Exception as e:
         logging.error(f"❌ Erreur lors de l’authentification : {str(e)}")
-        return jsonify({"error": "❌ Internal Server Error"}), 500
+        return jsonify({"error": f"❌ Internal Server Error - {str(e)}"}), 500
 
-
-# === 🔹 Logout ===
+# 🔹 Logout
 @auth_bp.route("/logout", methods=["GET"])
 def logout():
     session.clear()
     logging.info("✅ Déconnexion réussie.")
     return jsonify({"message": "✅ Déconnecté!"})
 
-# === 🔹 Protected Route ===
+# 🔹 Protected Route
 @auth_bp.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
