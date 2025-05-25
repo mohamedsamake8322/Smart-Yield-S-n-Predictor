@@ -47,12 +47,12 @@ def login_google():
 
     # 🔹 Vérification renforcée avant l'utilisation
     if not redirect_uri or redirect_uri.lower() == "none" or not redirect_uri.startswith("http"):
-        logger.error(f"❌ GOOGLE_REDIRECT_URI is invalid or missing! Valeur actuelle: {redirect_uri}")
+        logger.error(f"❌ GOOGLE_REDIRECT_URI est invalide ! Valeur actuelle: {redirect_uri}")
         return jsonify({"error": f"Redirect URI not configured correctly: {redirect_uri}"}), 500
 
     logger.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
 
-    # 🔹 Vérification finale avant l'appel de `authorize_redirect()`
+    # 🔹 Vérification finale avant l’appel `authorize_redirect()`
     if redirect_uri:
         try:
             return oauth.google.authorize_redirect(redirect_uri)
