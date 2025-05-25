@@ -3,16 +3,22 @@ import os
 from flask import session, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from dotenv import load_dotenv
-from flask import Flask, session, jsonify, request
-# Ajoute cette ligne
-app = Flask(__name__)
+from flask import Flask
 
-# 🔹 Logger Configuration
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# 🔹 Logger configuration (utilisation d'un logger spécifique pour `secure_users.py`)
+logger = logging.getLogger(__name__)
 
 # 🔹 Load environment variables
 load_dotenv()
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+# 🔹 Vérification des variables `.env`
+if not JWT_SECRET_KEY:
+    logger.error("❌ Erreur: JWT_SECRET_KEY n'est pas défini dans `.env`!")
+
+# 🔹 Création de l'application Flask
+app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 
 # === 🔹 Manage User Session with JWT ===
 def get_user_role():
@@ -26,7 +32,7 @@ def get_user_role():
 def user_info():
     """ Returns information about the logged-in user. """
     current_user = get_jwt_identity()
-    logging.info(f"✅ User '{current_user}' accessed account info.")
+    logger.info(f"✅ User '{current_user}' accessed account info.")
     return jsonify({"user": current_user, "message": "✅ User info retrieved successfully!"})
 
 # === 🔹 Manage Logout ===
@@ -34,6 +40,5 @@ def user_info():
 def logout():
     """ Clears user session. """
     session.clear()
-    logging.info("✅ User logged out successfully.")
+    logger.info("✅ User logged out successfully.")
     return jsonify({"message": "✅ Logged out!"})
-

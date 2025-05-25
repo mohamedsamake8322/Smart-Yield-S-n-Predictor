@@ -23,19 +23,24 @@ from disease_model import load_disease_model, predict_disease
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from flask_jwt_extended import JWTManager  # ✅ Importation correcte de `JWTManager`
 
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # 🔹 Chargement des variables d’environnement
 load_dotenv()  
-
+# 🔹 Vérification des variables `.env`
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+if not GOOGLE_REDIRECT_URI:
+    logging.error("❌ Erreur: GOOGLE_REDIRECT_URI n'est pas défini dans `.env`!")
 # 🔹 Flask Setup
 app = Flask(__name__)  # 🔹 Création de l’application Flask
 
 # 🔹 Configuration de sécurité
 app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+jwt = JWTManager(app)
 
 # 🔹 Initialisation correcte de OAuth avec Flask
 oauth = OAuth(app)
