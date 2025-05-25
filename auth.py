@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
-from app import oauth  # ✅ Importe OAuth correctement depuis `app.py`
-
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -31,9 +29,16 @@ else:
 # 🔹 Création du Blueprint et JWTManager
 auth_bp = Blueprint("auth_routes", __name__)
 jwt = JWTManager()
+
+# 🔹 Fonction pour récupérer `oauth` et éviter l'importation circulaire
+def get_oauth():
+    from app import oauth  # ✅ Importer `oauth` seulement quand c'est nécessaire
+    return oauth
+
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
+    oauth = get_oauth()  # ✅ Utilisation de la fonction pour récupérer `oauth`
     redirect_uri = GOOGLE_REDIRECT_URI if GOOGLE_REDIRECT_URI else "http://127.0.0.1:5000/auth/callback"
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
 
@@ -41,14 +46,15 @@ def login_google():
         logging.error("❌ GOOGLE_REDIRECT_URI is invalid or missing!")
         return jsonify({"error": "Redirect URI not configured."}), 500
 
-    return oauth.google.authorize_redirect(redirect_uri)  # ✅ `oauth` est défini globalement
+    return oauth.google.authorize_redirect(redirect_uri)  # ✅ `oauth` est bien défini
 
 
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
+    oauth = get_oauth()  # ✅ Récupération de `oauth` au bon moment
     try:
-        token = oauth.google.authorize_access_token()  # ✅ Utilisation directe de `oauth`
+        token = oauth.google.authorize_access_token()
         if not token:
             logging.error("❌ Échec de récupération du token Google OAuth!")
             return jsonify({"error": "❌ Authentication failed!"}), 400

@@ -15,8 +15,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 
-# 🔹 Import du Blueprint d'authentification
-from auth import auth_bp  
+# 🔹 Import du Blueprint d'authentification  
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
@@ -55,7 +54,12 @@ oauth.register(
 logging.info(f"✅ Clients OAuth enregistrés: {oauth._clients.keys()}")  # 🔥 Vérifie l'enregistrement
 
 # 🔹 Enregistrement du module d'authentification APRÈS OAuth
-app.register_blueprint(auth_bp)
+def get_auth_bp():
+    from auth import auth_bp  # ✅ Importation uniquement quand c'est nécessaire
+    return auth_bp
+
+app.register_blueprint(get_auth_bp())  # ✅ Évite l'importation circulaire
+
 # === Streamlit UI Configuration ===
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
