@@ -10,8 +10,9 @@ import jwt
 import xgboost as xgb
 import webbrowser
 from PIL import Image
+from flask import Flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from auth import login_google, logout, get_user_role  
+from auth import auth_bp  # 🔹 Import du Blueprint d'authentification
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
@@ -23,6 +24,15 @@ from predictor import load_model, save_model, predict_single, predict_batch, tra
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# 🔹 Flask Setup
+app = Flask(__name__)
+app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+
+# 🔹 Enregistrement du module d'authentification
+app.register_blueprint(auth_bp)
+
+# 🔹 Streamlit UI Configuration
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
 # === Model Initialization ===
@@ -43,15 +53,12 @@ def load_xgb_model(path):
 model = load_xgb_model(MODEL_PATH)
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
-# === User Interface ===
-st.title("🌾 Smart Yield Sènè Predictor")
-
-# Initialiser les variables de session si elles n'existent pas encore
+# === User Authentication ===
 st.session_state.setdefault("jwt_token", None)
 st.session_state.setdefault("username", None)
 st.session_state.setdefault("user_role", None)
 
-# 🔹 User Authentication
+# 🔐 Authentication Flow
 if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
@@ -63,7 +70,7 @@ if not st.session_state["jwt_token"]:
 
 with st.sidebar:
     if st.button("Logout"):
-        logout()
+        requests.get("http://127.0.0.1:5000/logout")
         st.session_state["jwt_token"] = None
         st.session_state["username"] = None
         st.session_state["user_role"] = None
@@ -71,8 +78,11 @@ with st.sidebar:
         logging.info("✅ Logged out successfully.")
         st.rerun()
 
+# === Interface et Navigation ===
 USERNAME = st.session_state["username"]
 USER_ROLE = st.session_state["user_role"]
+
+st.title(f"🌾 Welcome, {USERNAME}")
 
 if USER_ROLE == "admin":
     st.subheader("👑 Admin Dashboard")
@@ -80,6 +90,11 @@ if USER_ROLE == "admin":
 
 menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
 choice = st.sidebar.selectbox("Menu", menu)
+
+# === Run Flask App ===
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
 # 🔹 Lottie Animation Loader
 def load_lottieurl(url):
