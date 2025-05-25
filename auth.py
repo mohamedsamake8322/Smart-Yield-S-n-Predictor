@@ -26,7 +26,8 @@ jwt = JWTManager()
 # === 🔹 Google OAuth Login ===
 @auth_bp.route("/login/google")
 def login_google():
-    redirect_uri = url_for("auth.auth_callback", _external=True)
+    redirect_uri = url_for("auth_routes.auth_callback", _external=True)
+
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
 
     # 🔹 Correction : Utilisation de `auth_bp.oauth` pour éviter l'erreur `oauth not defined`
