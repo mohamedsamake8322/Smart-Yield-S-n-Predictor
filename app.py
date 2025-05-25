@@ -41,11 +41,11 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 # 🔹 Initialisation correcte de OAuth avec Flask
 oauth = OAuth(app)
 auth_bp.oauth = oauth  # 🔹 Permet d’utiliser OAuth dans `auth.py`
-app.register_blueprint(auth_bp, name="auth_bp")  # ✅ Corrigé
+app.register_blueprint(auth_bp)  # ✅ Corrigé
 
 
 # 🔹 Enregistrement du module d'authentification
-app.register_blueprint(auth_bp, name="auth_bp")  # ✅ Corrigé
+app.register_blueprint(auth_bp)  # ✅ Corrigé
 
 
 # 🔹 Configuration de Google OAuth

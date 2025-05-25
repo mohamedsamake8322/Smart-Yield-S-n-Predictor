@@ -20,7 +20,7 @@ else:
     logging.info("✅ Google OAuth environment variables loaded successfully.")
 
 # 🔹 Setup Flask Blueprint & JWT
-auth_bp = Blueprint("auth_bp", __name__)  # 🔹 Création du Blueprint
+auth_bp = Blueprint("auth_routes", __name__)  # 🔹 Création du Blueprint
 jwt = JWTManager()
 
 # === 🔹 Google OAuth Login ===
