@@ -41,8 +41,7 @@ def login_google():
         logger.error(f"❌ GOOGLE_REDIRECT_URI invalide ! Valeur actuelle: {GOOGLE_REDIRECT_URI}")
         return jsonify({"error": f"Redirect URI not configured correctly: {GOOGLE_REDIRECT_URI}"}), 500
 
-    logger.info(f"🔍 Redirection vers Google OAuth: {GOOGLE_REDIRECT_URI}")
-
+    logger.info(f"🔗 URL de redirection OAuth générée : {oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)}")
     try:
         return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)  # ✅ Retour direct
     except Exception as e:

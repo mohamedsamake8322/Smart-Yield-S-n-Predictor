@@ -79,17 +79,22 @@ st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 MODEL_PATH = "model/yield_model_v3.json"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
 
-# 🔹 Load prediction models securely
+# 🔹 Load XGBoost Model safely
 def load_xgb_model(path):
-    if os.path.exists(path):
+    if not os.path.exists(path):
+        logging.warning(f"⚠ Modèle introuvable `{path}` ! Assure-toi qu'il a bien été entraîné.")
+        return None
+    
+    try:
         model = xgb.Booster()
         model.load_model(path)
         logging.info("✅ XGBoost Booster model loaded successfully.")
         return model
-    else:
-        logging.warning("⚠ Model JSON not found. Please retrain it using the Retrain Model section.")
+    except Exception as e:
+        logging.error(f"❌ Erreur lors du chargement du modèle `{path}` : {str(e)}")
         return None
 
+# 🔹 Initialisation des modèles
 model = load_xgb_model(MODEL_PATH)
 disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
 
