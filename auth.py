@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from app import oauth  # 🔹 Import de l'instance OAuth créée dans `app.py`
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -23,10 +24,7 @@ else:
 
 # 🔹 Setup Flask Blueprint & OAuth
 auth_bp = Blueprint("auth", __name__)  # 🔹 Création du Blueprint
-oauth = OAuth()
-oauth.init_app(auth_bp)
 jwt = JWTManager()
-
 oauth.register(
     "google",
     client_id=GOOGLE_CLIENT_ID,

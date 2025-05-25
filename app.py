@@ -1,17 +1,18 @@
+import os
+import logging
+import requests
+import webbrowser
 import streamlit as st  
 import pandas as pd  
 import numpy as np  
 import datetime
-import os
-import requests
 import joblib
-import logging
 import jwt
 import xgboost as xgb
-import webbrowser
 from PIL import Image
 from flask import Flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from authlib.integrations.flask_client import OAuth
 from auth import auth_bp  # 🔹 Import du Blueprint d'authentification
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
@@ -29,10 +30,13 @@ app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
+# 🔹 Initialisation correcte de OAuth avec Flask
+oauth = OAuth(app)
+
 # 🔹 Enregistrement du module d'authentification
 app.register_blueprint(auth_bp)
 
-# 🔹 Streamlit UI Configuration
+# === Streamlit UI Configuration ===
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
 # === Model Initialization ===
@@ -77,6 +81,7 @@ with st.sidebar:
         st.success("✅ Successfully logged out!")
         logging.info("✅ Logged out successfully.")
         st.rerun()
+
 
 # === Interface et Navigation ===
 USERNAME = st.session_state["username"]
