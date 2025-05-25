@@ -103,8 +103,10 @@ if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
         if st.button("Login with Google"):
-            webbrowser.open_new("http://127.0.0.1:5000/login/google")
+            redirect_url = "https://smart-yield-sene-predictor.streamlit.app/login/google"  # Remplace localhost
+            st.markdown(f'<meta http-equiv="refresh" content="0; URL={redirect_url}">', unsafe_allow_html=True)
             st.info("🌐 Redirecting to Google login... Please complete login in the browser.")
+
 
     st.stop()
 
