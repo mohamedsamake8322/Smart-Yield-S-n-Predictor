@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
-from app import oauth  # 🔥 Importe l’instance OAuth correctement enregistrée dans `app.py`
+from app import oauth  # ✅ Importe OAuth correctement depuis `app.py`
+
 
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

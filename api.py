@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
-import os
-os.environ["FLASK_APP"] = "api.py"
+from app import oauth  # ✅ Importe OAuth depuis `app.py` pour éviter les conflits
+
 # 🔹 Logger Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -22,15 +22,12 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-GOOGLE_AUTH_URL = os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth")
-GOOGLE_TOKEN_URL = os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token")
 
 # 🔹 Flask & JWT Setup
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
-oauth = OAuth(app)
 
 # 🔹 Vérification des variables `.env`
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
