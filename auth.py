@@ -42,10 +42,12 @@ def init_oauth(app):
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
-    redirect_uri = url_for("auth_routes.auth_callback", _external=True)
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")  # Récupère dans .env
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
-    return auth_bp.oauth.google.authorize_redirect(redirect_uri)  # 🔥 Correction : utilise `auth_bp.oauth`
-
+    if not redirect_uri:
+        logging.error("❌ GOOGLE_REDIRECT_URI is not set in environment variables!")
+        return jsonify({"error": "Redirect URI not configured."}), 500
+    return auth_bp.oauth.google.authorize_redirect(redirect_uri)
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
