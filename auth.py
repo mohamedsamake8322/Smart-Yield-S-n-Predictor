@@ -45,23 +45,20 @@ def login_google():
     oauth = get_oauth()
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback").strip()
 
-    # 🔹 Vérification renforcée avant l'utilisation
+    # 🔹 Vérification avancée avant utilisation
     if not redirect_uri or redirect_uri.lower() == "none" or not redirect_uri.startswith("http"):
-        logger.error(f"❌ GOOGLE_REDIRECT_URI est invalide ! Valeur actuelle: {redirect_uri}")
+        logger.error(f"❌ ERREUR: GOOGLE_REDIRECT_URI invalide ! Valeur actuelle -> {redirect_uri}")
         return jsonify({"error": f"Redirect URI not configured correctly: {redirect_uri}"}), 500
 
-    logger.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
+    logger.info(f"✅ DEBUG: Redirect URI avant OAuth -> {redirect_uri}")
+    print(f"DEBUG: Redirect URI avant OAuth -> {redirect_uri}")
 
-    # 🔹 Vérification finale avant l’appel `authorize_redirect()`
-    if redirect_uri:
-        try:
-            return oauth.google.authorize_redirect(redirect_uri)
-        except Exception as e:
-            logger.error(f"🚨 Erreur critique lors de la redirection OAuth: {str(e)}")
-            return jsonify({"error": f"OAuth redirection failed - {str(e)}"}), 500
-    else:
-        logger.error("🚨 `redirect_uri` est toujours None après vérification !")
-        return jsonify({"error": "Critical error: Redirect URI still invalid."}), 500
+    try:
+        return oauth.google.authorize_redirect(redirect_uri)
+    except Exception as e:
+        logger.error(f"🚨 ERREUR critique lors de la redirection OAuth: {str(e)}")
+        return jsonify({"error": f"OAuth redirection failed - {str(e)}"}), 500
+
 
 
 # 🔹 Google OAuth Callback

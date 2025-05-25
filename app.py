@@ -31,9 +31,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # 🔹 Chargement des variables d’environnement
 load_dotenv()  
 # 🔹 Vérification des variables `.env`
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-if not GOOGLE_REDIRECT_URI:
-    logging.error("❌ Erreur: GOOGLE_REDIRECT_URI n'est pas défini dans `.env`!")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback").strip()
+
+if not GOOGLE_REDIRECT_URI or GOOGLE_REDIRECT_URI.lower() == "none" or not GOOGLE_REDIRECT_URI.startswith("http"):
+    logging.error(f"❌ ERREUR: GOOGLE_REDIRECT_URI est invalide ! Valeur actuelle -> {GOOGLE_REDIRECT_URI}")
+    raise ValueError("Redirect URI is not correctly defined in .env!")
+
+logging.info(f"✅ DEBUG: GOOGLE_REDIRECT_URI récupéré -> {GOOGLE_REDIRECT_URI}")
 # 🔹 Flask Setup
 app = Flask(__name__)  # 🔹 Création de l’application Flask
 
@@ -44,7 +48,10 @@ jwt = JWTManager(app)
 
 # 🔹 Initialisation correcte de OAuth avec Flask
 oauth = OAuth(app)
-
+# 🔹 Vérification des identifiants OAuth avant enregistrement
+if not os.getenv("GOOGLE_CLIENT_ID") or not os.getenv("GOOGLE_CLIENT_SECRET"):
+    logging.error("❌ Erreur: les identifiants Google OAuth ne sont pas configurés dans `.env`!")
+    raise ValueError("Missing Google OAuth credentials.")
 # 🔹 Enregistrement du client Google OAuth (AVANT d'enregistrer le Blueprint)
 oauth.register(
     "google",
@@ -64,7 +71,7 @@ def get_auth_bp():
     return auth_bp
 
 app.register_blueprint(get_auth_bp())  # ✅ Évite l'importation circulaire
-
+logging.info("✅ Blueprint d'authentification enregistré avec succès!")
 # === Streamlit UI Configuration ===
 st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
