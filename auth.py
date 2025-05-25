@@ -10,6 +10,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # 🔹 Load environment variables
 load_dotenv()
+GOOGLE_AUTH_URL = os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth")
+GOOGLE_TOKEN_URL = os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token")
+logging.info(f"🔍 GOOGLE_AUTH_URL: {GOOGLE_AUTH_URL}")
+logging.info(f"🔍 GOOGLE_TOKEN_URL: {GOOGLE_TOKEN_URL}")
 
 # 🔐 Security Configuration
 APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "supersecretkey")  # 🔑 Définit une clé par défaut
