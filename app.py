@@ -14,7 +14,9 @@ from flask import Flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
-from auth import auth_bp  # 🔹 Import du Blueprint d'authentification
+
+# 🔹 Import du Blueprint d'authentification
+from auth import auth_bp  
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
@@ -41,6 +43,68 @@ oauth = OAuth(app)
 
 # 🔹 Enregistrement du module d'authentification
 app.register_blueprint(auth_bp)
+
+# 🔹 Configuration de Google OAuth
+oauth.register(
+    "google",
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    token_url="https://oauth2.googleapis.com/token",
+    redirect_uri=os.getenv("GOOGLE_REDIRECT_URI"),
+    client_kwargs={"scope": "openid email profile"}
+)
+
+# === Streamlit UI Configuration ===
+st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
+
+# === Model Initialization ===
+MODEL_PATH = "model/yield_model_v3.json"
+DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
+
+# 🔹 Load prediction models securely
+def load_xgb_model(path):
+    if os.path.exists(path):
+        model = xgb.Booster()
+        model.load_model(path)
+        logging.info("✅ XGBoost Booster model loaded successfully.")
+        return model
+    else:
+        logging.warning("⚠ Model JSON not found. Please retrain it using the Retrain Model section.")
+        return None
+
+model = load_xgb_model(MODEL_PATH)
+disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
+
+# === User Authentication ===
+st.session_state.setdefault("jwt_token", None)
+st.session_state.setdefault("username", None)
+st.session_state.setdefault("user_role", None)
+
+# 🔐 Authentication Flow
+if not st.session_state["jwt_token"]:
+    with st.sidebar:
+        st.header("🔐 Login with Google")
+        if st.button("Login with Google"):
+            webbrowser.open_new("http://127.0.0.1:5000/login/google")
+            st.info("🌐 Redirecting to Google login... Please complete login in the browser.")
+
+    st.stop()
+
+with st.sidebar:
+    if st.button("Logout"):
+        requests.get("http://127.0.0.1:5000/logout")
+        st.session_state["jwt_token"] = None
+        st.session_state["username"] = None
+        st.session_state["user_role"] = None
+        st.success("✅ Successfully logged out!")
+        logging.info("✅ Logged out successfully.")
+        st.rerun()
+
+# === Run Flask App ===
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
 
 # === Streamlit UI Configuration ===
