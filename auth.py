@@ -28,26 +28,40 @@ jwt = JWTManager()
 def login_google():
     redirect_uri = url_for("auth.auth_callback", _external=True)
     logging.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
-    return oauth.google.authorize_redirect(redirect_uri)
+
+    # 🔹 Correction : Utilisation de `auth_bp.oauth` pour éviter l'erreur `oauth not defined`
+    return auth_bp.oauth.google.authorize_redirect(redirect_uri)
 
 @auth_bp.route("/auth/callback")
 def auth_callback():
-    token = oauth.google.authorize_access_token()
+    try:
+        token = auth_bp.oauth.google.authorize_access_token()
 
-    if not token:
-        logging.error("❌ Échec de récupération du token Google OAuth!")
-        return jsonify({"error": "❌ Authentication failed!"}), 400
+        if not token:
+            logging.error("❌ Échec de récupération du token Google OAuth!")
+            return jsonify({"error": "❌ Authentication failed!"}), 400
 
-    user_info = oauth.google.parse_id_token(token)
+        user_info = auth_bp.oauth.google.parse_id_token(token)
 
-    if not user_info:
-        logging.error("❌ Échec de récupération des informations utilisateur!")
-        return jsonify({"error": "❌ Authentication failed!"}), 400
+        if not user_info:
+            logging.error("❌ Échec de récupération des informations utilisateur!")
+            return jsonify({"error": "❌ Authentication failed!"}), 400
 
-    session["user"] = user_info.get("email", "Unknown")
-    jwt_token = create_access_token(identity=user_info.get("email", "Unknown"))
-    logging.info(f"✅ Utilisateur `{user_info.get('email', 'Unknown')}` authentifié avec succès!")
-    return jsonify({"access_token": jwt_token, "user": user_info.get("email", "Unknown"), "message": "✅ Connexion réussie!"})
+        # 🔹 Stockage des informations utilisateur
+        session["user"] = user_info.get("email", "Unknown")
+        jwt_token = create_access_token(identity=user_info.get("email", "Unknown"))
+
+        logging.info(f"✅ Utilisateur `{user_info.get('email', 'Unknown')}` authentifié avec succès!")
+        return jsonify({
+            "access_token": jwt_token,
+            "user": user_info.get("email", "Unknown"),
+            "message": "✅ Connexion réussie!"
+        })
+
+    except Exception as e:
+        logging.error(f"❌ Erreur lors de l’authentification : {str(e)}")
+        return jsonify({"error": "❌ Internal Server Error"}), 500
+
 
 # === 🔹 Logout ===
 @auth_bp.route("/logout", methods=["GET"])
