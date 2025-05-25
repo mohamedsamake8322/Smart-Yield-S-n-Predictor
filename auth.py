@@ -43,8 +43,11 @@ def init_jwt(app):
 @auth_bp.route("/login/google")
 def login_google():
     oauth = get_oauth()  # ✅ Utilisation de la fonction pour récupérer `oauth`
-    redirect_uri = GOOGLE_REDIRECT_URI
-    logger.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback").strip()
+    if not redirect_uri or redirect_uri.lower() == "none":
+        logger.error("❌ GOOGLE_REDIRECT_URI is invalid or missing!")
+        return jsonify({"error": "Redirect URI not configured."}), 500
+        logger.info(f"🔍 Redirection vers Google OAuth: {redirect_uri}")
 
     if not redirect_uri or redirect_uri == "None":
         logger.error("❌ GOOGLE_REDIRECT_URI is invalid or missing!")
