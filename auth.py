@@ -8,20 +8,22 @@ from authlib.integrations.flask_client import OAuth
 # 🔹 Logger configuration
 logger = logging.getLogger(__name__)
 
-# 🔹 Load environment variables
+# 🔹 Charge les variables d’environnement avant leur utilisation
 load_dotenv()
+
+# 🔹 Récupération des variables OAuth depuis `.env`
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://smart-yield-sene-predictor.streamlit.app/auth/callback").strip()
 GOOGLE_AUTH_URL = os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth")
 GOOGLE_TOKEN_URL = os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token")
 
-# 🔹 Vérification des variables OAuth
+# 🔹 Vérification des variables OAuth et affichage des logs
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
     logger.error("❌ Erreur: Les variables OAuth Google ne sont pas correctement définies dans `.env`!")
 else:
     logger.info(f"✅ GOOGLE_CLIENT_ID: {GOOGLE_CLIENT_ID}")
-    logger.info(f"✅ GOOGLE_CLIENT_SECRET: [HIDDEN]")
+    logger.info(f"✅ GOOGLE_CLIENT_SECRET: [HIDDEN]")  # Jamais afficher le secret !
     logger.info(f"✅ GOOGLE_REDIRECT_URI: {GOOGLE_REDIRECT_URI}")
 
 # 🔹 Création du Blueprint
