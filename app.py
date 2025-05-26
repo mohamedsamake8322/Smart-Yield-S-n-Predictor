@@ -1,4 +1,5 @@
 import os
+os.environ["STREAMLIT_SERVER_ENABLE_WEBSOCKETS"] = "false"
 import logging
 import requests
 import webbrowser 
