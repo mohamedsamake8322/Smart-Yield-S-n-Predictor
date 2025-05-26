@@ -26,24 +26,18 @@ else:
 
 # 🔹 Création du Blueprint
 auth_bp = Blueprint("auth_routes", __name__)
-
-# 🔹 Fonction pour récupérer `oauth`
-def get_oauth():
-    from app import oauth  
-    return oauth
+auth_bp.oauth = None  # ✅ Initialisation pour passer `oauth` depuis `app.py`
 
 # 🔹 Google Login Route
 @auth_bp.route("/login/google")
 def login_google():
-    oauth = get_oauth()
-
     if not GOOGLE_REDIRECT_URI or GOOGLE_REDIRECT_URI.lower() == "none" or not GOOGLE_REDIRECT_URI.startswith("http"):
         logger.error(f"❌ GOOGLE_REDIRECT_URI invalide ! Valeur actuelle: {GOOGLE_REDIRECT_URI}")
         return jsonify({"error": f"Redirect URI not configured correctly: {GOOGLE_REDIRECT_URI}"}), 500
 
-    logger.info(f"🔗 URL de redirection OAuth générée : {oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)}")
+    logger.info(f"🔗 OAuth redirection en cours depuis `{request.url}`")
     try:
-        return oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)  # ✅ Retour direct
+        return auth_bp.oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI)
     except Exception as e:
         logger.error(f"🚨 Erreur lors de la redirection OAuth: {str(e)}")
         return jsonify({"error": f"OAuth redirection failed - {str(e)}"}), 500
@@ -51,15 +45,14 @@ def login_google():
 # 🔹 Google OAuth Callback
 @auth_bp.route("/auth/callback")
 def auth_callback():
-    oauth = get_oauth()
     try:
-        token = oauth.google.authorize_access_token()
+        token = auth_bp.oauth.google.authorize_access_token()
         if not token:
             logger.error("❌ Échec de récupération du token Google OAuth!")
-            session.clear()  # ✅ Réinitialisation pour éviter des sessions invalides
+            session.clear()
             return jsonify({"error": "❌ Authentication failed!"}), 400
 
-        user_info = oauth.google.userinfo()  # ✅ Remplacement par `userinfo()` pour une récupération plus fiable
+        user_info = auth_bp.oauth.google.userinfo()
         if not user_info:
             logger.error("❌ Échec de récupération des informations utilisateur!")
             session.clear()
@@ -77,7 +70,7 @@ def auth_callback():
 
     except Exception as e:
         logger.error(f"❌ Erreur lors de l’authentification : {str(e)}")
-        session.clear()  # ✅ Réinitialisation en cas d’erreur
+        session.clear()
         return jsonify({"error": f"❌ Internal Server Error - {str(e)}"}), 500
 
 # 🔹 Logout

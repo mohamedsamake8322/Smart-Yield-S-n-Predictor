@@ -1,5 +1,4 @@
 import os
-os.environ["STREAMLIT_SERVER_ENABLE_WEBSOCKETS"] = "false"
 import logging
 import requests
 import webbrowser 
@@ -10,12 +9,9 @@ import joblib
 import jwt
 import xgboost as xgb
 import streamlit as st 
-st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
-# 🔹 Correction du type MIME pour éviter l'erreur de module script
-st.markdown('<script type="module"></script>', unsafe_allow_html=True)
 from PIL import Image
 from flask import Flask
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, JWTManager
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 
@@ -27,21 +23,28 @@ from disease_model import load_disease_model, predict_disease
 from evaluate import evaluate_model
 from database import save_prediction, get_user_predictions
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
-from flask_jwt_extended import JWTManager  # ✅ Importation correcte de `JWTManager`
+
+# 🔹 Désactivation temporaire des WebSockets pour Streamlit Cloud
+os.environ["STREAMLIT_SERVER_ENABLE_WEBSOCKETS"] = "false"
+
+# 🔹 Configuration de la page Streamlit
+st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
 
 # 🔹 Logger configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # 🔹 Chargement des variables d’environnement
 load_dotenv()  
-# 🔹 Vérification des variables `.env`
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback").strip()
+
+# 🔹 Vérification et récupération des variables `.env`
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI").strip()
 
 if not GOOGLE_REDIRECT_URI or GOOGLE_REDIRECT_URI.lower() == "none" or not GOOGLE_REDIRECT_URI.startswith("http"):
     logging.error(f"❌ ERREUR: GOOGLE_REDIRECT_URI est invalide ! Valeur actuelle -> {GOOGLE_REDIRECT_URI}")
     raise ValueError("Redirect URI is not correctly defined in .env!")
 
 logging.info(f"✅ DEBUG: GOOGLE_REDIRECT_URI récupéré -> {GOOGLE_REDIRECT_URI}")
+
 # 🔹 Flask Setup
 app = Flask(__name__)  # 🔹 Création de l’application Flask
 
@@ -52,31 +55,34 @@ jwt = JWTManager(app)
 
 # 🔹 Initialisation correcte de OAuth avec Flask
 oauth = OAuth(app)
+
 # 🔹 Vérification des identifiants OAuth avant enregistrement
-if not os.getenv("GOOGLE_CLIENT_ID") or not os.getenv("GOOGLE_CLIENT_SECRET"):
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     logging.error("❌ Erreur: les identifiants Google OAuth ne sont pas configurés dans `.env`!")
     raise ValueError("Missing Google OAuth credentials.")
+
 # 🔹 Enregistrement du client Google OAuth (AVANT d'enregistrer le Blueprint)
 oauth.register(
     "google",
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     authorize_url=os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth"),
     token_url=os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token"),
-    redirect_uri=os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback"),
+    redirect_uri=GOOGLE_REDIRECT_URI,
     client_kwargs={"scope": "openid email profile"}
 )
 
-logging.info(f"✅ Clients OAuth enregistrés: {oauth._clients.keys()}")  # 🔥 Vérifie l'enregistrement
+logging.info("✅ Google OAuth configuré correctement !")
 
 # 🔹 Enregistrement du module d'authentification APRÈS OAuth
-def get_auth_bp():
-    from auth import auth_bp  # ✅ Importation uniquement quand c'est nécessaire
-    return auth_bp
-
-app.register_blueprint(get_auth_bp())  # ✅ Évite l'importation circulaire
+from auth import auth_bp
+auth_bp.oauth = oauth  # ✅ Passe `oauth` avant l'enregistrement du Blueprint
+app.register_blueprint(auth_bp)
 logging.info("✅ Blueprint d'authentification enregistré avec succès!")
-# === Streamlit UI Configuration ===
+
 # === Model Initialization ===
 MODEL_PATH = "model/yield_model_v3.json"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
@@ -110,16 +116,15 @@ if not st.session_state["jwt_token"]:
     with st.sidebar:
         st.header("🔐 Login with Google")
         if st.button("Login with Google"):
-            redirect_url = "https://smart-yield-sene-predictor.streamlit.app/login/google"  # Remplace localhost
+            redirect_url = GOOGLE_REDIRECT_URI + "/login/google"  # ✅ Correction pour assurer la redirection correcte
             st.markdown(f'<meta http-equiv="refresh" content="0; URL={redirect_url}">', unsafe_allow_html=True)
             st.info("🌐 Redirecting to Google login... Please complete login in the browser.")
-
 
     st.stop()
 
 with st.sidebar:
     if st.button("Logout"):
-        requests.get("http://127.0.0.1:5000/logout")
+        requests.get(GOOGLE_REDIRECT_URI + "/logout")  # ✅ Correction pour correspondre à la configuration OAuth
         st.session_state["jwt_token"] = None
         st.session_state["username"] = None
         st.session_state["user_role"] = None
@@ -153,7 +158,6 @@ def load_lottieurl(url):
         return None
 
 lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
-
 
 
 if choice == "Home":
