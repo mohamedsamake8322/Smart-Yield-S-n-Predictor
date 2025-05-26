@@ -1,14 +1,17 @@
 import os
 import logging
 import requests
-import webbrowser
-import streamlit as st  
+import webbrowser 
 import pandas as pd  
 import numpy as np  
 import datetime
 import joblib
 import jwt
 import xgboost as xgb
+import streamlit as st 
+st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
+# 🔹 Correction du type MIME pour éviter l'erreur de module script
+st.markdown('<script type="module"></script>', unsafe_allow_html=True)
 from PIL import Image
 from flask import Flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -73,8 +76,6 @@ def get_auth_bp():
 app.register_blueprint(get_auth_bp())  # ✅ Évite l'importation circulaire
 logging.info("✅ Blueprint d'authentification enregistré avec succès!")
 # === Streamlit UI Configuration ===
-st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
-
 # === Model Initialization ===
 MODEL_PATH = "model/yield_model_v3.json"
 DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
