@@ -1,353 +1,166 @@
+#📌 Configuration and Imports
 import os
 import logging
 import requests
-import webbrowser 
-import pandas as pd  
-import numpy as np  
-import datetime
 import joblib
-import jwt
+import pandas as pd
+import numpy as np
 import xgboost as xgb
-import streamlit as st 
+import streamlit as st
+import plotly.express as px
+import folium
+import random
+from fastapi import FastAPI
+from streamlit_folium import st_folium
+from psycopg2 import connect
+from jwt import decode
 from PIL import Image
-from flask import Flask
-from flask_jwt_extended import jwt_required, get_jwt_identity, JWTManager
-from authlib.integrations.flask_client import OAuth
-from dotenv import load_dotenv
+import torch
 
-# 🔹 Import du Blueprint d'authentification  
+# Internal Modules
+from config import MODEL_PATH, DISEASE_MODEL_PATH, LOTTIE_URL
+from auth import verify_password, get_role, register_user
+from database import init_db, save_prediction, get_user_predictions, save_location
+from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
 from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
+from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
+import nematode_diseases
+import insect_pests
+import parasitic_plants
+
+# Newly Integrated Modules
+from disease_detection import detect_disease, detect_disease_from_database, process_image
+from disease_info import get_disease_info, DISEASE_DATABASE
 from disease_model import load_disease_model, predict_disease
-from evaluate import evaluate_model
-from database import save_prediction, get_user_predictions
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from disease_risk import DiseaseRiskPredictor
+from fertilization import fertilization_ui
+from fertilization_service import get_fertilization_advice
+from fertilization_model import model
+from validation import validate_input  # Validation function
 
-# 🔹 Désactivation temporaire des WebSockets pour Streamlit Cloud
-os.environ["STREAMLIT_SERVER_ENABLE_WEBSOCKETS"] = "false"
+# Pest and Disease Modules
+from insect_pests import InsectPest
+from nematode_diseases import NematodeDisease
+from disease_info import Disease
+from parasitic_plants import ParasiticPlant
+from phytoplasma_diseases import PhytoplasmaDisease
+from viral_diseases import ViralDisease
+from field_stress_map import generate_field_map
+#🌍 Initialization
+st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
+st.title("🌾 Smart Sènè Yield Predictor")
 
-# 🔹 Configuration de la page Streamlit
-st.set_page_config(page_title="🌾 Smart Yield Predictor", layout="wide")
+# Database Initialization
+init_db()
 
-# 🔹 Logger configuration
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# Load the Disease Detection Model
+try:
+    disease_model = load_disease_model(DISEASE_MODEL_PATH)
+except Exception as e:
+    disease_model = None
+    logging.error(f"🛑 Model loading error: {e}")
 
-# 🔹 Chargement des variables d’environnement
-load_dotenv()  
-
-# 🔹 Vérification et récupération des variables `.env`
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI").strip()
-
-if not GOOGLE_REDIRECT_URI or GOOGLE_REDIRECT_URI.lower() == "none" or not GOOGLE_REDIRECT_URI.startswith("http"):
-    logging.error(f"❌ ERREUR: GOOGLE_REDIRECT_URI est invalide ! Valeur actuelle -> {GOOGLE_REDIRECT_URI}")
-    raise ValueError("Redirect URI is not correctly defined in .env!")
-
-logging.info(f"✅ DEBUG: GOOGLE_REDIRECT_URI récupéré -> {GOOGLE_REDIRECT_URI}")
-
-# 🔹 Flask Setup
-app = Flask(__name__)  # 🔹 Création de l’application Flask
-
-# 🔹 Configuration de sécurité
-app.secret_key = os.getenv("APP_SECRET_KEY", "supersecretkey")
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
-jwt = JWTManager(app)
-
-# 🔹 Initialisation correcte de OAuth avec Flask
-oauth = OAuth(app)
-
-# 🔹 Vérification des identifiants OAuth avant enregistrement
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-
-if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    logging.error("❌ Erreur: les identifiants Google OAuth ne sont pas configurés dans `.env`!")
-    raise ValueError("Missing Google OAuth credentials.")
-
-# 🔹 Enregistrement du client Google OAuth (AVANT d'enregistrer le Blueprint)
-oauth.register(
-    "google",
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    authorize_url=os.getenv("GOOGLE_AUTH_URL", "https://accounts.google.com/o/oauth2/auth"),
-    token_url=os.getenv("GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token"),
-    redirect_uri=GOOGLE_REDIRECT_URI,
-    client_kwargs={"scope": "openid email profile"}
-)
-
-logging.info("✅ Google OAuth configuré correctement !")
-
-# 🔹 Enregistrement du module d'authentification APRÈS OAuth
-from auth import auth_bp
-auth_bp.oauth = oauth  # ✅ Passe `oauth` avant l'enregistrement du Blueprint
-app.register_blueprint(auth_bp)
-logging.info("✅ Blueprint d'authentification enregistré avec succès!")
-
-# === Model Initialization ===
-MODEL_PATH = "model/yield_model_v3.json"
-DISEASE_MODEL_PATH = "model/plant_disease_model.pth"
-
-# 🔹 Load XGBoost Model safely
-def load_xgb_model(path):
-    if not os.path.exists(path):
-        logging.warning(f"⚠ Modèle introuvable `{path}` ! Assure-toi qu'il a bien été entraîné.")
-        return None
-    
-    try:
-        model = xgb.Booster()
-        model.load_model(path)
-        logging.info("✅ XGBoost Booster model loaded successfully.")
-        return model
-    except Exception as e:
-        logging.error(f"❌ Erreur lors du chargement du modèle `{path}` : {str(e)}")
-        return None
-
-# 🔹 Initialisation des modèles
-model = load_xgb_model(MODEL_PATH)
-disease_model = load_disease_model(DISEASE_MODEL_PATH) if os.path.exists(DISEASE_MODEL_PATH) else None
-
-# === User Authentication ===
-st.session_state.setdefault("jwt_token", None)
-st.session_state.setdefault("username", None)
-st.session_state.setdefault("user_role", None)
-
-# 🔐 Authentication Flow
-if not st.session_state["jwt_token"]:
-    with st.sidebar:
-        st.header("🔐 Login with Google")
-        if st.button("Login with Google"):
-            redirect_url = GOOGLE_REDIRECT_URI + "/login/google"  # ✅ Correction pour assurer la redirection correcte
-            st.markdown(f'<meta http-equiv="refresh" content="0; URL={redirect_url}">', unsafe_allow_html=True)
-            st.info("🌐 Redirecting to Google login... Please complete login in the browser.")
-
-    st.stop()
-
-with st.sidebar:
-    if st.button("Logout"):
-        requests.get(GOOGLE_REDIRECT_URI + "/logout")  # ✅ Correction pour correspondre à la configuration OAuth
-        st.session_state["jwt_token"] = None
-        st.session_state["username"] = None
-        st.session_state["user_role"] = None
-        st.success("✅ Successfully logged out!")
-        logging.info("✅ Logged out successfully.")
-        st.rerun()
-
-# === Interface et Navigation ===
-USERNAME = st.session_state["username"]
-USER_ROLE = st.session_state["user_role"]
-
-st.title(f"🌾 Welcome, {USERNAME}")
-
-if USER_ROLE == "admin":
-    st.subheader("👑 Admin Dashboard")
-    st.write("Manage users, view logs, and more.")
-
-menu = ["Home", "Retrain Model", "History", "Performance", "Disease Detection"]
-choice = st.sidebar.selectbox("Menu", menu)
-
-# === Run Flask App ===
-if __name__ == "__main__":
-    app.run(debug=True)
-
-# 🔹 Lottie Animation Loader
+# Load the Lottie animation
 def load_lottieurl(url):
     try:
-        response = requests.get(url, timeout=5)
-        return response.json() if response.status_code == 200 else None
-    except requests.exceptions.RequestException:
+        r = requests.get(url, timeout=5)
+        return r.json() if r.status_code == 200 else None
+    except requests.exceptions.RequestException as e:
+        logging.warning(f"⚠ Lottie animation loading error: {e}")
         return None
 
-lottie_plant = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json")
+lottie_plant = load_lottieurl(LOTTIE_URL)
 
+# 🏠Sidebar Menu
+menu = [
+    "Home", "Retrain Model", "History", "Performance",
+    "Disease Detection", "Fertilization Advice", "Field Map", "Disease Risk Prediction"
+]
+choice = st.sidebar.selectbox("Menu", menu)
 
+#🔍 Page Display
 if choice == "Home":
     st_lottie(lottie_plant, height=150)
-    st.subheader("👋 Welcome to Smart Yield Sènè Predictor")
-    st.subheader("📈 Predict Agricultural Yield")
-    input_method = st.radio("Choose input method", ("Manual Input", "Upload CSV"))
-
-    if input_method == "Manual Input":
-        temperature = st.slider("🌡️ Temperature (°C)", 10, 50, 25)
-        humidity = st.slider("💧 Humidity (%)", 10, 100, 60)
-        precipitation = st.slider("🌧️ Precipitation (mm)", 0, 300, 50)
-        pH = st.slider("🧪 Soil pH", 3.0, 10.0, 6.5)
-        fertilizer = st.selectbox("🌱 Fertilizer Type", ["NPK", "Urea", "Compost", "DAP"])
-
-        features = {
-            "Temperature": temperature,
-            "Humidity": humidity,
-            "Precipitation": precipitation,
-            "pH": pH,
-            "Fertilizer": fertilizer
-        }
-
-        if st.button("Predict Yield"):
-            if model:
-                ddata = xgb.DMatrix(pd.DataFrame([features]))
-                prediction = model.predict(ddata)[0]
-                st.success(f"✅ Predicted Yield: **{prediction:.2f} tons/ha**")
-                save_prediction(USERNAME, features, prediction)
-                if st.checkbox("📄 Download PDF Report"):
-                    pdf = generate_pdf_report(USERNAME, features, prediction, "Use appropriate fertilizer and monitor pH.")
-                    st.download_button("Download PDF", data=pdf, file_name="report.pdf")
-            else:
-                st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
-
-    else:
-        st.markdown("### 📁 Batch Prediction from CSV")
-        csv_file = st.file_uploader("Upload CSV", type=["csv"])
-        if csv_file:
-            df = pd.read_csv(csv_file)
-            required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer"]
-
-            if validate_csv_columns(df, required_cols):
-                df["NDVI"] = np.random.uniform(0.3, 0.8, len(df))
-                if st.button("Predict from CSV"):
-                    if model:
-                        ddata = xgb.DMatrix(df[required_cols])
-                        df["PredictedYield"] = model.predict(ddata)
-                        st.success("✅ Prediction completed.")
-                        st.subheader("🧾 Prediction Results")
-                        st.dataframe(df)
-                        st.download_button("Download Results CSV", convert_df_to_csv(df), "predictions.csv", "text/csv")
-                        for _, row in df.iterrows():
-                            features_dict = row[required_cols].to_dict()
-                            save_prediction(USERNAME, features_dict, row["PredictedYield"])
-                    else:
-                        st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
-            else:
-                st.error(f"❗ CSV must contain columns: {required_cols}")
-
-elif choice == "Retrain Model":
-    st.subheader("🔁 Retrain the Model")
-    train_file = st.file_uploader("Upload Training CSV", type=["csv"])
-    if train_file is not None:
-        train_df = pd.read_csv(train_file)
-        required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
-        if validate_csv_columns(train_df, required_cols):
-            if st.button("Retrain"):
-                new_model = train_model(train_df)
-                new_model.save_model(MODEL_PATH)
-                st.success("✅ Model retrained and saved successfully!")
-        else:
-            st.error(f"❗ Training CSV must contain: {required_cols}")
-
-elif choice == "History":
-    st.subheader("📚 Prediction History")
-    results = get_user_predictions(USERNAME)
-    if results:
-        hist_df = pd.DataFrame(results)
-        st.dataframe(hist_df)
-    else:
-        st.info("No predictions found for this user.")
-
-elif choice == "Performance":
-    st.subheader("📊 Model Evaluation")
-    eval_file = st.file_uploader("Upload Evaluation CSV", type=["csv"])
-    if eval_file is not None:
-        eval_df = pd.read_csv(eval_file)
-        required_cols = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "Yield"]
-        if validate_csv_columns(eval_df, required_cols):
-            if model:
-                ddata = xgb.DMatrix(eval_df[required_cols])
-                predictions = model.predict(ddata)
-                mae = np.mean(np.abs(predictions - eval_df["Yield"]))
-                r2 = 1 - np.sum((predictions - eval_df["Yield"]) ** 2) / np.sum((eval_df["Yield"] - np.mean(eval_df["Yield"])) ** 2)
-                st.success(f"✅ MAE: {mae:.2f}, R² Score: {r2:.2f}")
-            else:
-                st.error("🛑 Model not available. Please retrain it in the Retrain Model section.")
-        else:
-            st.error(f"❗ Evaluation CSV must contain: {required_cols}")
+    st.subheader("👋 Welcome to Smart Sènè Yield Predictor")
+    st.subheader("📈 Agricultural Yield Prediction")
 
 elif choice == "Disease Detection":
-    st.subheader("🦠 Plant Disease Detection")
+    st.subheader("🦠 Disease Detection")
+    
+    # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
+    
     if image_file:
-        image = Image.open(image_file).convert("RGB")
-        st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
-        if st.button("🔍 Detect Disease"):
-            if disease_model:
+        image = process_image(image_file)
+        st.image(image, caption="🖼️ Uploaded Image", use_column_width=True)
+        
+        if st.button("🔍 Analyze Image"):
+            try:
                 label = predict_disease(disease_model, image)
-                detected_plant = label.split()[0] if label else "Unknown"
-                st.success(f"✅ Disease Detection Result: **{label}**")
-                st.info(f"🪴 Detected Plant: **{detected_plant}**")
-                if "healthy" in label.lower():
-                    st.success("✅ This leaf appears healthy.")
-                    st.markdown("👨‍🌾 Recommendation: Continue regular monitoring and maintain good agricultural practices.")
+                disease_details = get_disease_info(label)
+                
+                st.success(f"✅ Detected Disease: **{label}**")
+                
+                if disease_details and disease_details != "⚠️ Disease not found.":
+                    st.markdown(f"**ℹ️ Symptoms:** {disease_details.symptoms}")
+                    st.markdown(f"**🦠 Pathogens:** {', '.join(disease_details.causal_agents)}")
+                    st.markdown(f"**🌍 Distribution:** {disease_details.distribution}")
+                    st.markdown(f"**⚠️ Disease Conditions:** {disease_details.conditions}")
+                    st.markdown(f"**🛑 Control Methods:** {disease_details.control}")
                 else:
-                    st.error("⚠️ Disease detected!")
-                    st.markdown(
-                        """
-                        <div style='background-color:#fff3cd;padding:10px;border-left:5px solid #f0ad4e;border-radius:5px'>
-                        <b>👩‍⚕️ Suggested Advice:</b>
-                        <ul>
-                            <li>Isolate the infected plant if possible</li>
-                            <li>Use appropriate fungicides or pesticides</li>
-                            <li>Improve soil drainage and avoid overwatering</li>
-                            <li>Consult an agronomist for accurate diagnosis and treatment</li>
-                        </ul>
-                        </div>
-                        """, unsafe_allow_html=True
-                    )
-                if st.checkbox("📄 Generate PDF Report"):
-                    report_pdf = generate_pdf_report(
-                        USERNAME,
-                        features={"Detected Plant": detected_plant, "Detected Disease": label},
-                        prediction="N/A",
-                        recommendation="Follow treatment guidelines and monitor the plant closely."
-                    )
-                    st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
-            else:
-                st.error("🛑 Disease detection model is not loaded.")
-    # === Fertilization Advice ===
+                    st.warning("⚠️ No detailed information found.")
+            
+            except Exception as e:
+                st.error(f"🛑 Detection error: {e}")
+
+    # 🔍 Symptom-based Search
+    symptom_query = st.text_input("🔬 Search disease by symptom")
+    if st.button("🔎 Search"):
+        detected_disease = detect_disease_from_database(symptom_query)
+        
+        if detected_disease:
+            st.success(f"📢 Found Disease: **{detected_disease.name}**")
+            st.info(f"🌱 Symptoms: {detected_disease.symptoms}")
+        else:
+            st.warning("⚠️ No matching disease found.")
+
 elif choice == "Fertilization Advice":
-        st.subheader("🧪 Smart Fertilization Recommender")
-        crop = st.selectbox("🌾 Select Crop", ["Maize", "Millet", "Rice", "Sorghum", "Tomato", "Okra"] )
-        pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
-        soil_type = st.selectbox("🧱 Soil Type", ["Sandy", "Clay", "Loamy"] )
-        growth_stage = st.selectbox("🌱 Growth Stage", ["Germination", "Vegetative", "Flowering", "Maturity"] )
-        if st.button("🧮 Get Fertilization Advice"):
-            advice = ""
-            if crop in ["Maize", "Rice"]:
-                if pH < 5.5:
-                    advice += "🧪 Apply lime to raise soil pH.\n"
-                if soil_type == "Sandy":
-                    advice += "🧂 Use slow-release nitrogen fertilizers (e.g., Urea with coating).\n"
-                if growth_stage == "Vegetative":
-                    advice += "💊 Apply NPK 20-10-10 at 100 kg/ha.\n"
-                elif growth_stage == "Flowering":
-                    advice += "💊 Apply NPK 10-20-20 at 50 kg/ha.\n"
-            elif crop in ["Tomato", "Okra"]:
-                advice += "💊 Use compost plus NPK 15-15-15 (50-100 kg/ha).\n"
-                if pH < 6.0:
-                    advice += "🧪 Slightly acid soil: add organic matter to buffer.\n"
-            else:
-                advice += "📌 General advice: Use balanced NPK and organic matter.\n"
-            st.success("✅ Fertilizer Recommendation Generated:")
-            st.markdown(f"```markdown\n{advice}\n```")
+    fertilization_ui()
 
-    # === Field Map ===
-elif choice == "Field Map":
-        import folium
-        from streamlit_folium import st_folium
+elif choice == "Disease Risk Prediction":
+    st.subheader("🦠 Disease Risk Prediction")
+    disease_name = st.selectbox("Disease Type", ["Viral", "Bacterial", "Fungal", "Phytoplasma", "Abiotic", "Insect Damage"])
+    temperature = st.slider("🌡️ Temperature (°C)", 10, 50, 25)
+    humidity = st.slider("💧 Humidity (%)", 10, 100, 60)
+    wind_speed = st.slider("💨 Wind Speed (km/h)", 0, 50, 10)
+    soil_type = st.selectbox("🌱 Soil Type", ["Sandy", "Clay", "Loamy"])
+    aphid_population = st.slider("🦟 Aphid Density", 0, 1000, 500)
+    crop_stage = st.selectbox("🌾 Growth Stage", ["Young", "Growing", "Mature"])
+    season = st.selectbox("📆 Season", ["Spring", "Summer", "Autumn", "Winter"])
 
-        st.subheader("🗺️ Interactive Field Stress Map")
-        fields = [
-            {"name": "Field A", "lat": 12.64, "lon": -8.0},
-            {"name": "Field B", "lat": 12.66, "lon": -7.98},
-            {"name": "Field C", "lat": 12.63, "lon": -8.02},
-        ]
-        m = folium.Map(location=[12.64, -8.0], zoom_start=13)
-        for field in fields:
-            stress_level = np.random.uniform(0, 1)
-            color = "green" if stress_level < 0.3 else "orange" if stress_level < 0.7 else "red"
-            folium.CircleMarker(
-                location=[field["lat"], field["lon"]],
-                radius=10,
-                popup=f"{field['name']}\nStress: {stress_level:.2f}",
-                color=color,
-                fill=True,
-                fill_color=color
-            ).add_to(m)
-        st_folium(m, width=700, height=500)
-        st.caption("🧪 Stress color: Green (low) - Orange (medium) - Red (high)")
+    if st.button("🔍 Predict Infection Risk"):
+        predictor = DiseaseRiskPredictor(
+            disease_name, temperature, humidity, wind_speed, soil_type, aphid_population, crop_stage, season
+        )
+        risk = predictor.calculate_risk()
+        st.success(f"📢 Estimated Infection Risk: {risk}")
+
+#🌍 Field Map
+m = folium.Map(location=[12.64, -8.0], zoom_start=13)
+for field in fields:
+    stress_level = np.random.uniform(0, 1)
+    color = "green" if stress_level < 0.3 else "orange" if stress_level < 0.7 else "red"
+    folium.CircleMarker(
+        location=[field["lat"], field["lon"]],
+        radius=10,
+        popup=f"{field['name']} - Stress: {stress_level:.2f}",
+        color=color,
+        fill=True,
+        fill_color=color
+    ).add_to(m)
+
+st_folium(m, width=700, height=500)
+st.caption("🧪 Color Code: Green (low stress) - Orange (medium) - Red (high)")
