@@ -2,6 +2,15 @@
 import requests
 import streamlit as st
 
+def validate_input(crop, pH, soil_type, growth_stage, temperature, humidity):
+    if not crop or not soil_type or not growth_stage:
+        return False, "🚨 Some essential fields are missing."
+    if not (3.5 <= pH <= 9.0):
+        return False, "🚨 Soil pH must be between 3.5 and 9.0."
+    if temperature is None or humidity is None:
+        return False, "🚨 Temperature and humidity must be provided."
+    return True, ""
+
 def get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, humidity):
     try:
         response = requests.post("http://127.0.0.1:8000/predict",
@@ -14,6 +23,7 @@ def get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, hum
 
 def fertilization_ui():
     st.subheader("🧪 Smart Fertilization Recommender")
+    
     crop = st.selectbox("🌾 Select Crop", ["Maize", "Millet", "Rice", "Sorghum", "Tomato", "Okra"])
     pH = st.slider("Soil pH", 3.5, 9.0, 6.5)
     soil_type = st.selectbox("🧱 Soil Type", ["Sandy", "Clay", "Loamy"])
@@ -22,12 +32,13 @@ def fertilization_ui():
     humidity = st.number_input("💧 Humidity (%)")
 
     if st.button("🧮 Get Fertilization Advice"):
-        advice = get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, humidity)
-        st.success(f"✅ Recommended Fertilizer: {advice}")
-valid, error_message = validate_input(crop, pH, soil_type, growth_stage, temperature, humidity)
-if not valid:
-    st.error(error_message)
-else:
-    advice = get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, humidity)
-    st.success(f"✅ Recommended Fertilizer: {advice}")
-print("Exécution terminée avec succès !")
+        valid, error_message = validate_input(crop, pH, soil_type, growth_stage, temperature, humidity)
+        if not valid:
+            st.error(error_message)
+        else:
+            advice = get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, humidity)
+            st.success(f"✅ Recommended Fertilizer: {advice}")
+
+if __name__ == "__main__":
+    fertilization_ui()
+    print("Execution completed successfully!")
