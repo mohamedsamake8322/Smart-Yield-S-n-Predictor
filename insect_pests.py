@@ -1,5 +1,6 @@
 class InsectPest:
     def __init__(self, name, scientific_name, description, damage, transmission, affected_plants, control_methods):
+        """Initializes an insect pest with all its relevant attributes."""
         self.name = name
         self.scientific_name = scientific_name
         self.description = description
@@ -10,86 +11,6 @@ class InsectPest:
 
     def __str__(self):
         """Formats pest information for display."""
-        attributes = vars(self)
-        return "\n".join(f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in attributes.items())
-
-# 📌 Optimized insect pest list
-insect_pests = [
-    InsectPest(
-        "Aphid",
-        "Macrosiphum euphorbiae, Myzus persicae",
-        "Small, pear-shaped, gregarious insects that reproduce rapidly. "
-        "They move from leaf to leaf and plant to plant as wingless nymphs or winged adults.",
-        "Causes chlorosis, leaf curling, distortion, and flower abscission. "
-        "Honeydew secretion leads to sooty mold formation, reducing fruit quality.",
-        "Non-persistent: Cucumber mosaic virus, Tobacco etch virus, Alfalfa mosaic virus. "
-        "Persistent: Potato leaf roll virus, Beet western yellows virus.",
-        ["Peppers", "Eggplants"],
-        "Use insecticidal soaps, introduce natural predators like ladybugs, implement crop rotation."
-    ),
-    InsectPest(
-        "Epilachna Beetle",
-        "Epilachna spp.",
-        "Eggplant pest found in Asia. Adults are red to brown with black spots; larvae are brown with spines. "
-        "Both adults and larvae feed on leaves and new growth, leaving skeletonized leaf tissue.",
-        "Larvae cause more damage than adults, significantly reducing crop yield.",
-        "Not a known vector for viruses.",
-        ["Eggplant"],
-        "Use insecticides, introduce natural predators, and implement crop rotation."
-    ),
-    InsectPest(
-        "Leafhoppers",
-        "Circulifer tenellus (Beet Leafhopper), Hishimonus phycitis (Cotton Leafhopper)",
-        "Small wedge-shaped insects (up to 3mm long), varying from green to brown. "
-        "Have a wide host range and feed on phloem, leaving pale specks or hatch cuts in leaf veins.",
-        "Causes interveinal yellowing, necrotic spots, and yield reduction. Can transmit viruses and phytoplasma diseases.",
-        "Beet curly top virus, Little leaf disease (phytoplasma).",
-        ["Peppers", "Eggplant"],
-        "Use row covers, maintain weed control, and apply insecticides when necessary."
-    ),
-    InsectPest(
-        "Two-Spotted Spider Mite",
-        "Tetranychus urticae",
-        "Fine webbing appears on eggplant and pepper leaves in mite-infested fields. "
-        "Feeds on the underside of leaves, causing pale, stippled spots and bronzing.",
-        "Leads to foliage discoloration and reduced plant vigor.",
-        "Not a known vector for viruses.",
-        ["Eggplant", "Peppers"],
-        "Apply miticides, insecticidal soaps, and water sprays to reduce populations."
-    ),
-    InsectPest(
-        "Sweet Potato Whitefly / Silverleaf Whitefly",
-        ["Bemisia tabaci", "Bemisia argentifolii"],
-        "A serious pest attacking peppers and eggplants. Builds up quickly in warm, dry climates. "
-        "Produces honeydew, leading to sooty mold development.",
-        "Reduces plant growth, causing stunting and defoliation.",
-        "Vectors of geminiviruses, including Pepper golden mosaic virus, Sinaloa tomato leaf curl virus, "
-        "Pepper hausteco yellow vein virus, Tomato yellow mosaic virus.",
-        ["Peppers", "Eggplant"],
-        "Use resistant crop varieties, insecticidal treatments, and remove infested plants."
-    )
-]
-# 🔎 Efficient pest search
-def get_insect_by_name(name):
-    """Search for an insect pest by name."""
-    return next((pest for pest in insect_pests if pest.name.lower() == name.lower()), "❌ Pest not found.")
-def get_insect_by_name(name):
-    """Recherche un insecte nuisible par son nom."""
-    for insect in insect_pests:
-        if insect.name.lower() == name.lower():
-            return insect
-    return None
-class InsectPest:
-    def __init__(self, name, scientific_name, description, damage, transmission, affected_plants, control_methods):
-        self.name = name
-        self.scientific_name = scientific_name
-        self.description = description
-        self.damage = damage
-        self.transmission = transmission
-        self.affected_plants = affected_plants
-        self.control_methods = control_methods
-
-    def __str__(self):
         return (
             f"{self.name} ({self.scientific_name})\n"
             f"Description: {self.description}\n"
@@ -98,6 +19,71 @@ class InsectPest:
             f"Affected Plants: {', '.join(self.affected_plants)}\n"
             f"Control Methods: {self.control_methods}"
         )
+
+# 📌 List of insect pests
+insect_pests = [
+    InsectPest(
+        "Aphid",
+        "Macrosiphum euphorbiae, Myzus persicae",
+        "Small, pear-shaped insects that reproduce rapidly.",
+        "Causes chlorosis, leaf curling, and flower abscission.",
+        "Vectors viruses such as Cucumber mosaic virus and Potato leaf roll virus.",
+        ["Peppers", "Eggplants"],
+        "Use insecticidal soaps, natural predators like ladybugs, and crop rotation."
+    ),
+    InsectPest(
+        "Epilachna Beetle",
+        "Epilachna spp.",
+        "Eggplant pest found in Asia, skeletonizes leaf tissue.",
+        "Larvae cause significant yield reduction.",
+        "Not a known virus vector.",
+        ["Eggplant"],
+        "Use insecticides, introduce natural predators, and implement crop rotation."
+    ),
+    InsectPest(
+        "Leafhoppers",
+        "Circulifer tenellus (Beet Leafhopper), Hishimonus phycitis (Cotton Leafhopper)",
+        "Small wedge-shaped insects that feed on phloem.",
+        "Causes yellowing, necrotic spots, and yield reduction.",
+        "Transmits viruses like Beet curly top virus and Little leaf disease.",
+        ["Peppers", "Eggplant"],
+        "Use row covers, maintain weed control, and apply insecticides."
+    ),
+    InsectPest(
+        "Two-Spotted Spider Mite",
+        "Tetranychus urticae",
+        "Creates fine webbing on infested leaves.",
+        "Causes discoloration and reduced plant vigor.",
+        "Not a known virus vector.",
+        ["Eggplant", "Peppers"],
+        "Apply miticides, insecticidal soaps, and water sprays."
+    ),
+    InsectPest(
+        "Sweet Potato Whitefly / Silverleaf Whitefly",
+        ["Bemisia tabaci", "Bemisia argentifolii"],
+        "Serious pest attacking peppers and eggplants.",
+        "Leads to stunting and defoliation.",
+        "Vectors geminiviruses like Tomato yellow mosaic virus.",
+        ["Peppers", "Eggplant"],
+        "Use resistant crop varieties, insecticidal treatments, and remove infested plants."
+    )
+]
+
+# 🔎 Pest search function
+def get_insect_by_name(name):
+    """Search for an insect pest by name."""
+    return next((pest for pest in insect_pests if pest.name.lower() == name.lower()), None)
+
+# Example usage
+if __name__ == "__main__":
+    insect_name = input("🔍 Enter the name of the pest to search for: ")
+    result = get_insect_by_name(insect_name)
+
+    if result:
+        print("\n🦟 Pest found:\n")
+        print(result)
+    else:
+        print("❌ No pest found under this name.")
 
 # Liste des insectes nuisibles et vecteurs de virus
 insect_pests = [
