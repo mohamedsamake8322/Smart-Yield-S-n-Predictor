@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import matplotlib.dates as mdates
-
+print("🚀 Script visualizations.py started...")
 # Yield distribution histogram
 def plot_yield_distribution(df):
     if "PredictedYield" not in df.columns:
