@@ -91,3 +91,4 @@ temperature = 30
 humidity = 60  
 soil_type = "sandy"
 print(predict_infestation(crop, temperature, humidity, soil_type))
+print("Exécution terminée avec succès !")

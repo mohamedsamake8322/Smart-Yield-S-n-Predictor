@@ -19,3 +19,4 @@ model.fit(X, y)
 
 # Sauvegarder le modèle
 joblib.dump(model, "fertilization_model.pkl")
+print("Exécution terminée avec succès !")

@@ -16,3 +16,4 @@ data = pd.DataFrame([{
 # Predict
 prediction = model.predict(data)
 print(f"🌾 Predicted yield: {prediction[0]:.2f}")
+print("Exécution terminée avec succès !")

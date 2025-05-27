@@ -465,3 +465,4 @@ insect_pests.extend([
 def get_insect_by_name(name):
     """Search for an insect pest by name."""
     return next((insect for insect in insect_pests if insect.name.lower() == name.lower()), "❌ Pest not found.")
+print("Exécution terminée avec succès !")

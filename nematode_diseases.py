@@ -112,4 +112,5 @@ def add_nematode_disease():
     new_disease = NematodeDisease(name, causal_agents, distribution, symptoms, conditions, control)
     nematode_diseases.append(new_disease)
     print(f"Disease '{name}' successfully added!")
+print("Exécution terminée avec succès !")
 

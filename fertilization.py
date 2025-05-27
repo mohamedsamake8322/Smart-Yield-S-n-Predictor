@@ -30,3 +30,4 @@ if not valid:
 else:
     advice = get_fertilization_advice(crop, pH, soil_type, growth_stage, temperature, humidity)
     st.success(f"✅ Recommended Fertilizer: {advice}")
+print("Exécution terminée avec succès !")

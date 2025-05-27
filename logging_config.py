@@ -7,3 +7,4 @@ def log_info(message):
 
 def log_error(message):
     logging.error(message)
+print("Exécution terminée avec succès !")

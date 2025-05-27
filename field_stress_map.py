@@ -71,3 +71,4 @@ display_stress_heatmap(heatmap_data, field_names, months)
 
 weather_data = {"main": {"temp": 27}, "wind": {"speed": 12}}  # Simulated Weather Data
 display_weather_prediction(FIELDS, weather_data)
+print("Exécution terminée avec succès !")

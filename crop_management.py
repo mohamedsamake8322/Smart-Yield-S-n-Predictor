@@ -122,3 +122,4 @@ def detect_disease_via_image():
 
 if __name__ == "__main__":
     main()
+print("Exécution terminée avec succès !")

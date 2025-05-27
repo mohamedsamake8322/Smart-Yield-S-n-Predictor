@@ -139,3 +139,4 @@ class DiseaseRiskPredictor:
 disease_name = "viral"
 predictor = DiseaseRiskPredictor(disease_name, 28, 65, 10, "sableux", 600, "jeunes plants", "été")
 print(predictor.calculate_risk())
+print("Exécution terminée avec succès !")

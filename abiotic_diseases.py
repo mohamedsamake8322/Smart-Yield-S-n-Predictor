@@ -46,3 +46,4 @@ def get_abiotic_disease_by_name(name):
 
 # Exemple d'affichage
 print(get_abiotic_disease_by_name("Blossom-End Rot"))
+print("Exécution terminée avec succès !")

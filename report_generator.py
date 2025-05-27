@@ -61,3 +61,4 @@ if __name__ == "__main__":
     
     pdf_file = generate_pdf_report(user, disease_details, advice)
     print(f"✅ Report successfully generated: {pdf_file}")
+print("Exécution terminée avec succès !")

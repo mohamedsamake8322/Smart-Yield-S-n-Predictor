@@ -64,3 +64,4 @@ predictor = DiseaseRiskPredictor(
 )
 
 print(predictor.calculate_risk())
+print("Exécution terminée avec succès !")

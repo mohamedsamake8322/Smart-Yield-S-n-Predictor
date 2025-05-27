@@ -121,3 +121,4 @@ climate = "hot and humid"
 soil_type = "clay"
 
 print(detect_phytoplasma_disease(symptom, climate, soil_type))
+print("Exécution terminée avec succès !")

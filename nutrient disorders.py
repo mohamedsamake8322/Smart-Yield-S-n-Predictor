@@ -57,3 +57,4 @@ diseases = [
 # Display Disease Information
 for disease in diseases:
     print(disease)
+print("Exécution terminée avec succès !")

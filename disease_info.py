@@ -130,3 +130,4 @@ DISEASE_DATABASE = {
 def get_disease_info(name):
     """🔎 Searches for a disease by its name in the database."""
     return DISEASE_DATABASE.get(name, "⚠️ Disease not found.")
+print("Exécution terminée avec succès !")

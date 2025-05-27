@@ -244,3 +244,4 @@ humidity = 65  # %
 aphid_population = 600  # Estimated aphid count
 
 print(predict_viral_risk(disease_name, temperature, humidity, aphid_population))
+print("Exécution terminée avec succès !")
