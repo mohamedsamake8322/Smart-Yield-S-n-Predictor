@@ -18,7 +18,7 @@ from PIL import Image
 import torch
 
 # Internal Modules
-from config import MODEL_PATH, DISEASE_MODEL_PATH, LOTTIE_URL
+from disease_model import MODEL_PATH, DISEASE_MODEL_PATH, LOTTIE_URL
 from auth import verify_password, get_role, register_user
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
@@ -35,11 +35,12 @@ import parasitic_plants
 from disease_detection import detect_disease, detect_disease_from_database, process_image
 from disease_info import get_disease_info, DISEASE_DATABASE
 from disease_model import load_disease_model, predict_disease
-from disease_risk import DiseaseRiskPredictor
+from disease_risk_predictor import DiseaseRiskPredictor
 from fertilization import fertilization_ui
 from fertilization_service import get_fertilization_advice
 from fertilization_model import model
 from validation import validate_input  # Validation function
+from field_stress_map import fields
 
 # Pest and Disease Modules
 from insect_pests import InsectPest
