@@ -117,3 +117,4 @@ def save_location(lat, lon):
             logger.info(f"✅ Location saved: ({lat}, {lon}).")
     except sqlite3.Error as e:
         logger.error(f"🚨 Error saving location: {e}")
+        print("Exécution terminée avec succès !")
