@@ -55,3 +55,24 @@ if not os.path.exists(model_dir):
 model_path = os.path.join(model_dir, "disease_model.pth")
 torch.save({"state_dict": model.state_dict()}, model_path)
 print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
+
+# 📌 Fonction de prédiction des maladies
+def predict_disease(image_path):
+    """Prédit la maladie des plantes à partir d'une image."""
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+
+    image = Image.open(image_path).convert("RGB")
+    image = transform(image).unsqueeze(0).to(device)
+
+    model.eval()
+    with torch.no_grad():
+        output = model(image)
+        _, predicted = torch.max(output, 1)
+        disease_name = CLASS_LABELS[predicted.item()]
+    
+    return disease_name
+
