@@ -64,18 +64,19 @@ init_db()
 
 # Load the Disease Detection Model
 model_path = "model/disease_model.pth"
+
+# Vérifier si le modèle existe avant le chargement
 if os.path.exists(model_path):
-    disease_model = load_disease_model(model_path)
-    print("✅ Modèle chargé avec succès !")
+    try:
+        disease_model = load_disease_model(model_path)
+        print("✅ Modèle chargé avec succès !")
+    except Exception as e:
+        disease_model = None
+        logging.error(f"🛑 Erreur lors du chargement du modèle : {e}")
 else:
     disease_model = None
-    print(f"🚫 Fichier du modèle introuvable à {model_path}")
-try:
-    disease_model = load_disease_model("model/disease_model.pth")  # Exemple de chemin
+    logging.error(f"🚫 Fichier du modèle introuvable à {model_path}")
 
-except Exception as e:
-    disease_model = None
-    logging.error(f"🛑 Model loading error: {e}")
 
 # Load the Lottie animation
 # Charger l'animation depuis le fichier JSON
