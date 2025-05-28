@@ -1,3 +1,8 @@
+import streamlit as st
+#🌍 Initialization
+st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
+st.title("🌾 Smart Sènè Yield Predictor")
+
 # 📌 Configuration and Imports
 import os
 import logging
@@ -6,7 +11,6 @@ import joblib
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-import streamlit as st
 import plotly.express as px
 import folium
 import random
@@ -52,13 +56,6 @@ from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import FIELDS
 from visualizations import generate_map
-
-
-
-#🌍 Initialization
-st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
-st.title("🌾 Smart Sènè Yield Predictor")
-
 # Database Initialization
 init_db()
 
