@@ -20,7 +20,6 @@ import torch
 # 📌 Internal Modules
 import visualizations
 import disease_model
-from auth import verify_password, get_role, register_user
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
