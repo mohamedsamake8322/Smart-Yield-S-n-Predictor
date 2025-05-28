@@ -16,6 +16,9 @@ from psycopg2 import connect
 from jwt import decode
 from PIL import Image
 import torch
+import visualizations
+
+visualizations.plot_yield_distribution()  # Test de l'affichage
 
 # Internal Modules
 from disease_model import MODEL_PATH, DISEASE_MODEL_PATH, LOTTIE_URL
