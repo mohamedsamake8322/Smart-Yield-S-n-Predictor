@@ -51,6 +51,7 @@ from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import FIELDS
+from visualizations import generate_map
 
 
 
@@ -62,6 +63,13 @@ st.title("🌾 Smart Sènè Yield Predictor")
 init_db()
 
 # Load the Disease Detection Model
+model_path = "model/disease_model.pth"
+if os.path.exists(model_path):
+    disease_model = load_disease_model(model_path)
+    print("✅ Modèle chargé avec succès !")
+else:
+    disease_model = None
+    print(f"🚫 Fichier du modèle introuvable à {model_path}")
 try:
     disease_model = load_disease_model("model/disease_model.pth")  # Exemple de chemin
 

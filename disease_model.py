@@ -140,3 +140,7 @@ disease_name = "viral"
 predictor = DiseaseRiskPredictor(disease_name, 28, 65, 10, "sableux", 600, "jeunes plants", "été")
 print(predictor.calculate_risk())
 print("Exécution terminée avec succès !")
+# Enregistrer le modèle entraîné
+model_path = "model/disease_model.pth"
+torch.save({"state_dict": model.state_dict()}, model_path)
+print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
