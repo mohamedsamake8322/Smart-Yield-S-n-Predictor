@@ -47,6 +47,38 @@ def create_database():
     conn.close()
     print("✅ Data saved in SQLite!")
 
+# 🌦️ Retrieve weather data
+API_KEY = "VOTRE_CLE_API"
+
+def get_weather_data(lat, lon):
+    url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
+    response = requests.get(url)
+    return response.json()
+
+# 🌦️ Update database with weather data
+def update_weather():
+    conn = sqlite3.connect("fields_data.db")
+    cursor = conn.cursor()
+
+    for field in FIELDS:
+        weather = get_weather_data(field["lat"], field["lon"])
+        
+        if "main" in weather:
+            temperature = weather["main"]["temp"]
+            humidity = weather["main"]["humidity"]
+        else:
+            temperature, humidity = None, None  # ✅ Default values if API fails
+            print(f"⚠️ Weather data error for {field['name']} : {weather}")
+
+        stress_level = min(1, max(0, 0.5 + (temperature - 25) * 0.02))
+
+        cursor.execute("UPDATE fields SET temperature=?, humidity=?, stress_level=? WHERE name=?",
+                       (temperature, humidity, stress_level, field["name"]))
+
+    conn.commit()
+    conn.close()
+    print("✅ Weather data updated!")
+
 # 🌍 Generate Folium map
 def generate_map():
     m = folium.Map(location=[12.64, -8.0], zoom_start=12)
@@ -58,35 +90,9 @@ def generate_map():
             icon=folium.Icon(color="green")
         ).add_to(m)
 
-    m.save("fields_map.html")
-    print("✅ Map saved as fields_map.html!")
+    return m  # 🔄 Returning the map object
 
-# 🌦️ Retrieve weather data and update the database
-API_KEY = "YOUR_API_KEY"
-
-def get_weather_data(lat, lon):
-    url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
-    response = requests.get(url)
-    return response.json()
-
-def update_weather():
-    conn = sqlite3.connect("fields_data.db")
-    cursor = conn.cursor()
-
-    for field in FIELDS:
-        weather = get_weather_data(field["lat"], field["lon"])
-        temperature = weather["main"]["temp"]
-        humidity = weather["main"]["humidity"]
-        stress_level = min(1, max(0, 0.5 + (temperature - 25) * 0.02))
-
-        cursor.execute("UPDATE fields SET temperature=?, humidity=?, stress_level=? WHERE name=?",
-                       (temperature, humidity, stress_level, field["name"]))
-
-    conn.commit()
-    conn.close()
-    print("✅ Weather data updated!")
-
-# 📊 Visualization of crop yields
+# 📊 Yield Visualization Functions
 def plot_yield_distribution(df):
     if "PredictedYield" not in df.columns:
         raise ValueError("❌ Column 'PredictedYield' is missing in DataFrame")
@@ -135,6 +141,23 @@ def plot_yield_over_time(df):
 # 🔥 Run all functionalities
 if __name__ == "__main__":
     create_database()   # Initialize database
-    generate_map()      # Generate Folium map
     update_weather()    # Update weather data
-    print("🚀 Visualizations and data updates completed successfully!")
+
+    # 🔍 Load fields data from SQLite
+    conn = sqlite3.connect("fields_data.db")
+    df = pd.read_sql("SELECT * FROM fields", conn)
+    conn.close()
+
+    # 📊 Streamlit Interface
+    st.title("🌍 Agricultural Field Visualizations")
+
+    # ✅ Display field data
+    st.subheader("📊 Fields Data")
+    st.dataframe(df)
+
+    # ✅ Display Folium map
+    st.subheader("🌍 Fields Map")
+    map_object = generate_map()
+    st_folium(map_object, width=700, height=500)
+
+print("🚀 Visualizations and data updates completed successfully!")

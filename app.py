@@ -47,6 +47,8 @@ from parasitic_plants import ParasiticPlant
 from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import generate_field_map
+from visualizations import FIELDS
+
 
 
 #🌍 Initialization
@@ -182,7 +184,7 @@ if uploaded_file:
 st.info("📌 Upload a CSV file with 'PredictedYield' and 'timestamp' columns to visualize trends.")
 #🌍 Field Map
 m = folium.Map(location=[12.64, -8.0], zoom_start=13)
-for field in fields:
+for field in FIELDS:
     stress_level = np.random.uniform(0, 1)
     color = "green" if stress_level < 0.3 else "orange" if stress_level < 0.7 else "red"
     folium.CircleMarker(
