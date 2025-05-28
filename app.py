@@ -53,13 +53,13 @@ from field_stress_map import generate_field_map
 import visualizations
 import pandas as pd
 
-# Exemple de données pour le test
+# Exemple de données à passer à la fonction
 data = {"PredictedYield": [12, 25, 35, 48, 55, 15, 27]}
 df = pd.DataFrame(data)
 
-# Vérification de la fonction
+# Correction : passer le DataFrame en paramètre
 fig = visualizations.plot_yield_distribution(df)
-fig.show()  # Vérifie l'affichage
+fig.show()  # Vérification de l'affichage
 
 
 #🌍 Initialization
