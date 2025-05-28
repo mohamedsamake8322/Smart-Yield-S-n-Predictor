@@ -43,20 +43,21 @@ else:
     print("No matching disease found.")
 
 # Detection based solely on symptoms
-from disease_info import diseases
+from disease_info import DISEASE_DATABASE  # ✅ Corrige l'importation
 
 def detect_disease_by_symptom(symptom):
-    """Detects a disease based on a symptom."""
-    return next((disease for disease in diseases if symptom.lower() in disease.symptoms.lower()), None)
+    """🔎 Search for a disease by symptom."""
+    return next((disease for disease in DISEASE_DATABASE.values() if symptom.lower() in disease.symptoms.lower()), None)
 
 # Example usage:
 symptom_query = "Young seedlings develop rot at the crown"
 detected_disease = detect_disease_by_symptom(symptom_query)
 
 if detected_disease:
-    print(f"Possible disease detected: {detected_disease}")
+    print(f"Possible disease detected: {detected_disease.name}")  # ✅ Affichage du nom correct
 else:
     print("No matching disease found.")
+
 
 # Detection using the DISEASE_DATABASE
 def detect_disease_from_database(symptom):
