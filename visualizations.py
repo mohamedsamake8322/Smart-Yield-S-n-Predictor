@@ -47,12 +47,33 @@ def create_database():
     print("✅ Data saved in SQLite!")
 
 # 🌦️ Retrieve weather data
+import requests
+
 API_KEY = "2746334b2f4cc68fe6c1e8bd86b4922e"
+
+FIELDS = [
+    {"name": "Field A", "lat": 12.64, "lon": -8.0, "country": "Mali"},
+    {"name": "Field B", "lat": 40.71, "lon": -74.01, "country": "USA"},
+    {"name": "Field C", "lat": 48.85, "lon": 2.35, "country": "France"},
+    {"name": "Field D", "lat": -23.55, "lon": -46.63, "country": "Brazil"},
+    {"name": "Field E", "lat": 35.68, "lon": 139.76, "country": "Japan"},
+]
 
 def get_weather_data(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
     response = requests.get(url)
     return response.json()
+
+# Récupération météo pour tous les champs
+for field in FIELDS:
+    weather_data = get_weather_data(field["lat"], field["lon"])
+    if "main" in weather_data:
+        temperature = weather_data["main"]["temp"]
+        humidity = weather_data["main"]["humidity"]
+        print(f"🌍 {field['name']} ({field['country']}): {temperature}°C, Humidité: {humidity}%")
+    else:
+        print(f"⚠️ Erreur météo pour {field['name']} : {weather_data}")
+
 
 # 🌦️ Update database with weather data
 def update_weather():
