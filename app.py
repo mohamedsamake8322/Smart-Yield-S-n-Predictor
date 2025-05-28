@@ -29,7 +29,7 @@ from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
 import nematode_diseases
 import insect_pests
 import parasitic_plants
-from field_stress_map import FIELDS
+from field_stress_map import fields
 # 📌 Newly Integrated Modules
 from disease_detection import detect_disease, detect_disease_from_database, process_image
 from disease_info import get_disease_info, DISEASE_DATABASE
@@ -39,8 +39,6 @@ from fertilization import fertilization_ui
 from fertilization_service import get_fertilization_advice
 from fertilization_model import model
 from validation import validate_input  # Validation function
-from field_stress_map import fields
-
 # 📌 Pest and Disease Modules
 from insect_pests import InsectPest
 from nematode_diseases import NematodeDisease
