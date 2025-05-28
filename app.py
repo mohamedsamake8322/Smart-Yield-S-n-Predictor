@@ -1,4 +1,4 @@
-#📌 Configuration and Imports
+# 📌 Configuration and Imports
 import os
 import logging
 import requests
@@ -16,10 +16,10 @@ from psycopg2 import connect
 from jwt import decode
 from PIL import Image
 import torch
+
+# 📌 Internal Modules
 import visualizations
-visualizations.plot_yield_distribution()  # Test de l'affichage
 import disease_model
-# Internal Modules
 from auth import verify_password, get_role, register_user
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
@@ -31,7 +31,7 @@ import nematode_diseases
 import insect_pests
 import parasitic_plants
 
-# Newly Integrated Modules
+# 📌 Newly Integrated Modules
 from disease_detection import detect_disease, detect_disease_from_database, process_image
 from disease_info import get_disease_info, DISEASE_DATABASE
 from disease_model import load_disease_model, predict_disease
@@ -42,7 +42,7 @@ from fertilization_model import model
 from validation import validate_input  # Validation function
 from field_stress_map import fields
 
-# Pest and Disease Modules
+# 📌 Pest and Disease Modules
 from insect_pests import InsectPest
 from nematode_diseases import NematodeDisease
 from disease_info import Disease
@@ -50,16 +50,6 @@ from parasitic_plants import ParasiticPlant
 from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import generate_field_map
-import visualizations
-import pandas as pd
-
-# Exemple de données à passer à la fonction
-data = {"PredictedYield": [12, 25, 35, 48, 55, 15, 27]}
-df = pd.DataFrame(data)
-
-# Correction : passer le DataFrame en paramètre
-fig = visualizations.plot_yield_distribution(df)
-fig.show()  # Vérification de l'affichage
 
 
 #🌍 Initialization
@@ -160,7 +150,39 @@ elif choice == "Disease Risk Prediction":
         )
         risk = predictor.calculate_risk()
         st.success(f"📢 Estimated Infection Risk: {risk}")
+# Visiualization
+# ✅ Téléchargement des données utilisateur
+uploaded_file = st.file_uploader("📥 Upload your CSV file", type=["csv"])
 
+if uploaded_file:
+    # Chargement des données dans un DataFrame
+    df = pd.read_csv(uploaded_file)
+    st.write("🔍 Preview of your data:", df.head())
+
+    # 📊 Affichage du histogramme des rendements
+    if "PredictedYield" in df.columns:
+        st.subheader("📊 Yield Distribution")
+        fig = visualizations.plot_yield_distribution(df)
+        st.pyplot(fig)
+    else:
+        st.warning("⚠️ Column 'PredictedYield' not found in data!")
+
+    # 🎂 Affichage du graphique en camembert des fréquences de rendement
+    if "PredictedYield" in df.columns:
+        st.subheader("🎂 Yield Frequency (Pie Chart)")
+        fig_pie = visualizations.plot_yield_pie(df)
+        st.pyplot(fig_pie)
+
+    # 📈 Affichage de la tendance des rendements dans le temps
+    if "timestamp" in df.columns:
+        st.subheader("📈 Yield Trend Over Time")
+        fig_line = visualizations.plot_yield_over_time(df)
+        st.pyplot(fig_line)
+    else:
+        st.warning("⚠️ Column 'timestamp' not found in data!")
+
+# 🚀 Instructions pour l'utilisateur
+st.info("📌 Upload a CSV file with 'PredictedYield' and 'timestamp' columns to visualize trends.")
 #🌍 Field Map
 m = folium.Map(location=[12.64, -8.0], zoom_start=13)
 for field in fields:
