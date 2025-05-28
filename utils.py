@@ -137,3 +137,5 @@ def generate_pdf_report(username: str, inputs: Dict[str, Union[str, float]], pre
     c.save()
     buffer.seek(0)
     return buffer
+if __name__ == "__main__":
+    print("🚀 Utils module successfully loaded!")
