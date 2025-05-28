@@ -29,7 +29,7 @@ from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
 import nematode_diseases
 import insect_pests
 import parasitic_plants
-
+from field_stress_map import FIELDS
 # 📌 Newly Integrated Modules
 from disease_detection import detect_disease, detect_disease_from_database, process_image
 from disease_info import get_disease_info, DISEASE_DATABASE
