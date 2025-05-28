@@ -56,6 +56,15 @@ model_path = os.path.join(model_dir, "disease_model.pth")
 torch.save({"state_dict": model.state_dict()}, model_path)
 print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
 
+# 📌 Fonction pour charger le modèle
+def load_disease_model(model_path="model/disease_model.pth"):
+    """Charge le modèle de détection des maladies à partir d'un fichier."""
+    global model
+    checkpoint = torch.load(model_path, map_location=device)
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
+    print("✅ Modèle chargé avec succès !")
+
 # 📌 Fonction de prédiction des maladies
 def predict_disease(image_path):
     """Prédit la maladie des plantes à partir d'une image."""
@@ -75,4 +84,3 @@ def predict_disease(image_path):
         disease_name = CLASS_LABELS[predicted.item()]
     
     return disease_name
-
