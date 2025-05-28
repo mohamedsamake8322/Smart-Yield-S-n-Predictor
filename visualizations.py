@@ -19,6 +19,9 @@ FIELDS = [
     {"name": "Field B", "lat": 12.66, "lon": -7.98},
     {"name": "Field C", "lat": 12.63, "lon": -8.02},
 ]
+def generate_map():
+    m = folium.Map(location=[12.64, -8.0], zoom_start=12)
+    return m  # Retourne l'objet carte
 # 📊 Store data in SQLite
 def create_database():
     conn = sqlite3.connect("fields_data.db")

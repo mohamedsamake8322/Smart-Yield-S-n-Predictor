@@ -16,6 +16,8 @@ from psycopg2 import connect
 from jwt import decode
 from PIL import Image
 import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # 📌 Internal Modules
 import visualizations
@@ -46,7 +48,7 @@ from disease_info import Disease
 from parasitic_plants import ParasiticPlant
 from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
-from field_stress_map import generate_field_map
+from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import FIELDS
 
 
@@ -149,6 +151,46 @@ elif choice == "Disease Risk Prediction":
         )
         risk = predictor.calculate_risk()
         st.success(f"📢 Estimated Infection Risk: {risk}")
+        # 📊 Yield Visualization
+uploaded_file = st.file_uploader("📥 Upload CSV file", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    st.write("🔍 Preview of your data:", df.head())
+
+    if "PredictedYield" in df.columns:
+        st.subheader("📊 Yield Distribution")
+        fig = visualizations.plot_yield_distribution(df)
+        st.pyplot(fig)
+
+    if "timestamp" in df.columns:
+        st.subheader("📈 Yield Trend Over Time")
+        fig_line = visualizations.plot_yield_over_time(df)
+        st.pyplot(fig_line)
+
+# 🌍 Field Map Visualization
+st.subheader("🌍 Field Map")
+map_object = generate_map()
+st_folium(map_object, width=700, height=500)
+# 🌍 Affichage des prévisions de stress
+st.subheader("📊 Stress Trend Over Time")
+stress_trend_df = generate_stress_trend()
+st.line_chart(stress_trend_df.set_index("Date"))
+
+# 🔥 Affichage de la heatmap mensuelle
+st.subheader("🔥 Monthly Stress Heatmap")
+heatmap_data, field_names, months = generate_stress_heatmap(FIELDS)
+fig, ax = plt.subplots()
+sns.heatmap(heatmap_data, annot=True, xticklabels=months, yticklabels=field_names, cmap="coolwarm", ax=ax)
+st.pyplot(fig)
+
+# 🌍 Prédiction du stress basé sur la météo
+st.subheader("🌍 Weather-based Stress Prediction")
+weather_data = {"main": {"temp": 27}, "wind": {"speed": 12}}  # Simulated weather data
+for field in FIELDS:
+    predicted_stress = predict_stress(weather_data["main"]["temp"], weather_data["wind"]["speed"])
+    st.write(f"{field['name']} - Predicted Stress Level: {predicted_stress:.2f}")
+
 # Visiualization
 # ✅ Téléchargement des données utilisateur
 uploaded_file = st.file_uploader("📥 Upload your CSV file", type=["csv"])
