@@ -13,7 +13,7 @@ def plot_yield_distribution(df):
 
     fig, ax = plt.subplots()
     sns.histplot(df["PredictedYield"], bins=20, kde=True, color="green", ax=ax)
-    ax.set_title("📊 Distribution of Predicted Yields")
+    plt.rcParams["font.family"] = "Arial"
     ax.set_xlabel("Yield (tons/ha)")
     ax.set_ylabel("Frequency")
     fig.tight_layout()

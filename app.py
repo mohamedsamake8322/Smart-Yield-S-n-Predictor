@@ -17,17 +17,14 @@ from jwt import decode
 from PIL import Image
 import torch
 import visualizations
-
 visualizations.plot_yield_distribution()  # Test de l'affichage
-
+import disease_model
 # Internal Modules
-from disease_model import MODEL_PATH, DISEASE_MODEL_PATH, LOTTIE_URL
 from auth import verify_password, get_role, register_user
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from utils import validate_csv_columns, generate_pdf_report, convert_df_to_csv
-from visualizations import plot_yield_distribution, plot_yield_pie, plot_yield_over_time
 from streamlit_lottie import st_lottie
 from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
 import nematode_diseases
@@ -53,6 +50,18 @@ from parasitic_plants import ParasiticPlant
 from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import generate_field_map
+import visualizations
+import pandas as pd
+
+# Exemple de données pour le test
+data = {"PredictedYield": [12, 25, 35, 48, 55, 15, 27]}
+df = pd.DataFrame(data)
+
+# Vérification de la fonction
+fig = visualizations.plot_yield_distribution(df)
+fig.show()  # Vérifie l'affichage
+
+
 #🌍 Initialization
 st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
 st.title("🌾 Smart Sènè Yield Predictor")
@@ -62,7 +71,7 @@ init_db()
 
 # Load the Disease Detection Model
 try:
-    disease_model = load_disease_model(DISEASE_MODEL_PATH)
+    disease_model = load_disease_model()
 except Exception as e:
     disease_model = None
     logging.error(f"🛑 Model loading error: {e}")
@@ -76,7 +85,7 @@ def load_lottieurl(url):
         logging.warning(f"⚠ Lottie animation loading error: {e}")
         return None
 
-lottie_plant = load_lottieurl(LOTTIE_URL)
+lottie_plant = load_lottieurl()
 
 # 🏠Sidebar Menu
 menu = [
