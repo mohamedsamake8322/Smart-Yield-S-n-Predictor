@@ -19,7 +19,6 @@ FIELDS = [
     {"name": "Field B", "lat": 12.66, "lon": -7.98},
     {"name": "Field C", "lat": 12.63, "lon": -8.02},
 ]
-
 # 📊 Store data in SQLite
 def create_database():
     conn = sqlite3.connect("fields_data.db")
@@ -48,7 +47,7 @@ def create_database():
     print("✅ Data saved in SQLite!")
 
 # 🌦️ Retrieve weather data
-API_KEY = "VOTRE_CLE_API"
+API_KEY = "2746334b2f4cc68fe6c1e8bd86b4922e"
 
 def get_weather_data(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
