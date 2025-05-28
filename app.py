@@ -18,7 +18,8 @@ from PIL import Image
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import json
+from streamlit_lottie import st_lottie
 # 📌 Internal Modules
 import visualizations
 import disease_model
@@ -62,22 +63,21 @@ init_db()
 
 # Load the Disease Detection Model
 try:
-    disease_model = load_disease_model()
+    disease_model = load_disease_model("model/disease_model.pth")  # Exemple de chemin
+
 except Exception as e:
     disease_model = None
     logging.error(f"🛑 Model loading error: {e}")
 
 # Load the Lottie animation
-def load_lottieurl(url):
-    try:
-        r = requests.get(url, timeout=5)
-        return r.json() if r.status_code == 200 else None
-    except requests.exceptions.RequestException as e:
-        logging.warning(f"⚠ Lottie animation loading error: {e}")
-        return None
+# Charger l'animation depuis le fichier JSON
+def load_lottie_file(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
 
-lottie_plant = load_lottieurl()
-
+lottie_plant = load_lottie_file("plant_loader.json")
+st_lottie(lottie_plant, height=150)
+  # Exemple
 # 🏠Sidebar Menu
 menu = [
     "Home", "Retrain Model", "History", "Performance",
@@ -172,6 +172,7 @@ if uploaded_file:
 st.subheader("🌍 Field Map")
 map_object = generate_map()
 st_folium(map_object, width=700, height=500)
+
 # 🌍 Affichage des prévisions de stress
 st.subheader("📊 Stress Trend Over Time")
 stress_trend_df = generate_stress_trend()
