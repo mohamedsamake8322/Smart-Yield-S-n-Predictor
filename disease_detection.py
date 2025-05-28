@@ -2,6 +2,7 @@
 from PIL import Image
 from utils import predict_disease
 from disease_info import get_disease_info, DISEASE_DATABASE
+from disease_model import predict_disease  # ✅ Vérification alternative
 
 def process_image(image_file):
     """Converts an image to RGB format."""
