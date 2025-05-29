@@ -68,7 +68,18 @@ from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import generate_map
+MODEL_PATH = "model/retrained_model.pkl"
 
+def load_trained_model():
+    """Charge le modèle et ses métriques depuis le fichier sauvegardé."""
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"❌ Le fichier {MODEL_PATH} est introuvable. Entraîne d'abord le modèle.")
+
+    model_data = joblib.load(MODEL_PATH)
+    return model_data["model"], model_data["metrics"]
+
+# 📌 Chargement du modèle
+model, model_metrics = load_trained_model()
 # 📌 Database Initialization
 init_db()
 
@@ -85,7 +96,27 @@ if os.path.exists(model_path):
 else:
     disease_model = None
     logging.error(f"🚫 Model file not found at {model_path}")
+DATA_PATH = "data.csv"
 
+def load_training_data():
+    """Charge les données d'entraînement utilisées pour X_train"""
+    if not os.path.exists(DATA_PATH):
+        raise FileNotFoundError("❌ Dataset introuvable. Assurez-vous que `data.csv` existe.")
+
+    df = pd.read_csv(DATA_PATH)
+
+    # 📌 Prétraitement des données
+    if "date" in df.columns:
+        df["year"] = pd.to_datetime(df["date"]).dt.year
+        df["month"] = pd.to_datetime(df["date"]).dt.month
+
+    df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
+    X = df_encoded.drop(columns=["yield"])
+    
+    return X
+
+# 📌 Chargement des données d'entraînement
+X_train = load_training_data()
 # 🏠 Sidebar Menu
 menu = [
     "Home", "Retrain Model", "History", "Performance",
@@ -172,7 +203,8 @@ if choice == "Performance":
     st.metric("🔹 F1 Score", f"{scores['f1_score']:.2%}")
     st.metric("🔹 Precision", f"{scores['precision']:.2%}")
     st.metric("🔹 Recall", f"{scores['recall']:.2%}")
-
+    st.metric("🔹 RMSE", f"{model_metrics['rmse']:.2f}")
+    st.metric("🔹 R² Score", f"{model_metrics['r2']:.2%}")
     # 📈 Graphique interactif de la perte
     st.subheader("📉 Model Loss Over Time")
     st.line_chart(scores["loss_curve"])
@@ -204,10 +236,6 @@ if st.button("📊 Show Performance Metrics"):
     st.subheader("📉 Model Performance")
     model_data = joblib.load("model/retrained_model.pkl")  # 📥 Chargement du modèle
     scores = model_data["metrics"]  # 📊 Récupération des performances
-
-    st.metric("🔹 RMSE", f"{scores['rmse']:.2f}")
-    st.metric("🔹 R² Score", f"{scores['r2']:.2%}")
-
 # 📌 Explication des prédictions avec SHAP
 if st.button("🔍 Explain Model Predictions"):
     try:
@@ -216,6 +244,17 @@ if st.button("🔍 Explain Model Predictions"):
         st.pyplot(shap.summary_plot(shap_values))
     except Exception as e:
         st.error(f"🛑 SHAP computation failed: {e}")
+    st.subheader("🌾 Make a Yield Prediction")
+
+# 📥 Entrée utilisateur
+user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
+
+if st.button("🔍 Predict Yield"):
+    user_df = pd.DataFrame([user_input])
+    prediction = model.predict(user_df)[0]
+    st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
+    
+        
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
     if choice == "History":
