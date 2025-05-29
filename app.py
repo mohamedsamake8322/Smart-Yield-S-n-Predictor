@@ -150,7 +150,7 @@ if choice == "Retrain Model":
         st.write("🔍 Data Preview:", df.head())
 
         # ✅ Validate Dataset
-        if st.button("📊 Check Data Quality"):
+        if st.button("📊 Check Data Quality", key="data_quality_btn"):
             st.write(f"🔹 Number of samples: {len(df)}")
             st.write(f"🔹 Missing values: {df.isnull().sum().sum()}")
             st.write(f"🔹 Column details: {df.dtypes}")
@@ -159,14 +159,14 @@ if choice == "Retrain Model":
         model_type = st.selectbox("🤖 Choose Model Type", ["XGBoost", "Random Forest", "Neural Network"])
         
         # 🚀 Train New Model
-        if st.button("🚀 Retrain Model"):
+        if st.button("🚀 Retrain Model", key="retrain_model_btn"):
             with st.spinner("🔄 Training in progress..."):
                 retrained_model = train_model(df, model_type=model_type)  # Fonction à implémenter
                 save_model(retrained_model, "model/retrained_model.pkl")
                 st.success("✅ Model retrained successfully!")
 
     # 📈 Visualization
-    if st.button("📊 Show Performance Metrics"):
+    if st.button("📊 Show Performance Metrics", key="performance_metrics_btn"):
         st.subheader("📉 Model Performance")
         performance_df = evaluate_model("model/retrained_model.pkl")
         st.line_chart(performance_df)
@@ -198,7 +198,7 @@ if choice == "History":
         st.bar_chart(disease_counts)
 
         # 📥 Option pour exporter
-        if st.button("📤 Download History"):
+        if st.button("📤 Download History", key="download_history_btn"):
             filtered_df.to_csv("history.csv", index=False)
             st.success("✅ History exported successfully!")
     else:
@@ -253,24 +253,27 @@ def compute_shap_values(model_path):
     return shap_values
 
 # 📊 Affichage des métriques du modèle
-if st.button("📊 Show Performance Metrics"):
+if st.button("📊 Show Performance Metrics", key="performance_metrics_btn"):
     st.subheader("📉 Model Performance")
     model_data = joblib.load("model/retrained_model.pkl")  # 📥 Chargement du modèle
     scores = model_data["metrics"]  # 📊 Récupération des performances
+
 # 📌 Explication des prédictions avec SHAP
-if st.button("🔍 Explain Model Predictions"):
+if st.button("🔍 Explain Model Predictions", key="shap_explain_btn"):
     try:
         shap_values = compute_shap_values("model/retrained_model.pkl")
         st.subheader("📊 SHAP Feature Importance")
         st.pyplot(shap.summary_plot(shap_values))
     except Exception as e:
         st.error(f"🛑 SHAP computation failed: {e}")
-    st.subheader("🌾 Make a Yield Prediction")
+
+# 🌾 Ajout de la section de prédiction
+st.subheader("🌾 Make a Yield Prediction")
 
 # 📥 Entrée utilisateur
 user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
 
-if st.button("🔍 Predict Yield"):
+if st.button("🔍 Predict Yield", key="predict_yield_btn"):
     user_df = pd.DataFrame([user_input])
     prediction = model.predict(user_df)[0]
     st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
@@ -306,7 +309,7 @@ elif choice == "Disease Detection":
         st.bar_chart(disease_counts)
 
         # 📥 Option pour exporter
-        if st.button("📤 Download History"):
+        if st.button("📤 Download History", key="download_history_btn"):
             filtered_df.to_csv("history.csv", index=False)
             st.success("✅ History exported successfully!")
     else:
@@ -319,7 +322,7 @@ elif choice == "Disease Detection":
         image = process_image(image_file)
         st.image(image, caption="🖼️ Uploaded Image", use_column_width=True)
         
-        if st.button("🔍 Analyze Image"):
+        if st.button("🔍 Analyze Image", key="analyze_image_btn"):
             try:
                 label = predict_disease(disease_model, image)
                 disease_details = get_disease_info(label)
