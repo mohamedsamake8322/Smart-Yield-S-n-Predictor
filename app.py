@@ -97,10 +97,135 @@ choice = st.sidebar.selectbox("Menu", menu)
 if choice == "Home":
     st.subheader("👋 Welcome to Smart Sènè Yield Predictor")
     st.subheader("📈 Agricultural Yield Prediction")
+if choice == "Retrain Model":
+    st.subheader("🚀 Retraining the Model")
 
+    # 📂 Upload Dataset
+    uploaded_file = st.file_uploader("📤 Upload your dataset (CSV format)", type=["csv"])
+
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.write("🔍 Data Preview:", df.head())
+
+        # ✅ Validate Dataset
+        if st.button("📊 Check Data Quality"):
+            st.write(f"🔹 Number of samples: {len(df)}")
+            st.write(f"🔹 Missing values: {df.isnull().sum().sum()}")
+            st.write(f"🔹 Column details: {df.dtypes}")
+
+        # 🎯 Select Model Type
+        model_type = st.selectbox("🤖 Choose Model Type", ["XGBoost", "Random Forest", "Neural Network"])
+        
+        # 🚀 Train New Model
+        if st.button("🚀 Retrain Model"):
+            with st.spinner("🔄 Training in progress..."):
+                retrained_model = train_model(df, model_type=model_type)  # Fonction à implémenter
+                save_model(retrained_model, "model/retrained_model.pkl")
+                st.success("✅ Model retrained successfully!")
+
+    # 📈 Visualization
+    if st.button("📊 Show Performance Metrics"):
+        st.subheader("📉 Model Performance")
+        performance_df = evaluate_model("model/retrained_model.pkl")
+        st.line_chart(performance_df)
+if choice == "History":
+    st.subheader("📜 Prediction History")
+
+    # 🗃️ Récupérer les prédictions de l'utilisateur
+    user_predictions = get_user_predictions()
+
+    if not user_predictions.empty:
+        # 📊 Filtrer par date et maladie
+        selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
+        start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
+        end_date = st.date_input("📅 End Date", user_predictions["date"].max())
+
+        # 📌 Filtrer les données
+        filtered_df = user_predictions[
+            (user_predictions["date"] >= start_date) &
+            (user_predictions["date"] <= end_date) &
+            ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
+        ]
+
+        # 🏷️ Afficher l'historique sous forme de tableau
+        st.dataframe(filtered_df)
+
+        # 📊 Statistiques générales
+        st.subheader("📊 Prediction Statistics")
+        disease_counts = filtered_df["disease"].value_counts()
+        st.bar_chart(disease_counts)
+
+        # 📥 Option pour exporter
+        if st.button("📤 Download History"):
+            filtered_df.to_csv("history.csv", index=False)
+            st.success("✅ History exported successfully!")
+    else:
+        st.warning("⚠️ No predictions found.")
+if choice == "Performance":
+    st.subheader("📊 Model Performance Analysis")
+
+    # 📌 Chargement des scores
+    scores = evaluate_model("model/retrained_model.pkl")
+
+    # 🎯 Affichage des métriques clés
+    st.metric("🔹 Accuracy", f"{scores['accuracy']:.2%}")
+    st.metric("🔹 F1 Score", f"{scores['f1_score']:.2%}")
+    st.metric("🔹 Precision", f"{scores['precision']:.2%}")
+    st.metric("🔹 Recall", f"{scores['recall']:.2%}")
+
+    # 📈 Graphique interactif de la perte
+    st.subheader("📉 Model Loss Over Time")
+    st.line_chart(scores["loss_curve"])
+
+    # 🔍 Comparaison des modèles
+    st.subheader("📊 Model Comparison")
+    comparison_df = pd.DataFrame({
+        "Model Version": ["Previous", "Current"],
+        "Accuracy": [0.82, scores["accuracy"]],
+        "F1 Score": [0.79, scores["f1_score"]],
+    })
+    st.dataframe(comparison_df)
+
+    # 🔎 Explication des prédictions avec SHAP
+    if st.button("🔍 Explain Model Predictions"):
+        shap_values = compute_shap_values("model/retrained_model.pkl")
+        st.pyplot(shap_values)
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
-    
+    if choice == "History":
+     st.subheader("📜 Prediction History")
+
+    # 🗃️ Récupérer les prédictions de l'utilisateur
+    user_predictions = get_user_predictions()
+
+    if not user_predictions.empty:
+        # 📊 Filtrer par date et maladie
+        selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
+        start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
+        end_date = st.date_input("📅 End Date", user_predictions["date"].max())
+
+        # 📌 Filtrer les données
+        filtered_df = user_predictions[
+            (user_predictions["date"] >= start_date) &
+            (user_predictions["date"] <= end_date) &
+            ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
+        ]
+
+        # 🏷️ Afficher l'historique sous forme de tableau
+        st.dataframe(filtered_df)
+
+        # 📊 Statistiques générales
+        st.subheader("📊 Prediction Statistics")
+        disease_counts = filtered_df["disease"].value_counts()
+        st.bar_chart(disease_counts)
+
+        # 📥 Option pour exporter
+        if st.button("📤 Download History"):
+            filtered_df.to_csv("history.csv", index=False)
+            st.success("✅ History exported successfully!")
+    else:
+        st.warning("⚠️ No predictions found.")
+
     # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
     
@@ -167,4 +292,3 @@ elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in th
 
     st_folium(m, width=700, height=500)
     st.caption("🧪 Color Code: Green (low stress) - Orange (medium) - Red (high)")
-
