@@ -3,6 +3,7 @@ import streamlit as st
 from streamlit_lottie import st_lottie
 
 # 📌 Function to load the Lottie animation file
+@st.cache_data
 def load_lottie_file(filepath):
     with open(filepath, "r") as f:
         return json.load(f)
@@ -21,70 +22,47 @@ st_lottie(lottie_plant, height=150)
 # ✅ Configuration and Imports
 import os
 import logging
-import requests
 import joblib
 import pandas as pd
 import numpy as np
-import xgboost as xgb
 import plotly.express as px
 import folium
 import random
-from fastapi import FastAPI
-from streamlit_folium import st_folium
-from psycopg2 import connect
-from jwt import decode
-from PIL import Image
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 📌 Internal Modules
 import visualizations
-import disease_model
-from database import init_db, save_prediction, get_user_predictions, save_location
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
-from evaluate import evaluate_model
+from database import init_db
+from predictor import load_model
 from utils import predict_disease
-from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
-import nematode_diseases
-import insect_pests
-import parasitic_plants
 from field_stress_map import FIELDS
-
-# 📌 Newly Integrated Modules
-from disease_detection import detect_disease, detect_disease_from_database, process_image
-from disease_info import get_disease_info, DISEASE_DATABASE
-from disease_model import load_disease_model, predict_disease
-from disease_risk_predictor import DiseaseRiskPredictor
+from streamlit_folium import st_folium
+from field_stress_map import predict_stress
+# 📌 Disease Modules
+from disease_detection import process_image
+from disease_info import get_disease_info
+from disease_model import load_disease_model
 from fertilization import fertilization_ui
-from fertilization_service import get_fertilization_advice
-from fertilization_model import model
-from validation import validate_input
-from insect_pests import InsectPest
-from nematode_diseases import NematodeDisease
-from disease_info import Disease
-from parasitic_plants import ParasiticPlant
-from phytoplasma_diseases import PhytoplasmaDisease
-from viral_diseases import ViralDisease
-from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
-from visualizations import generate_map
+from disease_risk_predictor import DiseaseRiskPredictor
+from visualizations import generate_map, generate_stress_trend, generate_stress_heatmap
+
+# 📌 Cache Optimized Model Loading
+@st.cache_resource
+def load_model_safely(path):
+    if os.path.exists(path):
+        try:
+            return load_disease_model(path)
+        except Exception as e:
+            st.error(f"🛑 Error loading model: {e}")
+    else:
+        st.warning(f"🚫 Model file not found at {path}")
+    return None
 
 # 📌 Database Initialization
 init_db()
-
-# 📌 Load the Disease Detection Model
-model_path = "model/disease_model.pth"
-
-if os.path.exists(model_path):
-    try:
-        disease_model = load_disease_model(model_path)
-        print("✅ Model successfully loaded!")
-    except Exception as e:
-        disease_model = None
-        logging.error(f"🛑 Error loading the model: {e}")
-else:
-    disease_model = None
-    logging.error(f"🚫 Model file not found at {model_path}")
+disease_model = load_model_safely("model/disease_model.pth")
 
 # 🏠 Sidebar Menu
 menu = [
@@ -93,28 +71,28 @@ menu = [
 ]
 choice = st.sidebar.selectbox("Menu", menu)
 
-#🔍 Page Display
+# 🔍 Page Display
 if choice == "Home":
     st.subheader("👋 Welcome to Smart Sènè Yield Predictor")
     st.subheader("📈 Agricultural Yield Prediction")
 
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
-    
+
     # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
     
     if image_file:
         image = process_image(image_file)
         st.image(image, caption="🖼️ Uploaded Image", use_column_width=True)
-        
+
         if st.button("🔍 Analyze Image"):
             try:
-                label = predict_disease(disease_model, image)
+                label = predict_disease(image)
                 disease_details = get_disease_info(label)
-                
+
                 st.success(f"✅ Detected Disease: **{label}**")
-                
+
                 if disease_details and disease_details != "⚠️ Disease not found.":
                     st.markdown(f"**ℹ️ Symptoms:** {disease_details.symptoms}")
                     st.markdown(f"**🦠 Pathogens:** {', '.join(disease_details.causal_agents)}")
@@ -123,14 +101,14 @@ elif choice == "Disease Detection":
                     st.markdown(f"**🛑 Control Methods:** {disease_details.control}")
                 else:
                     st.warning("⚠️ No detailed information found.")
-            
+
             except Exception as e:
                 st.error(f"🛑 Detection error: {e}")
 
 elif choice == "Fertilization Advice":
     fertilization_ui()
 
-elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in this section
+elif choice == "Field Map":
     st.subheader("🌍 Field Map")
     map_object = generate_map()
     st_folium(map_object, width=700, height=500)
@@ -159,7 +137,7 @@ elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in th
         folium.CircleMarker(
             location=[field["lat"], field["lon"]],
             radius=10,
-            popup=f"{field['name']} - Stress: {stress_level:.2f}",
+            popup=f"<b>{field['name']}</b><br>Stress Level: {stress_level:.2f}",
             color=color,
             fill=True,
             fill_color=color
@@ -168,3 +146,21 @@ elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in th
     st_folium(m, width=700, height=500)
     st.caption("🧪 Color Code: Green (low stress) - Orange (medium) - Red (high)")
 
+elif choice == "Disease Risk Prediction":
+    st.subheader("🦠 Disease Risk Prediction")
+    disease_name = st.selectbox("Disease Type", ["Viral", "Bacterial", "Fungal", "Phytoplasma", "Abiotic", "Insect Damage"])
+    col1, col2 = st.columns(2)
+    temperature = col1.slider("🌡️ Temperature (°C)", 10, 50, 25)
+    humidity = col2.slider("💧 Humidity (%)", 10, 100, 60)
+    wind_speed = st.slider("💨 Wind Speed (km/h)", 0, 50, 10)
+    soil_type = st.selectbox("🌱 Soil Type", ["Sandy", "Clay", "Loamy"])
+    aphid_population = st.slider("🦟 Aphid Density", 0, 1000, 500)
+    crop_stage = st.selectbox("🌾 Growth Stage", ["Young", "Growing", "Mature"])
+    season = st.selectbox("📆 Season", ["Spring", "Summer", "Autumn", "Winter"])
+
+    if st.button("🔍 Predict Infection Risk"):
+        predictor = DiseaseRiskPredictor(
+            disease_name, temperature, humidity, wind_speed, soil_type, aphid_population, crop_stage, season
+        )
+        risk = predictor.calculate_risk()
+        st.success(f"📢 Estimated Infection Risk: {risk}")
