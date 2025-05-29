@@ -6,7 +6,7 @@ from disease_model import load_disease_model  # ✅ Importation ajoutée
 
 # ✅ Chargement du modèle AVANT de l'utiliser
 start_time = time.time()
-disease_model = load_disease_model("resnet18_disease_model.pth")  
+disease_model = load_disease_model("disease_model.pth")  
 end_time = time.time()
 
 if disease_model:

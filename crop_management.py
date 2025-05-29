@@ -11,7 +11,7 @@ from disease_info import search_disease
 from insect_pests import search_pest, predict_pest_control
 
 # Chargement du modèle de reconnaissance des maladies
-MODEL_PATH = "resnet18_disease_model.pth"
+MODEL_PATH = "disease_model.pth"
 try:
     disease_model = load_disease_model(MODEL_PATH)
     print("✅ Disease detection model loaded successfully!")

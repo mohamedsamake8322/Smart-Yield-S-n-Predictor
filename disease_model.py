@@ -57,9 +57,13 @@ torch.save({"state_dict": model.state_dict()}, model_path)
 print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
 
 # 📌 Fonction pour charger le modèle
-def load_disease_model(model_path="model/disease_model.pth"):
+def load_disease_model(model_path="C:/Mohamed/model/disease_model.pth"):
     """Charge le modèle de détection des maladies à partir d'un fichier."""
     global model
+
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"❌ Fichier non trouvé: {model_path}")
+
     checkpoint = torch.load(model_path, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
