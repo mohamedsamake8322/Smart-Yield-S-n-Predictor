@@ -273,10 +273,22 @@ def compute_shap_values(model_path):
     shap_values = explainer(X_sample)
 
     return shap_values
+# 📂 Upload du dataset
+uploaded_file = st.file_uploader("📤 Upload your dataset (CSV format)", type=["csv"])
 
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)  # ✅ Chargement dynamique des données
+    st.write("🔍 Data Preview:", df.head())  # 📌 Afficher un aperçu des premières lignes
+
+    # ✅ Convertir les colonnes catégoriques AVANT d'utiliser SHAP
+    categorical_columns = ["soil_type", "crop_type"]
+    for col in categorical_columns:
+        df[col] = df[col].astype("category")  # 🔄 Convertir en format accepté
+
+    st.success("✅ Dataset loaded and formatted successfully!")
 if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
     try:
-        shap_values = compute_shap_values("model/retrained_model.pkl")
+        shap_values = compute_shap_values(df)  # ✅ Utilise le dataset uploadé !
         if shap_values is not None:
             st.subheader("📊 SHAP Feature Importance")
             st.pyplot(shap.summary_plot(shap_values))
