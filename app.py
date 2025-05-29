@@ -183,24 +183,18 @@ def fetch_user_predictions():
     """Appelle l'API Flask pour récupérer les prédictions"""
     url = "http://127.0.0.1:5000/get_user_predictions"  # Assure-toi que Flask tourne sur ce port
     response = requests.get(url)
-
     if response.status_code == 200:
         return response.json()  # Récupère les données sous format JSON
     else:
-        return None  # ✅ Ne pas afficher l'erreur ici, on le gère côté Streamlit
-
-# 🔹 Ensuite, tu peux appeler la fonction
+        return None  # ✅ Évite une erreur en retournant `None`
+# 🔹 Appel de la fonction AVANT d'utiliser `user_predictions`
 if choice == "History":
     st.subheader("📜 Prediction History")
-
-    # 🔄 Récupérer les prédictions via l'API
-    user_predictions = fetch_user_predictions()
-
-    if user_predictions:  # Vérifie que les données ont bien été récupérées
+    user_predictions = fetch_user_predictions()  # ✅ Cette ligne doit être ici !
+    if user_predictions:  # Vérifie que les données sont bien récupérées
         st.json(user_predictions)  # 📊 Affichage JSON dans Streamlit
     else:
         st.error("🛑 Aucune prédiction trouvée.")
-
 if user_predictions:  # Vérifie que les données ont été récupérées
     user_predictions = pd.DataFrame(user_predictions)  # Convertir en DataFrame
     predictions = fetch_user_predictions()
