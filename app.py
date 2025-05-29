@@ -177,19 +177,45 @@ if choice == "Performance":
     st.subheader("📉 Model Loss Over Time")
     st.line_chart(scores["loss_curve"])
 
-    # 🔍 Comparaison des modèles
-    st.subheader("📊 Model Comparison")
-    comparison_df = pd.DataFrame({
-        "Model Version": ["Previous", "Current"],
-        "Accuracy": [0.82, scores["accuracy"]],
-        "F1 Score": [0.79, scores["f1_score"]],
-    })
-    st.dataframe(comparison_df)
+# 📌 Définition de `compute_shap_values()`
+def compute_shap_values(model_path):
+    """Calculer et afficher l'importance des caractéristiques avec SHAP"""
+    if not os.path.exists(model_path):
+        raise FileNotFoundError("❌ Model file not found. SHAP cannot be computed.")
 
-    # 🔎 Explication des prédictions avec SHAP
-    if st.button("🔍 Explain Model Predictions"):
+    model_data = joblib.load(model_path)  # Charger le modèle
+    model = model_data["model"]
+
+    # 📌 Chargement d'un échantillon de données
+    data_path = "data.csv"
+    if not os.path.exists(data_path):
+        raise FileNotFoundError("❌ Dataset not found. SHAP requires sample data.")
+
+    df = pd.read_csv(data_path)
+    X_sample = df.sample(100).drop(columns=["yield"])  # Sélectionner un échantillon
+    
+    explainer = shap.Explainer(model)
+    shap_values = explainer(X_sample)
+
+    return shap_values
+
+# 📊 Affichage des métriques du modèle
+if st.button("📊 Show Performance Metrics"):
+    st.subheader("📉 Model Performance")
+    model_data = joblib.load("model/retrained_model.pkl")  # 📥 Chargement du modèle
+    scores = model_data["metrics"]  # 📊 Récupération des performances
+
+    st.metric("🔹 RMSE", f"{scores['rmse']:.2f}")
+    st.metric("🔹 R² Score", f"{scores['r2']:.2%}")
+
+# 📌 Explication des prédictions avec SHAP
+if st.button("🔍 Explain Model Predictions"):
+    try:
         shap_values = compute_shap_values("model/retrained_model.pkl")
-        st.pyplot(shap_values)
+        st.subheader("📊 SHAP Feature Importance")
+        st.pyplot(shap.summary_plot(shap_values))
+    except Exception as e:
+        st.error(f"🛑 SHAP computation failed: {e}")
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
     if choice == "History":
@@ -197,7 +223,7 @@ elif choice == "Disease Detection":
 
     # 🗃️ Récupérer les prédictions de l'utilisateur
     user_predictions = get_user_predictions()
-
+    
     if not user_predictions.empty:
         # 📊 Filtrer par date et maladie
         selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
