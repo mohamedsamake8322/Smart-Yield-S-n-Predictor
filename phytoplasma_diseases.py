@@ -2,6 +2,7 @@ import random
 
 class PhytoplasmaDisease:
     def __init__(self, name, causal_agents, vectors, affected_crops, distribution, symptoms, conditions, control):
+        """Initializes a phytoplasma disease."""
         self.name = name
         self.causal_agents = causal_agents
         self.vectors = vectors
@@ -16,7 +17,11 @@ class PhytoplasmaDisease:
         attributes = vars(self)
         return "\n".join(f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in attributes.items())
 
-# 📌 Expanded list of phytoplasma diseases
+    def to_dict(self):
+        """Returns disease details as a dictionary."""
+        return vars(self)
+
+# 📌 List of phytoplasma diseases
 phytoplasma_diseases = [
     PhytoplasmaDisease(
         "Little Leaf Phytoplasma",
@@ -57,45 +62,16 @@ phytoplasma_diseases = [
         "Stunted growth, deformed leaves, severe yield loss.",
         "Heat and humidity favor spread.",
         "Remove infected plants, biological control of leafhoppers."
-    ),
-    PhytoplasmaDisease(
-        "Banana Wilt Phytoplasma",
-        ["Banana Wilt Phytoplasma"],
-        ["Planthoppers (Pentalonia nigronervosa)"],
-        ["Banana"],
-        "Africa, Latin America",
-        "Early leaf yellowing, wilting, reduced banana bunches.",
-        "Humid soil with high vector density.",
-        "Control planthoppers, improve drainage, strict plantation monitoring."
-    ),
-    PhytoplasmaDisease(
-        "Potato Witches’ Broom Phytoplasma",
-        ["Potato Witches’ Broom Phytoplasma"],
-        ["Leafhoppers (Bactericera cockerelli)"],
-        ["Potatoes"],
-        "North America, Asia",
-        "Distorted foliage, underdeveloped tubers, abnormal bud growth.",
-        "Warm temperatures favor infection.",
-        "Use resistant varieties, remove diseased plants, treat vectors."
-    ),
-    PhytoplasmaDisease(
-        "Citrus Greening (Huanglongbing - HLB)",
-        ["Candidatus Liberibacter spp."],
-        ["Asian citrus psyllid (Diaphorina citri)"],
-        ["Citrus"],
-        "Asia, Africa, South America",
-        "Yellowing leaves, deformed fruits, progressive tree death.",
-        "Warm climate, high vector presence.",
-        "Remove infected trees, biological control of psyllids, plantation monitoring."
     )
 ]
 
-# 🔎 Efficient phytoplasma disease search
+# 🔎 Search function for phytoplasma diseases
 def get_phytoplasma_disease_by_name(name):
-    """Search for a phytoplasma-caused disease by name."""
-    return next((disease for disease in phytoplasma_diseases if disease.name.lower() == name.lower()), "❌ Disease not found.")
+    """Retrieve phytoplasma disease details by name."""
+    disease = next((d for d in phytoplasma_diseases if d.name.lower() == name.lower()), None)
+    return disease.to_dict() if disease else {"error": f"❌ '{name}' not found in database."}
 
-# 📊 Advanced phytoplasma detection system
+# 🌱 Prediction system for phytoplasma diseases
 def detect_phytoplasma_disease(symptom, climate, soil_type):
     """Predicts which phytoplasma disease may be present based on symptoms and climatic conditions."""
     possible_diseases = []
@@ -103,19 +79,19 @@ def detect_phytoplasma_disease(symptom, climate, soil_type):
     for disease in phytoplasma_diseases:
         if symptom.lower() in disease.symptoms.lower():
             favorable_conditions = (
-                ("hot" in climate.lower() and "warm temperatures" in disease.conditions) or
-                ("humid" in climate.lower() and "humidity" in disease.conditions) or
-                ("dry" in climate.lower() and "dry soil" in disease.conditions)
+                ("warm" in disease.conditions and "hot" in climate.lower())
+                or ("humid" in disease.conditions and "humid" in climate.lower())
+                or ("dry" in disease.conditions and "dry" in climate.lower())
             )
             if favorable_conditions:
                 possible_diseases.append(disease.name)
 
-    if possible_diseases:
-        return f"💡 Suspected diseases: {', '.join(possible_diseases)}"
-    else:
-        return "❌ No matching phytoplasma disease detected based on symptoms and conditions."
+    return {"suspected_diseases": possible_diseases} if possible_diseases else {"error": "❌ No matching disease detected."}
 
-# Example usage of the detection system
+# ✅ Message de chargement des données
+print(f"🚀 Phytoplasma disease database loaded successfully! ({len(phytoplasma_diseases)} diseases available)")
+
+# 📌 Example usage of prediction system
 symptom = "Yellowing leaves and deformed fruits"
 climate = "hot and humid"
 soil_type = "clay"

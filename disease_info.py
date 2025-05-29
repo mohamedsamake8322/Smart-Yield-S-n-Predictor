@@ -14,6 +14,10 @@ class Disease:
         attributes = vars(self)
         return "\n".join(f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in attributes.items())
 
+    def to_dict(self):
+        """Returns disease details as a dictionary."""
+        return vars(self)  # 🔹 Permet d'obtenir une version exploitable de l'objet
+
 # 📌 Centralized disease database
 DISEASE_DATABASE = {
     "Anthracnose": Disease(
@@ -48,6 +52,11 @@ diseases = list(DISEASE_DATABASE.keys())  # ✅ Ajout explicite de `diseases` po
 # 🔎 Efficient disease retrieval
 def get_disease_info(name):
     """Search for a disease by its name."""
-    return DISEASE_DATABASE.get(name, "⚠️ Disease not found.")
+    disease = DISEASE_DATABASE.get(name)
+    if disease:
+        return disease.to_dict()  # 🔹 Retourner les détails sous forme de dictionnaire
+    else:
+        return {"error": f"⚠️ '{name}' not found in the database."}
 
-print("🚀 Disease database loaded successfully!")
+# ✅ Affichage clair du chargement de la base de données
+print(f"🚀 Disease database loaded successfully! ({len(DISEASE_DATABASE)} diseases available)")

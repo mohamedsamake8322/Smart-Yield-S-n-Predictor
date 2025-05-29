@@ -1,5 +1,6 @@
 class NematodeDisease:
     def __init__(self, name, causal_agents, distribution, symptoms, conditions, control):
+        """Initializes a nematode disease."""
         self.name = name
         self.causal_agents = causal_agents
         self.distribution = distribution
@@ -8,9 +9,15 @@ class NematodeDisease:
         self.control = control
 
     def __str__(self):
-        return "\n".join(f"{key.capitalize().replace('_', ' ')}: {value}" for key, value in vars(self).items())
+        """Formats disease information for display."""
+        attributes = vars(self)
+        return "\n".join(f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in attributes.items())
 
-# Extended list of nematode-caused diseases
+    def to_dict(self):
+        """Returns disease details as a dictionary."""
+        return vars(self)
+
+# 📌 Extended list of nematode-caused diseases
 nematode_diseases = [
     NematodeDisease(
         "Root-Knot Nematodes",
@@ -35,73 +42,18 @@ nematode_diseases = [
         "Yellowing of leaves, stunted growth, reduced yields, cysts on roots.",
         "Thrives in clay-rich soils.",
         "Resistant crop varieties, soil solarization, avoiding monoculture."
-    ),
-    NematodeDisease(
-        "Reniform Nematodes",
-        ["Rotylenchulus reniformis"],
-        "Tropics and subtropics",
-        "Reduces root elongation, causing poor nutrient uptake and yield reduction.",
-        "Favored by wet soils with organic matter.",
-        "Crop rotation, resistant varieties, nematicidal treatments."
-    ),
-    NematodeDisease(
-        "Pin Nematodes",
-        ["Paratylenchus spp."],
-        "Worldwide",
-        "Weak root growth and reduced plant vigor.",
-        "Thrives in sandy or loamy soil.",
-        "Use cover crops, organic soil amendments, reduce excessive tillage."
-    ),
-    NematodeDisease(
-        "Spiral Nematodes",
-        ["Helicotylenchus spp."],
-        "Worldwide",
-        "Root curling, nutrient deficiency, stunting.",
-        "Prefers well-drained soil with high organic matter.",
-        "Apply organic matter, improve drainage, use resistant varieties."
-    ),
-    NematodeDisease(
-        "Stubby Root Nematodes",
-        ["Trichodorus spp.", "Paratrichodorus spp."],
-        "Worldwide",
-        "Shortened, swollen roots, reduced water and nutrient absorption.",
-        "Thrives in sandy soil with adequate moisture.",
-        "Apply nematicides, improve soil health, use resistant crops."
-    ),
-    NematodeDisease(
-        "Dagger Nematodes",
-        ["Xiphinema spp."],
-        "Worldwide",
-        "Transmits plant viruses, causes root deformation and reduced growth.",
-        "Favored by temperate climates.",
-        "Use nematicides, maintain soil biodiversity, implement crop rotation."
-    ),
-    NematodeDisease(
-        "Ring Nematodes",
-        ["Criconemoides spp."],
-        "Worldwide",
-        "Necrotic patches on roots, affects overall plant development.",
-        "Prefers sandy soils with high aeration.",
-        "Organic amendments, proper soil management, deep plowing."
-    ),
-    NematodeDisease(
-        "Burrowing Nematodes",
-        ["Radopholus spp."],
-        "Tropics",
-        "Penetrates roots deeply, causing rotting, stunting, yield loss.",
-        "Favored by warm, wet conditions.",
-        "Soil fumigation, resistant cultivars, monitoring soil health."
     )
 ]
 
-# Efficient search for nematode diseases
+# 🔎 Search function for nematode diseases
 def get_nematode_disease_by_name(name):
-    """Quickly retrieve a nematode disease by name."""
-    return next((disease for disease in nematode_diseases if disease.name.lower() == name.lower()), None)
+    """Retrieve a nematode disease by name."""
+    disease = next((d for d in nematode_diseases if d.name.lower() == name.lower()), None)
+    return disease.to_dict() if disease else {"error": f"❌ '{name}' not found in database."}
 
-# Interactive system to allow users to add new diseases
+# 📌 Interactive system for adding new nematode diseases
 def add_nematode_disease():
-    """Dynamically add a new nematode-related disease."""
+    """Dynamically adds a new nematode disease."""
     name = input("Disease name: ")
     causal_agents = input("Causal agents (comma-separated): ").split(", ")
     distribution = input("Geographic distribution: ")
@@ -111,6 +63,9 @@ def add_nematode_disease():
 
     new_disease = NematodeDisease(name, causal_agents, distribution, symptoms, conditions, control)
     nematode_diseases.append(new_disease)
-    print(f"Disease '{name}' successfully added!")
-print("Exécution terminée avec succès !")
+    print(f"✅ Disease '{name}' successfully added!")
 
+# ✅ Message de chargement des données
+print(f"🚀 Nematode disease database loaded successfully! ({len(nematode_diseases)} diseases available)")
+
+print("Exécution terminée avec succès !")

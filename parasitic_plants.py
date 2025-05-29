@@ -2,6 +2,7 @@ import random
 
 class ParasiticPlant:
     def __init__(self, name, scientific_name, affected_crops, distribution, symptoms, conditions, control):
+        """Initializes a parasitic plant with all its relevant attributes."""
         self.name = name
         self.scientific_name = scientific_name
         self.affected_crops = affected_crops
@@ -11,9 +12,15 @@ class ParasiticPlant:
         self.control = control
 
     def __str__(self):
-        return "\n".join(f"{key.capitalize().replace('_', ' ')}: {value}" for key, value in vars(self).items())
+        """Formats plant information for display."""
+        attributes = vars(self)
+        return "\n".join(f"{key.replace('_', ' ').capitalize()}: {value}" for key, value in attributes.items())
 
-# Extended list of parasitic plants
+    def to_dict(self):
+        """Returns plant details as a dictionary."""
+        return vars(self)
+
+# 📌 List of parasitic plants
 parasitic_plants = [
     ParasiticPlant(
         "Dodder",
@@ -62,30 +69,33 @@ parasitic_plants = [
     )
 ]
 
-# Efficient search for parasitic plants
+# 🔎 Search function for parasitic plants
 def get_parasitic_plant_by_name(name):
-    """Quickly retrieve a parasitic plant by name."""
-    return next((plant for plant in parasitic_plants if plant.name.lower() == name.lower()), None)
+    """Retrieve a parasitic plant by name."""
+    plant = next((p for p in parasitic_plants if p.name.lower() == name.lower()), None)
+    return plant.to_dict() if plant else {"error": f"❌ '{name}' not found in database."}
 
-# Infestation prediction system
+# 🌱 Infestation risk prediction
 def predict_infestation(crop, temperature, humidity, soil_type):
-    """Predicts the risk of infestation based on climatic and plant conditions."""
-    risk_level = random.uniform(0, 1)  
+    """Predicts infestation risk based on crop and environmental conditions."""
+    risk_level = random.uniform(0, 0.7)  
 
     for plant in parasitic_plants:
         if crop in plant.affected_crops:
             favorable_conditions = (
-                (20 <= temperature <= 35 if "warm climates" in plant.conditions else True)
-                and (humidity > 50 if "humid environments" in plant.conditions else True)
-                and (soil_type == "sandy" if "sandy soils" in plant.conditions else True)
+                ("warm" in plant.conditions and 20 <= temperature <= 35)
+                or ("humid" in plant.conditions and humidity > 50)
+                or ("sandy" in plant.conditions and soil_type == "sandy")
             )
-
             if favorable_conditions:
                 risk_level += 0.3  
 
     return f"Predicted infestation risk for {crop}: {min(risk_level, 1):.2f} (0 = low, 1 = high)"
 
-# Example usage of prediction system
+# ✅ Message de chargement des données
+print(f"🚀 Parasitic plant database loaded successfully! ({len(parasitic_plants)} plants available)")
+
+# 📌 Example usage of prediction system
 crop = "Tomatoes"
 temperature = 30  
 humidity = 60  
