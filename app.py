@@ -176,25 +176,32 @@ if choice == "Retrain Model":
         st.subheader("📉 Model Performance")
         performance_df = evaluate_model("model/retrained_model.pkl")
         st.line_chart(performance_df)
-import requests  # Assure-toi d'importer `requests` au début
+import requests
+import pandas as pd
 
-# 🔹 Définition de la fonction avant de l'appeler
+# 🔹 Définition correcte de la fonction avant utilisation
 def fetch_user_predictions():
     """Appelle l'API Flask pour récupérer les prédictions"""
-    url = "http://127.0.0.1:5000/get_user_predictions"  # Assure-toi que Flask tourne sur ce port
+    url = "http://127.0.0.1:5000/get_user_predictions"
     response = requests.get(url)
+
     if response.status_code == 200:
-        return response.json()  # Récupère les données sous format JSON
+        return response.json()  # ✅ Retourne le JSON si l'appel réussit
     else:
-        return None  # ✅ Évite une erreur en retournant `None`
-# 🔹 Appel de la fonction AVANT d'utiliser `user_predictions`
+        return None  # ✅ Évite une erreur
+
+# 🔹 Utilisation correcte de la fonction
 if choice == "History":
     st.subheader("📜 Prediction History")
-    user_predictions = fetch_user_predictions()  # ✅ Cette ligne doit être ici !
-    if user_predictions:  # Vérifie que les données sont bien récupérées
-        st.json(user_predictions)  # 📊 Affichage JSON dans Streamlit
+
+    user_predictions = fetch_user_predictions()  # ✅ Appel bien placé
+
+    if user_predictions and "predictions" in user_predictions:
+        df_predictions = pd.DataFrame(user_predictions["predictions"])  # ✅ Sécurise la conversion
+        st.dataframe(df_predictions)  # 📊 Affichage structuré des prédictions
     else:
         st.error("🛑 Aucune prédiction trouvée.")
+        
 if user_predictions:  # Vérifie que les données ont été récupérées
     user_predictions = pd.DataFrame(user_predictions)  # Convertir en DataFrame
     predictions = fetch_user_predictions()
