@@ -37,7 +37,7 @@ from PIL import Image
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import shap
 # 📌 Internal Modules
 import visualizations
 import disease_model
