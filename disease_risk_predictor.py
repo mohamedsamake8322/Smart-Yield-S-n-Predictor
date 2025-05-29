@@ -23,7 +23,7 @@ class DiseaseRiskPredictor:
 
     def calculate_risk(self):
         """Calculate the infection risk based on environmental conditions."""
-        base_risk = random.uniform(0.2, 0.8)  
+        base_risk = random.uniform(0.0, 0.6)  # Ajuste pour une meilleure précision  
 
         disease_factors = {
             "viral": {"temperature_range": (25, 35), "humidity_range": (50, 80), "insect": "aphid"},
@@ -35,21 +35,29 @@ class DiseaseRiskPredictor:
 
         if self.disease_name.lower() in disease_factors:
             factors = disease_factors[self.disease_name.lower()]
-
-            if factors["temperature_range"][0] <= self.temperature <= factors["temperature_range"][1]:
-                base_risk += 0.15
-            if factors["humidity_range"][0] <= self.humidity <= factors["humidity_range"][1]:
-                base_risk += 0.20
-            if self.wind_speed > 20 and self.disease_name.lower() == "fungal":
-                base_risk += 0.25  
-            if self.soil_type == "clayey" and self.disease_name.lower() == "bacterial":
-                base_risk += 0.10  
-            if factors["insect"] and self.aphid_population > 500:
-                base_risk += 0.30  
+            adjustments = [
+                (factors["temperature_range"][0] <= self.temperature <= factors["temperature_range"][1], 0.15),
+                (factors["humidity_range"][0] <= self.humidity <= factors["humidity_range"][1], 0.20),
+                (self.wind_speed > 20 and self.disease_name.lower() == "fungal", 0.25),
+                (self.soil_type == "clayey" and self.disease_name.lower() == "bacterial", 0.10),
+                (factors["insect"] and self.aphid_population > 500, 0.30)
+            ]
+            base_risk += sum(value for condition, value in adjustments if condition)
 
         base_risk += self.get_seasonal_adjustment()  
         base_risk = min(base_risk, 1)  
-        return f"🔍 Estimated infection risk for {self.disease_name}: {base_risk:.2f} (0 = low, 1 = high)"
+
+        print(f"🧐 Evaluating {self.disease_name} risk...\n"
+              f"🌡️ Temperature: {self.temperature}°C\n"
+              f"💧 Humidity: {self.humidity}%\n"
+              f"🍃 Wind Speed: {self.wind_speed} km/h\n"
+              f"🌱 Soil Type: {self.soil_type}\n"
+              f"🐜 Aphid Population: {self.aphid_population}\n"
+              f"🌾 Crop Stage: {self.crop_stage}\n"
+              f"🍂 Season: {self.season}\n"
+              f"🔍 Final Risk Score: {base_risk:.2f}")
+
+        return base_risk  # 🔹 Correction : La fonction retourne le score
 
 # Example usage of the predictive model
 predictor = DiseaseRiskPredictor(
@@ -63,5 +71,5 @@ predictor = DiseaseRiskPredictor(
     season="summer"
 )
 
-print(predictor.calculate_risk())
+print(predictor.calculate_risk())  # ✅ Affiche le score correctement
 print("Exécution terminée avec succès !")

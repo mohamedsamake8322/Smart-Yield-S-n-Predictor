@@ -97,6 +97,10 @@ X = df_encoded.drop(columns=["yield"])
 y = df_encoded["yield"]
 # 📌 Load the Disease Detection Model
 model_path = "model/disease_model.pth"
+if disease_model:
+    print("✅ Modèle chargé avec succès !")
+else:
+    print("❌ Erreur : Le modèle n'est pas chargé.")
 
 if os.path.exists(model_path):
     try:
@@ -279,13 +283,17 @@ if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
         st.pyplot(shap.summary_plot(shap_values))
     except Exception as e:
         st.error(f"🛑 SHAP computation failed: {e}")    
+        
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
     if choice == "History":
      st.subheader("📜 Prediction History")
     # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
-    
+    image_test = "chemin/vers/une/image_de_test.jpg"  # Remplace par une vraie image
+    label = predict_disease(disease_model, image_test)
+    print(f"🔍 Maladie détectée : {label}")
+
     if image_file:
         image = process_image(image_file)
         st.image(image, caption="🖼️ Uploaded Image", use_column_width=True)

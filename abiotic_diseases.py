@@ -7,10 +7,13 @@ class AbioticDisease:
         self.symptoms = symptoms
         self.conditions = conditions
         self.control = control
+    def to_dict(self):
+        return vars(self)
 
     def __str__(self):
-        details = vars(self)  # Récupère les attributs sous forme de dictionnaire
-        return "\n".join(f"{key.capitalize().replace('_', ' ')}: {value}" for key, value in details.items())
+        details = vars(self)
+        return "\n".join(f"🔹 {key.capitalize().replace('_', ' ')}: {value}" for key, value in details.items())
+
 
 # Bibliothèque sous forme de dictionnaire pour un accès plus rapide
 abiotic_diseases = {
@@ -39,10 +42,13 @@ abiotic_diseases = {
         "Optimized irrigation and nutrition, avoiding high humidity in greenhouses."
     )
 }
-
 def get_abiotic_disease_by_name(name):
     """Recherche rapide d'une maladie abiotique."""
-    return abiotic_diseases.get(name, None)
+    disease = abiotic_diseases.get(name)
+    if disease:
+        return disease
+    else:
+        return f"⚠️ La maladie '{name}' n'existe pas dans la base de données."
 
 # Exemple d'affichage
 print(get_abiotic_disease_by_name("Blossom-End Rot"))

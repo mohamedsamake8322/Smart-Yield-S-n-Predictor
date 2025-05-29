@@ -2,26 +2,18 @@
 from PIL import Image
 from utils import predict_disease
 from disease_info import get_disease_info, DISEASE_DATABASE
-from disease_model import predict_disease  # ✅ Vérification alternative
-
 def process_image(image_file):
     """Converts an image to RGB format."""
     return Image.open(image_file).convert("RGB")
 
 def detect_disease(disease_model=None, image=None, symptom=None):
-    """
-    Detects a disease based on an image or a symptom.
-    - If `image` is provided, uses the AI model for prediction.
-    - If `symptom` is provided, searches for the corresponding disease.
-    """
+    """Detects disease based on image or symptom."""
     if image and disease_model:
         label = predict_disease(disease_model, image)
         detected_plant = label.split()[0] if label else "Unknown"
-        disease_details = get_disease_info(label)
+        disease_details = get_disease_info(label) if label and label in DISEASE_DATABASE else None
     elif symptom:
-        disease_details = next(
-            (disease for disease in DISEASE_DATABASE.values() if symptom.lower() in disease.symptoms.lower()), None
-        )
+        disease_details = next((d for d in DISEASE_DATABASE.values() if symptom.lower() in d.symptoms.lower()), None)
         label = disease_details.name if disease_details else "Unknown"
         detected_plant = "Unknown"
     else:
@@ -30,9 +22,8 @@ def detect_disease(disease_model=None, image=None, symptom=None):
     return {
         "label": label,
         "plant": detected_plant,
-        "info": disease_details
+        "info": disease_details or "⚠️ No matching disease found."
     }
-
 # ✅ Example usage based on symptoms:
 symptom_query = "Water-soaked areas on leaves"
 detected_disease = detect_disease(symptom=symptom_query)
@@ -89,16 +80,21 @@ class Disease:
         self.symptoms = symptoms
         self.conditions = conditions
         self.control = control
-        self.vectors = vectors if vectors else []
+        self.vectors = vectors or []
+
+    def to_dict(self):
+        """Returns the disease info as a dictionary."""
+        return vars(self)
 
     def __str__(self):
+        """Formats disease information for display."""
         vector_info = f"Vectors: {', '.join(self.vectors)}\n" if self.vectors else ""
         return (
             f"{self.name}\n"
             f"Causal Agents: {', '.join(self.causal_agents)}\n"
             f"Distribution: {self.distribution}\n"
             f"Symptoms: {self.symptoms}\n"
-            f"Conditions for Disease Development: {self.conditions}\n"
+            f"Conditions: {self.conditions}\n"
             f"Control: {self.control}\n"
             f"{vector_info}"
         )
