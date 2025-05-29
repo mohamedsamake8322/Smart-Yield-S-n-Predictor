@@ -9,7 +9,13 @@ import shap
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 
-# 🔍 Vérification du dataset
+# 📂 Vérification du dossier "model" et création si nécessaire
+MODEL_DIR = "model"
+if not os.path.exists(MODEL_DIR):
+    os.makedirs(MODEL_DIR)  # ✅ Création automatique du dossier
+    print(f"✅ Created directory: {MODEL_DIR}")
+
+# 🔍 Chargement du dataset
 DATA_PATH = "data.csv"
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError("❌ data.csv not found. Please check its location.")
@@ -58,9 +64,9 @@ explainer = shap.Explainer(best_model)
 shap_values = explainer(X_train)
 shap.summary_plot(shap_values, X_train)
 
-# 💾 Sauvegarde du modèle et des métriques
-MODEL_PATH = "model/retrained_model.pkl"
-METRICS_PATH = "model/retrained_model_metrics.json"
+# 💾 Sauvegarde du modèle et des métriques dans "model/retrained_model.pkl"
+MODEL_PATH = os.path.join(MODEL_DIR, "retrained_model.pkl")
+METRICS_PATH = os.path.join(MODEL_DIR, "retrained_model_metrics.json")
 
 metrics = {"rmse": rmse, "r2": r2}
 with open(METRICS_PATH, "w") as f:
