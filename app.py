@@ -1,8 +1,8 @@
 import json
 import streamlit as st
 from streamlit_lottie import st_lottie
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split  # ✅ Supprime l'importation en double
+
 # 📌 Function to load the Lottie animation file
 def load_lottie_file(filepath):
     with open(filepath, "r") as f:
@@ -11,7 +11,7 @@ def load_lottie_file(filepath):
 # 🔹 Load the Lottie animation
 lottie_plant = load_lottie_file("plant_loader.json")
 
-#🌍 Initialization
+# 🌍 Initialization
 st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
 st.title("🌱 Welcome to Smart Sènè!")
 st.write("🌾 Smart Sènè helps you predict plant diseases and improve your crops using artificial intelligence. 🌍✨")
@@ -39,7 +39,7 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
-import requests
+
 # 📌 Internal Modules
 import visualizations
 import disease_model
@@ -52,11 +52,11 @@ import nematode_diseases
 import insect_pests
 import parasitic_plants
 from field_stress_map import FIELDS
+from disease_model import load_disease_model
 
 # 📌 Newly Integrated Modules
 from disease_detection import detect_disease, detect_disease_from_database, process_image
 from disease_info import get_disease_info, DISEASE_DATABASE
-from disease_model import load_disease_model, predict_disease
 from disease_risk_predictor import DiseaseRiskPredictor
 from fertilization import fertilization_ui
 from fertilization_service import get_fertilization_advice
@@ -71,56 +71,39 @@ from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import generate_map
 from sklearn.metrics import mean_squared_error
-from PIL import Image
+from predictor import predict_disease, process_image
+# 📌 Model Paths
 MODEL_PATH = "model/retrained_model.pkl"
+DISEASE_MODEL_PATH = "model/disease_model.pth"
+DATA_PATH = "data.csv"
 
-def load_trained_model():
-    """Charge le modèle et ses métriques depuis le fichier sauvegardé."""
+# 🔹 Load trained model safely
+def load_trained_model(MODEL_PATH="model/retrained_model.pkl"):
+    """Charge le modèle et ses métriques"""
     if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"❌ Le fichier {MODEL_PATH} est introuvable. Entraîne d'abord le modèle.")
+        raise FileNotFoundError(f"❌ Le fichier {MODEL_PATH} est introuvable.")
 
     model_data = joblib.load(MODEL_PATH)
-    return model_data["model"], model_data["metrics"]
+    return model_data.get("model"), model_data.get("metrics")
 
 # 📌 Chargement du modèle
-MODEL_PATH = "model/retrained_model.pkl"
-model_data = joblib.load(MODEL_PATH)
-model = model_data["model"]
+model, metrics = load_trained_model()
+
 # 📌 Database Initialization
 init_db()
-# 📥 Chargement du dataset
-DATA_PATH = "data.csv"
-df = pd.read_csv(DATA_PATH)
 
-# 🎯 Prétraitement des données
-df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
-X = df_encoded.drop(columns=["yield"])
-y = df_encoded["yield"]
-# 📌 Load the Disease Detection Model
-model_path = "model/disease_model.pth"
-if disease_model:
-    print("✅ Modèle chargé avec succès !")
-else:
-    print("❌ Erreur : Le modèle n'est pas chargé.")
-
-if os.path.exists(model_path):
-    try:
-        disease_model = load_disease_model(model_path)
-        print("✅ Model successfully loaded!")
-    except Exception as e:
-        disease_model = None
-        logging.error(f"🛑 Error loading the model: {e}")
-else:
-    disease_model = None
-    logging.error(f"🚫 Model file not found at {model_path}")
-DATA_PATH = "data.csv"
-
-def load_training_data():
+# 🔹 Load training dataset with validation
+def load_training_data(DATA_PATH="data.csv"):
     """Charge les données d'entraînement utilisées pour X_train"""
     if not os.path.exists(DATA_PATH):
-        raise FileNotFoundError("❌ Dataset introuvable. Assurez-vous que `data.csv` existe.")
+        raise FileNotFoundError("❌ Dataset introuvable.")
 
     df = pd.read_csv(DATA_PATH)
+
+    # 📌 Vérification des colonnes nécessaires
+    required_columns = {"soil_type", "crop_type", "yield"}
+    if not required_columns.issubset(df.columns):
+        raise ValueError("🚫 Les colonnes requises sont absentes du dataset.")
 
     # 📌 Prétraitement des données
     if "date" in df.columns:
@@ -129,11 +112,23 @@ def load_training_data():
 
     df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
     X = df_encoded.drop(columns=["yield"])
-    
+
     return X
 
 # 📌 Chargement des données d'entraînement
 X_train = load_training_data()
+
+# 📌 Load the Disease Detection Model safely
+disease_model = None
+if os.path.exists(DISEASE_MODEL_PATH):
+    try:
+        disease_model = load_disease_model(DISEASE_MODEL_PATH)
+        print("✅ Model successfully loaded!" if disease_model else "❌ Le modèle n'est pas chargé.")
+    except Exception as e:
+        logging.error(f"🛑 Error loading the model: {e}")
+else:
+    logging.error(f"🚫 Model file not found at {DISEASE_MODEL_PATH}")
+
 # 🏠 Sidebar Menu
 menu = [
     "Home", "Retrain Model", "History", "Performance",
@@ -141,10 +136,11 @@ menu = [
 ]
 choice = st.sidebar.selectbox("Menu", menu)
 
-#🔍 Page Display
+# 🔎 Page Display
 if choice == "Home":
     st.subheader("👋 Welcome to Smart Sènè Yield Predictor")
     st.subheader("📈 Agricultural Yield Prediction")
+
 if choice == "Retrain Model":
     st.subheader("🚀 Retraining the Model")
 
@@ -176,36 +172,24 @@ if choice == "Retrain Model":
         st.subheader("📉 Model Performance")
         performance_df = evaluate_model("model/retrained_model.pkl")
         st.line_chart(performance_df)
-import requests
-import pandas as pd
-
-# 🔹 Définition correcte de la fonction avant utilisation
+# 📌 Vérifier la présence des prédictions avant utilisation
 def fetch_user_predictions():
-    """Appelle l'API Flask pour récupérer les prédictions"""
-    url = "http://127.0.0.1:5000/get_user_predictions"
+    """Appelle l'API Flask pour récupérer les prédictions de l'utilisateur"""
+    url = "http://127.0.0.1:5000/get_user_predictions"  # 🔄 Assure-toi que Flask tourne sur ce port
     response = requests.get(url)
 
     if response.status_code == 200:
-        return response.json()  # ✅ Retourne le JSON si l'appel réussit
+        return response.json()  # ✅ Retourne les données JSON si la requête réussit
     else:
-        return None  # ✅ Évite une erreur
+        return None  # ❌ Retourne `None` en cas d'erreur pour éviter les plantages
+user_predictions = fetch_user_predictions()
+if user_predictions is not None and "predictions" in user_predictions:
+    user_predictions = pd.DataFrame(user_predictions["predictions"])
+else:
+    user_predictions = None
 
-# 🔹 Utilisation correcte de la fonction
-if choice == "History":
+if choice == "History" and user_predictions is not None:
     st.subheader("📜 Prediction History")
-
-    user_predictions = fetch_user_predictions()  # ✅ Appel bien placé
-
-    if user_predictions and "predictions" in user_predictions:
-        df_predictions = pd.DataFrame(user_predictions["predictions"])  # ✅ Sécurise la conversion
-        st.dataframe(df_predictions)  # 📊 Affichage structuré des prédictions
-    else:
-        st.error("🛑 Aucune prédiction trouvée.")
-        
-if user_predictions:  # Vérifie que les données ont été récupérées
-    user_predictions = pd.DataFrame(user_predictions)  # Convertir en DataFrame
-    predictions = fetch_user_predictions()
-    print(f"🔍 Données reçues : {predictions}")  # 🧐 Vérifie la sortie dans le terminal
 
     # 📊 Filtrer par date et maladie
     selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
@@ -218,27 +202,21 @@ if user_predictions:  # Vérifie que les données ont été récupérées
         (user_predictions["date"] <= end_date) &
         ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
     ]
-
-        # 🏷️ Afficher l'historique sous forme de tableau
     st.dataframe(filtered_df)
 
-        # 📊 Statistiques générales
+    # 📊 Statistiques générales
     st.subheader("📊 Prediction Statistics")
     disease_counts = filtered_df["disease"].value_counts()
     st.bar_chart(disease_counts)
 
-        # 📥 Option pour exporter
-    if st.button("📤 Download History", key="download_history_btn4"):
-            filtered_df.to_csv("history.csv", index=False)
-            st.success("✅ History exported successfully!")
-    else:
+    # 📥 Option pour exporter
+    if not filtered_df.empty and st.button("📤 Download History", key="download_history_btn4"):
+        filtered_df.to_csv("history.csv", index=False)
+        st.success("✅ History exported successfully!")
+    elif filtered_df.empty:
         st.warning("⚠️ No predictions found.")
-if choice == "Performance":
-    st.subheader("📊 Model Performance Analysis")
 
-    # 📌 Chargement des scores
-from sklearn.metrics import mean_squared_error, r2_score
-
+# 📌 Évaluation des performances du modèle
 def evaluate_model(model, X_test, y_test):
     """Évalue les performances du modèle."""
     predictions = model.predict(X_test)
@@ -248,25 +226,28 @@ def evaluate_model(model, X_test, y_test):
     }
     return metrics
 
+if choice == "Performance":
+    st.subheader("📊 Model Performance Analysis")
 
-    # 🎯 Affichage des métriques clés
-    st.metric("🔹 Accuracy", f"{scores['accuracy']:.2%}")
-    st.metric("🔹 F1 Score", f"{scores['f1_score']:.2%}")
-    st.metric("🔹 Precision", f"{scores['precision']:.2%}")
-    st.metric("🔹 Recall", f"{scores['recall']:.2%}")
-    st.metric("🔹 RMSE", f"{model_metrics['rmse']:.2f}")
-    st.metric("🔹 R² Score", f"{model_metrics['r2']:.2%}")
-    # 📈 Graphique interactif de la perte
-    st.subheader("📉 Model Loss Over Time")
-    st.line_chart(scores["loss_curve"])
+    if st.button("📊 Show Performance Metrics", key="performance_metrics_btn5"):
+        model_data = joblib.load("model/retrained_model.pkl")
+        scores = model_data.get("metrics", {})
 
-# 📌 Définition de `compute_shap_values()`
+        if scores:
+            st.metric("🔹 Accuracy", f"{scores.get('accuracy', 0):.2%}")
+            st.metric("🔹 F1 Score", f"{scores.get('f1_score', 0):.2%}")
+            st.metric("🔹 Precision", f"{scores.get('precision', 0):.2%}")
+            st.metric("🔹 Recall", f"{scores.get('recall', 0):.2%}")
+            st.metric("🔹 RMSE", f"{scores.get('rmse', 0):.2f}")
+            st.metric("🔹 R² Score", f"{scores.get('r2', 0):.2%}")
+
+# 📌 Calcul des valeurs SHAP pour expliquer le modèle
 def compute_shap_values(model_path):
     """Calculer et afficher l'importance des caractéristiques avec SHAP"""
     if not os.path.exists(model_path):
         raise FileNotFoundError("❌ Model file not found. SHAP cannot be computed.")
 
-    model_data = joblib.load(model_path)  # Charger le modèle
+    model_data = joblib.load(model_path)
     model = model_data["model"]
 
     # 📌 Chargement d'un échantillon de données
@@ -275,37 +256,28 @@ def compute_shap_values(model_path):
         raise FileNotFoundError("❌ Dataset not found. SHAP requires sample data.")
 
     df = pd.read_csv(data_path)
-    X_sample = df.sample(100).drop(columns=["yield"])  # Sélectionner un échantillon
-    
+    X_sample = df.sample(100).drop(columns=["yield"])  
+
     explainer = shap.Explainer(model)
     shap_values = explainer(X_sample)
 
     return shap_values
 
-# 📊 Affichage des métriques du modèle
-if st.button("📊 Show Performance Metrics", key="performance_metrics_btn5"):
-    st.subheader("📉 Model Performance")
-    model_data = joblib.load("model/retrained_model.pkl")  # 📥 Chargement du modèle
-    scores = model_data["metrics"]  # 📊 Récupération des performances
-
-# 📌 Explication des prédictions avec SHAP
 if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
     try:
         shap_values = compute_shap_values("model/retrained_model.pkl")
-        st.subheader("📊 SHAP Feature Importance")
-        st.pyplot(shap.summary_plot(shap_values))
+        if shap_values is not None:
+            st.subheader("📊 SHAP Feature Importance")
+            st.pyplot(shap.summary_plot(shap_values))
+        else:
+            st.warning("⚠️ SHAP values could not be computed.")
     except Exception as e:
-        st.error(f"🛑 SHAP computation failed: {e}")    
-        
-elif choice == "Disease Detection":
+        st.error(f"🛑 SHAP computation failed: {e}")
+
+# 📌 Détection des maladies
+if choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
-    if choice == "History":
-     st.subheader("📜 Prediction History")
-    # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
-    image_test = "chemin/vers/une/image_de_test.jpg"  # Remplace par une vraie image
-    label = predict_disease(disease_model, image_test)
-    print(f"🔍 Maladie détectée : {label}")
 
     if image_file:
         image = process_image(image_file)
@@ -317,7 +289,7 @@ elif choice == "Disease Detection":
                 disease_details = get_disease_info(label)
                 
                 st.success(f"✅ Detected Disease: **{label}**")
-                
+
                 if disease_details and disease_details != "⚠️ Disease not found.":
                     st.markdown(f"**ℹ️ Symptoms:** {disease_details.symptoms}")
                     st.markdown(f"**🦠 Pathogens:** {', '.join(disease_details.causal_agents)}")
@@ -326,16 +298,15 @@ elif choice == "Disease Detection":
                     st.markdown(f"**🛑 Control Methods:** {disease_details.control}")
                 else:
                     st.warning("⚠️ No detailed information found.")
-            
             except Exception as e:
                 st.error(f"🛑 Detection error: {e}")
-            test_image = Image.open("test_leaf.jpg").convert("RGB")  # Mets une image réelle ici
-            prediction = predict_disease(disease_model, test_image)
-            print(f"🔍 Model prediction: {prediction}")
+
+# 📌 Conseils de fertilisation
 elif choice == "Fertilization Advice":
     fertilization_ui()
 
-elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in this section
+# 📌 Affichage de la carte interactive des champs
+elif choice == "Field Map":
     st.subheader("🌍 Field Map")
     map_object = generate_map()
     st_folium(map_object, width=700, height=500)
@@ -350,34 +321,13 @@ elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in th
     sns.heatmap(heatmap_data, annot=True, xticklabels=months, yticklabels=field_names, cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
-    st.subheader("🌍 Weather-based Stress Prediction")
-    weather_data = {"main": {"temp": 27}, "wind": {"speed": 12}}
-    for field in FIELDS:
-        predicted_stress = predict_stress(weather_data["main"]["temp"], weather_data["wind"]["speed"])
-        st.write(f"{field['name']} - Predicted Stress Level: {predicted_stress:.2f}")
-# 🌾 Ajout de la section de prédiction
-st.subheader("🌾 Make a Yield Prediction")
-
-# 📥 Entrée utilisateur
-user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
-
-if st.button("🔍 Predict Yield", key="predict_yield_btn7"):
-    user_df = pd.DataFrame([user_input])
-    prediction = model.predict(user_df)[0]
-    st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
-    # 🌍 Interactive Map Visualization
-    m = folium.Map(location=[12.64, -8.0], zoom_start=13)
-    for field in FIELDS:
-        stress_level = np.random.uniform(0, 1)
-        color = "green" if stress_level < 0.3 else "orange" if stress_level < 0.7 else "red"
-        folium.CircleMarker(
-            location=[field["lat"], field["lon"]],
-            radius=10,
-            popup=f"{field['name']} - Stress: {stress_level:.2f}",
-            color=color,
-            fill=True,
-            fill_color=color
-        ).add_to(m)
-
-    st_folium(m, width=700, height=500)
-    st.caption("🧪 Color Code: Green (low stress) - Orange (medium) - Red (high)")
+# 🌾 Prédiction du rendement
+elif choice == "Yield Prediction":
+    st.subheader("🌾 Make a Yield Prediction")
+    
+    user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
+    
+    if st.button("🔍 Predict Yield", key="predict_yield_btn7"):
+        user_df = pd.DataFrame([user_input])
+        prediction = model.predict(user_df)[0]
+        st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
