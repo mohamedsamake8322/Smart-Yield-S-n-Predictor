@@ -1,8 +1,22 @@
+import json
 import streamlit as st
+from streamlit_lottie import st_lottie
+# 📌 Function to load the Lottie animation file
+def load_lottie_file(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
+    # 🔹 Load the Lottie animation
+lottie_plant = load_lottie_file("plant_loader.json")
 #🌍 Initialization
 st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
-st.title("🌾 Smart Sènè Yield Predictor")
+st.title("🌱 Welcome to Smart Sènè!")
+st.write("🌾Smart Sènè helps you predict plant diseases and improve your crops using artificial intelligence. 🌍✨")
+# 🔥 Display **only once** after the welcome message
+st_lottie(lottie_plant, height=150)
 
+# ✅ The rest of the content starts here, without repeating the animation
+st.write("### Crop Analysis")
+st.write("You can now upload an image of your plant to get an accurate diagnosis.")
 # 📌 Configuration and Imports
 import os
 import logging
@@ -22,8 +36,6 @@ from PIL import Image
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
-import json
-from streamlit_lottie import st_lottie
 # 📌 Internal Modules
 import visualizations
 import disease_model
@@ -72,17 +84,6 @@ if os.path.exists(model_path):
 else:
     disease_model = None
     logging.error(f"🚫 Fichier du modèle introuvable à {model_path}")
-
-
-# Load the Lottie animation
-# Charger l'animation depuis le fichier JSON
-def load_lottie_file(filepath):
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-lottie_plant = load_lottie_file("plant_loader.json")
-st_lottie(lottie_plant, height=150)
-  # Exemple
 # 🏠Sidebar Menu
 menu = [
     "Home", "Retrain Model", "History", "Performance",
