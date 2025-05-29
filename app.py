@@ -31,7 +31,6 @@ from database import init_db, save_prediction, get_user_predictions, save_locati
 from predictor import load_model, save_model, predict_single, predict_batch, train_model
 from evaluate import evaluate_model
 from utils import predict_disease  # ✅ Importation correcte
-from streamlit_lottie import st_lottie
 from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
 import nematode_diseases
 import insect_pests

@@ -65,22 +65,34 @@ def load_disease_model(model_path="model/disease_model.pth"):
     model.eval()
     print("✅ Modèle chargé avec succès !")
 
-# 📌 Fonction de prédiction des maladies
 def predict_disease(image_path):
     """Prédit la maladie des plantes à partir d'une image."""
+    try:
+        image = Image.open(image_path).convert("RGB")
+    except Exception as e:
+        print(f"❌ Erreur lors de l'ouverture de l'image : {e}")
+        return "Erreur : Format d'image non supporté"
+
+    if image.mode == "RGBA":
+        image = image.convert("RGB")
+    if image.mode == "L":
+        image = image.convert("RGB")
+
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    image = Image.open(image_path).convert("RGB")
     image = transform(image).unsqueeze(0).to(device)
 
     model.eval()
     with torch.no_grad():
         output = model(image)
+        probs = torch.softmax(output, dim=1)  # Ajoute les probabilités
         _, predicted = torch.max(output, 1)
-        disease_name = CLASS_LABELS[predicted.item()]
-    
-    return disease_name
+        disease_name = CLASS_LABELS.get(predicted.item(), "Unknown Disease")
+        confidence = probs[0][predicted.item()].item()
+
+    return f"🔍 Prédiction : {disease_name} (Confiance : {confidence:.2f})"
+
