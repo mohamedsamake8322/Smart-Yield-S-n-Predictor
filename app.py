@@ -94,12 +94,6 @@ df = pd.read_csv(DATA_PATH)
 df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
 X = df_encoded.drop(columns=["yield"])
 y = df_encoded["yield"]
-
-# 🔀 Séparation des données
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# 📊 Évaluation du modèle AVEC X_test et y_test
-scores = evaluate_model(model, X_test, y_test)
 # 📌 Load the Disease Detection Model
 model_path = "model/disease_model.pth"
 
