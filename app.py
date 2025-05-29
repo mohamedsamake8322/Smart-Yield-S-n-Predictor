@@ -1,7 +1,8 @@
 import json
 import streamlit as st
 from streamlit_lottie import st_lottie
-
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 # 📌 Function to load the Lottie animation file
 def load_lottie_file(filepath):
     with open(filepath, "r") as f:
@@ -68,6 +69,7 @@ from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import generate_map
+from sklearn.metrics import mean_squared_error, r2_score
 MODEL_PATH = "model/retrained_model.pkl"
 
 def load_trained_model():
@@ -79,10 +81,25 @@ def load_trained_model():
     return model_data["model"], model_data["metrics"]
 
 # 📌 Chargement du modèle
-model, model_metrics = load_trained_model()
+MODEL_PATH = "model/retrained_model.pkl"
+model_data = joblib.load(MODEL_PATH)
+model = model_data["model"]
 # 📌 Database Initialization
 init_db()
+# 📥 Chargement du dataset
+DATA_PATH = "data.csv"
+df = pd.read_csv(DATA_PATH)
 
+# 🎯 Prétraitement des données
+df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
+X = df_encoded.drop(columns=["yield"])
+y = df_encoded["yield"]
+
+# 🔀 Séparation des données
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 📊 Évaluation du modèle AVEC X_test et y_test
+scores = evaluate_model(model, X_test, y_test)
 # 📌 Load the Disease Detection Model
 model_path = "model/disease_model.pth"
 
@@ -196,7 +213,14 @@ if choice == "Performance":
     st.subheader("📊 Model Performance Analysis")
 
     # 📌 Chargement des scores
-    scores = evaluate_model("model/retrained_model.pkl")
+def evaluate_model(model, X_test, y_test):
+    """Évalue les performances du modèle."""
+    predictions = model.predict(X_test)
+    metrics = {
+        "rmse": mean_squared_error(y_test, predictions, squared=False),
+        "r2": r2_score(y_test, predictions)
+    }
+    return metrics
 
     # 🎯 Affichage des métriques clés
     st.metric("🔹 Accuracy", f"{scores['accuracy']:.2%}")
