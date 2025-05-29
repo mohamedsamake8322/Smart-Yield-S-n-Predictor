@@ -1,24 +1,7 @@
-import json
 import streamlit as st
-from streamlit_lottie import st_lottie
-
-# 📌 Function to load the Lottie animation file
-@st.cache_data
-def load_lottie_file(filepath):
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-# 🔹 Load the Lottie animation
-lottie_plant = load_lottie_file("plant_loader.json")
-
-#🌍 Initialization
 st.set_page_config(page_title="Smart Sènè Yield Predictor", layout="wide")
-st.title("🌱 Welcome to Smart Sènè!")
-st.write("🌾 Smart Sènè helps you predict plant diseases and improve your crops using artificial intelligence. 🌍✨")
-
-# 🔥 Display **only once** after the welcome message
-st_lottie(lottie_plant, height=150)
-
+import json
+from streamlit_lottie import st_lottie
 # ✅ Configuration and Imports
 import os
 import logging
@@ -47,7 +30,22 @@ from disease_model import load_disease_model
 from fertilization import fertilization_ui
 from disease_risk_predictor import DiseaseRiskPredictor
 from visualizations import generate_map, generate_stress_trend, generate_stress_heatmap
+# 📌 Function to load the Lottie animation file
+@st.cache_data
+def load_lottie_file(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
 
+# 🔹 Load the Lottie animation
+lottie_plant = load_lottie_file("plant_loader.json")
+
+#🌍 Initialization
+
+st.title("🌱 Welcome to Smart Sènè!")
+st.write("🌾 Smart Sènè helps you predict plant diseases and improve your crops using artificial intelligence. 🌍✨")
+
+# 🔥 Display **only once** after the welcome message
+st_lottie(lottie_plant, height=150)
 # 📌 Cache Optimized Model Loading
 @st.cache_resource
 def load_model_safely(path):
