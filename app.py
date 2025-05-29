@@ -39,6 +39,7 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
+import requests
 # 📌 Internal Modules
 import visualizations
 import disease_model
@@ -172,33 +173,45 @@ if choice == "Retrain Model":
         st.line_chart(performance_df)
 if choice == "History":
     st.subheader("📜 Prediction History")
+def fetch_user_predictions():
+    """Appelle l'API Flask pour récupérer les prédictions"""
+    url = "http://127.0.0.1:5000/get_user_predictions"  # Assure-toi que Flask tourne sur ce port
+    response = requests.get(url)
 
-    # 🗃️ Récupérer les prédictions de l'utilisateur
-    user_predictions = get_user_predictions()
+    if response.status_code == 200:
+        return response.json()  # Récupère les données sous format JSON
+    else:
+        st.error("🛑 Failed to fetch user predictions")
+        return None
 
-    if not user_predictions.empty:
-        # 📊 Filtrer par date et maladie
-        selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
-        start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
-        end_date = st.date_input("📅 End Date", user_predictions["date"].max())
+# 🔄 Remplace l'appel direct par une requête API
+user_predictions = fetch_user_predictions()
 
-        # 📌 Filtrer les données
-        filtered_df = user_predictions[
-            (user_predictions["date"] >= start_date) &
-            (user_predictions["date"] <= end_date) &
-            ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
-        ]
+if user_predictions:  # Vérifie que les données ont été récupérées
+    user_predictions = pd.DataFrame(user_predictions)  # Convertir en DataFrame
+
+    # 📊 Filtrer par date et maladie
+    selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
+    start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
+    end_date = st.date_input("📅 End Date", user_predictions["date"].max())
+
+    # 📌 Filtrer les données
+    filtered_df = user_predictions[
+        (user_predictions["date"] >= start_date) &
+        (user_predictions["date"] <= end_date) &
+        ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
+    ]
 
         # 🏷️ Afficher l'historique sous forme de tableau
-        st.dataframe(filtered_df)
+    st.dataframe(filtered_df)
 
         # 📊 Statistiques générales
-        st.subheader("📊 Prediction Statistics")
-        disease_counts = filtered_df["disease"].value_counts()
-        st.bar_chart(disease_counts)
+    st.subheader("📊 Prediction Statistics")
+    disease_counts = filtered_df["disease"].value_counts()
+    st.bar_chart(disease_counts)
 
         # 📥 Option pour exporter
-        if st.button("📤 Download History", key="download_history_btn4"):
+    if st.button("📤 Download History", key="download_history_btn4"):
             filtered_df.to_csv("history.csv", index=False)
             st.success("✅ History exported successfully!")
     else:
@@ -283,38 +296,6 @@ elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
     if choice == "History":
      st.subheader("📜 Prediction History")
-
-    # 🗃️ Récupérer les prédictions de l'utilisateur
-    user_predictions = get_user_predictions()
-    
-    if not user_predictions.empty:
-        # 📊 Filtrer par date et maladie
-        selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
-        start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
-        end_date = st.date_input("📅 End Date", user_predictions["date"].max())
-
-        # 📌 Filtrer les données
-        filtered_df = user_predictions[
-            (user_predictions["date"] >= start_date) &
-            (user_predictions["date"] <= end_date) &
-            ((selected_disease == "All") | (user_predictions["disease"] == selected_disease))
-        ]
-
-        # 🏷️ Afficher l'historique sous forme de tableau
-        st.dataframe(filtered_df)
-
-        # 📊 Statistiques générales
-        st.subheader("📊 Prediction Statistics")
-        disease_counts = filtered_df["disease"].value_counts()
-        st.bar_chart(disease_counts)
-
-        # 📥 Option pour exporter
-        if st.button("📤 Download History", key="download_history_btn8"):
-            filtered_df.to_csv("history.csv", index=False)
-            st.success("✅ History exported successfully!")
-    else:
-        st.warning("⚠️ No predictions found.")
-
     # 📷 Upload image for analysis
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
     
