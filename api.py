@@ -92,3 +92,4 @@ def logout():
 # === Run the Application ===
 if __name__ == "__main__":
     app.run(debug=True, port=5000)  # 🔥 Ajout du paramètre `port=5000`
+print(app.url_map)
