@@ -213,6 +213,8 @@ if choice == "Performance":
     st.subheader("📊 Model Performance Analysis")
 
     # 📌 Chargement des scores
+from sklearn.metrics import mean_squared_error, r2_score
+
 def evaluate_model(model, X_test, y_test):
     """Évalue les performances du modèle."""
     predictions = model.predict(X_test)
@@ -221,6 +223,7 @@ def evaluate_model(model, X_test, y_test):
         "r2": r2_score(y_test, predictions)
     }
     return metrics
+
 
     # 🎯 Affichage des métriques clés
     st.metric("🔹 Accuracy", f"{scores['accuracy']:.2%}")
