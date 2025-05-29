@@ -77,6 +77,7 @@ from sklearn.metrics import mean_squared_error, r2_score  # ✅ Importe r2_score
 # 📌 Model Paths
 MODEL_PATH = "model/retrained_model.pkl"
 DISEASE_MODEL_PATH = "model/disease_model.pth"
+disease_model = load_model(DISEASE_MODEL_PATH)  # ✅ Charge le modèle avant de l'utiliser
 DATA_PATH = "data.csv"
 
 # 🔹 Load trained model safely
@@ -252,14 +253,22 @@ def compute_shap_values(model_path):
     model_data = joblib.load(model_path)
     model = model_data["model"]
 
-    # 📌 Chargement d'un échantillon de données
+    # 📌 Chargement des données
     data_path = "data.csv"
     if not os.path.exists(data_path):
-        raise FileNotFoundError("❌ Dataset not found. SHAP requires sample data.")
+        raise FileNotFoundError("❌ Dataset not found.")
 
     df = pd.read_csv(data_path)
-    X_sample = df.sample(100).drop(columns=["yield"])  
 
+    # ✅ Convertir les colonnes catégoriques
+    categorical_columns = ["soil_type", "crop_type"]
+    for col in categorical_columns:
+        df[col] = df[col].astype("category")
+
+    # 📌 Extraction des données
+    X_sample = df.sample(100).drop(columns=["yield"])
+
+    # 🔄 Création de l'explicateur SHAP
     explainer = shap.Explainer(model)
     shap_values = explainer(X_sample)
 
