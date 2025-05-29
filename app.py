@@ -278,20 +278,7 @@ if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
         st.subheader("📊 SHAP Feature Importance")
         st.pyplot(shap.summary_plot(shap_values))
     except Exception as e:
-        st.error(f"🛑 SHAP computation failed: {e}")
-
-# 🌾 Ajout de la section de prédiction
-st.subheader("🌾 Make a Yield Prediction")
-
-# 📥 Entrée utilisateur
-user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
-
-if st.button("🔍 Predict Yield", key="predict_yield_btn7"):
-    user_df = pd.DataFrame([user_input])
-    prediction = model.predict(user_df)[0]
-    st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
-    
-        
+        st.error(f"🛑 SHAP computation failed: {e}")    
 elif choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
     if choice == "History":
@@ -345,7 +332,16 @@ elif choice == "Field Map":  # ✅ Now maps and visualizations only appear in th
     for field in FIELDS:
         predicted_stress = predict_stress(weather_data["main"]["temp"], weather_data["wind"]["speed"])
         st.write(f"{field['name']} - Predicted Stress Level: {predicted_stress:.2f}")
+# 🌾 Ajout de la section de prédiction
+st.subheader("🌾 Make a Yield Prediction")
 
+# 📥 Entrée utilisateur
+user_input = {col: st.number_input(f"📌 {col}", float(X_train[col].mean())) for col in X_train.columns}
+
+if st.button("🔍 Predict Yield", key="predict_yield_btn7"):
+    user_df = pd.DataFrame([user_input])
+    prediction = model.predict(user_df)[0]
+    st.success(f"✅ **Estimated Yield:** {prediction:.2f} tonnes/hectare")
     # 🌍 Interactive Map Visualization
     m = folium.Map(location=[12.64, -8.0], zoom_start=13)
     for field in FIELDS:
