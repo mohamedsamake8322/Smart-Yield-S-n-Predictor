@@ -201,9 +201,10 @@ if choice == "History":
     else:
         st.error("🛑 Aucune prédiction trouvée.")
 
-
 if user_predictions:  # Vérifie que les données ont été récupérées
     user_predictions = pd.DataFrame(user_predictions)  # Convertir en DataFrame
+    predictions = fetch_user_predictions()
+    print(f"🔍 Données reçues : {predictions}")  # 🧐 Vérifie la sortie dans le terminal
 
     # 📊 Filtrer par date et maladie
     selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
