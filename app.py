@@ -70,7 +70,8 @@ from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import generate_map
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
+from PIL import Image
 MODEL_PATH = "model/retrained_model.pkl"
 
 def load_trained_model():
@@ -316,7 +317,9 @@ elif choice == "Disease Detection":
             
             except Exception as e:
                 st.error(f"🛑 Detection error: {e}")
-
+            test_image = Image.open("test_leaf.jpg").convert("RGB")  # Mets une image réelle ici
+            prediction = predict_disease(disease_model, test_image)
+            print(f"🔍 Model prediction: {prediction}")
 elif choice == "Fertilization Advice":
     fertilization_ui()
 
