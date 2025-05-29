@@ -58,7 +58,6 @@ print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
 
 # 📌 Fonction pour charger le modèle
 def load_disease_model(model_path="C:/Mohamed/model/disease_model.pth"):
-    """Charge le modèle de détection des maladies à partir d'un fichier."""
     global model
 
     if not os.path.exists(model_path):
