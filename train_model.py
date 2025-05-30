@@ -1,16 +1,15 @@
-# 📌 Importation des bibliothèques essentielles
 import os
 import json
-import joblib
+import torch
+import torch.nn as nn
+import torch.optim as optim
 import pandas as pd
 import numpy as np
-import xgboost as xgb
-import shap
 import logging
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
-# ✅ Configuration du logging pour un suivi clair
+# ✅ Configuration du logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # 📂 Vérification et création du dossier "model"
@@ -18,18 +17,17 @@ MODEL_DIR = "model"
 os.makedirs(MODEL_DIR, exist_ok=True)
 logging.info(f"✅ Directory verified: {MODEL_DIR}")
 
-# 📥 Chargement et validation du dataset
+# 📥 Chargement et prétraitement des données
 DATA_PATH = "data.csv"
 
 def load_data(path):
     if not os.path.exists(path):
-        logging.error("❌ Dataset not found. Please check its location.")
+        logging.error("❌ Dataset not found.")
         raise FileNotFoundError(f"Dataset not found: {path}")
     
     logging.info("🔄 Loading dataset...")
     df = pd.read_csv(path)
 
-    # 🎯 Prétraitement
     if "date" in df.columns:
         df["year"] = pd.to_datetime(df["date"]).dt.year
         df["month"] = pd.to_datetime(df["date"]).dt.month
@@ -42,50 +40,61 @@ def load_data(path):
 
 X_train, X_test, y_train, y_test = load_data(DATA_PATH)
 
-# 🚀 Optimisation des hyperparamètres
-param_grid = {
-    'n_estimators': [100, 500, 1000],
-    'learning_rate': [0.01, 0.1, 0.3],
-    'max_depth': [3, 5, 7],
-    'subsample': [0.6, 0.8, 1.0],
-    'colsample_bytree': [0.6, 0.8, 1.0]
-}
+# 🔥 Définition du modèle PyTorch
+class PyTorchModel(nn.Module):
+    def __init__(self, input_size):
+        super(PyTorchModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)  
 
-logging.info("⚙️ Optimizing model parameters...")
-grid_search = RandomizedSearchCV(
-    xgb.XGBRegressor(random_state=42),
-    param_distributions=param_grid,
-    n_iter=10, cv=5, scoring="r2", verbose=1
-)
-grid_search.fit(X_train, y_train)
-best_model = grid_search.best_estimator_
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# 📌 Instanciation du modèle
+input_size = X_train.shape[1]
+model = PyTorchModel(input_size)
+
+# 🔧 Définition de la fonction de coût et de l'optimiseur
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+# 🚀 Entraînement du modèle PyTorch
+X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+
+for epoch in range(500):
+    optimizer.zero_grad()
+    predictions = model(X_train_tensor)
+    loss = criterion(predictions, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+    if epoch % 50 == 0:
+        logging.info(f"Epoch {epoch}, Loss: {loss.item():.4f}")
 
 # 📊 Évaluation du modèle
-def evaluate_model(model, X_test, y_test):
-    predictions = model.predict(X_test)
-    metrics = {
-        "rmse": mean_squared_error(y_test, predictions, squared=False),
-        "r2": r2_score(y_test, predictions)
-    }
-    return metrics
+X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
 
-metrics = evaluate_model(best_model, X_test, y_test)
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    rmse = mean_squared_error(y_test_tensor.numpy(), predictions.numpy(), squared=False)
+    r2 = r2_score(y_test_tensor.numpy(), predictions.numpy())
+
+metrics = {"rmse": rmse, "r2": r2}
 logging.info(f"✅ Model trained. RMSE: {metrics['rmse']:.2f}, R2: {metrics['r2']:.2f}")
 
-# 📈 Analyse de l’importance des caractéristiques avec SHAP
-logging.info("📊 Analyzing feature importance...")
-explainer = shap.Explainer(best_model)
-shap_values = explainer(X_train)
-shap.summary_plot(shap_values, X_train)
+# 💾 Sauvegarde du modèle
+MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
+torch.save(model.state_dict(), MODEL_PATH)
+logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
-# 💾 Sauvegarde du modèle et des métriques
-MODEL_PATH = os.path.join(MODEL_DIR, "retrained_model.pkl")
+# 📊 Sauvegarde des métriques
 METRICS_PATH = os.path.join(MODEL_DIR, "retrained_model_metrics.json")
-
 with open(METRICS_PATH, "w") as f:
     json.dump(metrics, f)
-
-joblib.dump({"model": best_model, "metrics": metrics}, MODEL_PATH, compress=3)
-
-logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 logging.info(f"📊 Metrics logged in {METRICS_PATH}")
