@@ -3,6 +3,7 @@ import torch.nn as nn
 import pandas as pd
 import os
 import logging
+from sklearn.preprocessing import StandardScaler
 
 # ✅ Définition du périphérique (CPU uniquement)
 device = torch.device("cpu")
@@ -29,13 +30,20 @@ class PyTorchModel(nn.Module):
         super(PyTorchModel, self).__init__()
 
         self.fc1 = nn.Linear(input_size, 64).to(device)
+        self.batch_norm1 = nn.BatchNorm1d(64)  # ✅ Ajout de BatchNorm
         self.fc2 = nn.Linear(64, 32).to(device)
+        self.batch_norm2 = nn.BatchNorm1d(32)  # ✅ Ajout de BatchNorm
         self.fc3 = nn.Linear(32, 1).to(device)
+
+        self.activation = nn.LeakyReLU(negative_slope=0.01)  # ✅ Activation améliorée
+        self.dropout = nn.Dropout(0.3)  # ✅ Régularisation pour éviter l'overfitting
 
     def forward(self, x):
         x = x.to(device)
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
+        x = self.activation(self.batch_norm1(self.fc1(x)))
+        x = self.dropout(x)
+        x = self.activation(self.batch_norm2(self.fc2(x)))
+        x = self.dropout(x)
         x = self.fc3(x)
         return x
 
@@ -58,20 +66,25 @@ def load_model(input_size, path=MODEL_PATH):
         exit(1)
     return model
 
-# ---------- Nettoyage automatique du CSV ----------
-def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Nettoie les données pour éviter les erreurs avec PyTorch."""
-    logging.info("🔄 Vérification et nettoyage du dataset...")
+# ---------- Nettoyage et Normalisation du CSV ----------
+def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Nettoie et normalise les données pour éviter les erreurs avec PyTorch."""
+    logging.info("🔄 Vérification et normalisation du dataset...")
+
     df = df.apply(pd.to_numeric, errors="coerce")
     df.fillna(0, inplace=True)
-    logging.info("✅ Nettoyage terminé.")
+
+    scaler = StandardScaler()
+    df[df.columns] = scaler.fit_transform(df[df.columns])  # ✅ Normalisation
+    logging.info("✅ Normalisation terminée.")
+
     return df
 
 # ---------- Single Prediction ----------
 def predict_single(model, features: dict):
     """Effectue une prédiction unique."""
     input_df = pd.DataFrame([features])
-    input_df = clean_dataframe(input_df)
+    input_df = clean_and_normalize_dataframe(input_df)
 
     input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
     prediction = model(input_tensor).item()
@@ -80,7 +93,7 @@ def predict_single(model, features: dict):
 # ---------- Batch Prediction ----------
 def predict_batch(model, df: pd.DataFrame):
     """Effectue des prédictions sur plusieurs données."""
-    df = clean_dataframe(df)
+    df = clean_and_normalize_dataframe(df)
 
     required_features = list(df.columns)
     input_tensor = torch.tensor(df[required_features].values, dtype=torch.float32).to(device)
