@@ -38,7 +38,7 @@ CLASS_LABELS = {
 }
 
 # 📌 Définition du périphérique (GPU si disponible)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")  # 🚀 Force l'utilisation du CPU
 
 # 📌 Définition du modèle
 num_classes = len(CLASS_LABELS)

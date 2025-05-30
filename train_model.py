@@ -9,6 +9,9 @@ import logging
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
+# ✅ Définition du périphérique (CPU uniquement)
+device = torch.device("cpu")
+
 # ✅ Configuration du logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -45,15 +48,16 @@ class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
 
-        # ✅ Vérification sécurisée de input_size
+        # ✅ Vérification sécurisée de `input_size`
         if not isinstance(input_size, int):
             raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
 
-        self.fc1 = nn.Linear(input_size, 64)
-        self.fc2 = nn.Linear(64, 32)
-        self.fc3 = nn.Linear(32, 1)  
+        self.fc1 = nn.Linear(input_size, 64).to(device)
+        self.fc2 = nn.Linear(64, 32).to(device)
+        self.fc3 = nn.Linear(32, 1).to(device)
 
     def forward(self, x):
+        x = x.to(device)  # ✅ Envoie des données vers CPU
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
@@ -69,13 +73,14 @@ model = PyTorchModel(input_size)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-# 🚀 Entraînement du modèle PyTorch
-X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
-y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+# ✅ Conversion des données en tensors avec passage sur CPU
+X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).to(device)
 
+# 🚀 Entraînement du modèle PyTorch
 for epoch in range(500):
     optimizer.zero_grad()
-    predictions = model(X_train_tensor)
+    predictions = model(X_train_tensor)  # ✅ Correction ici
     loss = criterion(predictions, y_train_tensor)
     loss.backward()
     optimizer.step()
@@ -84,8 +89,8 @@ for epoch in range(500):
         logging.info(f"Epoch {epoch}, Loss: {loss.item():.4f}")
 
 # 📊 Évaluation du modèle
-X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32).to(device)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1).to(device)
 
 with torch.no_grad():
     predictions = model(X_test_tensor)
