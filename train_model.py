@@ -39,8 +39,21 @@ def load_data(path):
     X = df_encoded.drop(columns=["yield"])
     y = df_encoded["yield"]
 
-    # ✅ Convertir toutes les colonnes en numériques pour éviter les erreurs de type
+    # ✅ Vérification des types des colonnes
+    print("🔍 Types de chaque colonne avant conversion :", X.dtypes)
+
+    # ✅ Convertir toutes les colonnes en type numérique pour éviter les erreurs de type
     X = X.apply(pd.to_numeric, errors="coerce")
+
+    # ✅ Forcer toutes les valeurs en `float32`
+    X = X.astype(np.float32)
+
+    # ✅ Remplacer les valeurs NaN par 0
+    X.fillna(0, inplace=True)
+
+    # 🔍 Vérification après conversion
+    print("🔍 Types de chaque colonne après conversion :", X.dtypes)
+    print("🔍 Nombre de valeurs NaN après conversion :", X.isna().sum().sum())
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
