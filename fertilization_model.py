@@ -18,5 +18,6 @@ model = RandomForestClassifier()
 model.fit(X, y)
 
 # Sauvegarder le modèle
-joblib.dump(model, "fertilization_model.pkl")
+joblib.dump({"model": model}, "fertilization_model.pkl")
+
 print("Exécution terminée avec succès !")

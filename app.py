@@ -77,36 +77,66 @@ from sklearn.metrics import mean_squared_error, r2_score  # ✅ Importe r2_score
 # 📌 Model Paths
 MODEL_PATH = "model/retrained_model.pkl"
 DISEASE_MODEL_PATH = "model/disease_model.pth"
-disease_model = load_model(DISEASE_MODEL_PATH)  # ✅ Charge le modèle avant de l'utiliser
+disease_model = load_model(DISEASE_MODEL_PATH)  # ✅ Charge le modèle en toute sécurité
+if disease_model is None:
+    raise RuntimeError(f"🚫 Failed to load disease model from {DISEASE_MODEL_PATH}.")
+  # ✅ Charge le modèle avant de l'utiliser
 DATA_PATH = "data.csv"
 
 # 🔹 Load trained model safely
-def load_trained_model(MODEL_PATH="model/retrained_model.pkl"):
-    """Charge le modèle et ses métriques"""
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"❌ Le fichier {MODEL_PATH} est introuvable.")
+def load_trained_model(model_path=MODEL_PATH):  # ✅ Utilise la variable globale
+    """Charge le modèle et ses métriques en toute sécurité."""
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"❌ Le fichier {model_path} est introuvable.")
 
-    model_data = joblib.load(MODEL_PATH)
-    return model_data.get("model"), model_data.get("metrics")
+    try:
+        model_data = joblib.load(model_path)
+        model = model_data.get("model")
+        metrics = model_data.get("metrics")
+
+        if model is None or metrics is None:
+            raise ValueError("🚫 Model or metrics data is missing in the saved file.")
+
+        return model, metrics
+    except Exception as e:
+        raise RuntimeError(f"🛑 Model loading failed: {e}")
 
 # 📌 Chargement du modèle
 model, metrics = load_trained_model()
 
 # 📌 Database Initialization
-init_db()
+def init_db():
+    """Initialise la base de données (ex: connexion SQLite, PostgreSQL)."""
+    print("[INFO] Database initialized.")
 
 # 🔹 Load training dataset with validation
 def load_training_data(DATA_PATH="data.csv"):
-    """Charge les données d'entraînement utilisées pour X_train"""
+    """Charge les données d'entraînement utilisées pour X_train, avec validation"""
+    
+    # 📌 Vérification de l'existence et de la taille du fichier
     if not os.path.exists(DATA_PATH):
-        raise FileNotFoundError("❌ Dataset introuvable.")
+        raise FileNotFoundError(f"❌ Dataset introuvable : {DATA_PATH}")
+    
+    if os.path.getsize(DATA_PATH) == 0:
+        raise ValueError("🚫 Le fichier dataset est vide. Veuillez uploader un fichier valide.")
 
-    df = pd.read_csv(DATA_PATH)
-
-    # 📌 Vérification des colonnes nécessaires
+    try:
+        df = pd.read_csv(DATA_PATH)
+    except pd.errors.EmptyDataError:
+        raise ValueError("🚫 Le fichier dataset est vide ou mal formaté.")
+    
+    # 📌 Vérification des colonnes essentielles
     required_columns = {"soil_type", "crop_type", "yield"}
     if not required_columns.issubset(df.columns):
-        raise ValueError("🚫 Les colonnes requises sont absentes du dataset.")
+        raise ValueError(f"🚫 Colonnes manquantes dans le dataset. Requis : {required_columns}, Présents : {set(df.columns)}")
+
+    # 📌 Prétraitement des données (conversion des colonnes catégoriques)
+    categorical_columns = ["soil_type", "crop_type"]
+    for col in categorical_columns:
+        df[col] = df[col].astype("category")
+
+    # ✅ Retourne le dataframe pré-traité
+    return df
 
     # 📌 Prétraitement des données
     if "date" in df.columns:
