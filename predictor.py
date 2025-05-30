@@ -15,7 +15,7 @@ class PyTorchModel(nn.Module):
         # ✅ Vérification et conversion de input_size en entier
         if not isinstance(input_size, int):
             try:
-                input_size = int(input_size)  # Conversion sécurisée
+                input_size = int(input_size)
             except ValueError:
                 raise TypeError(f"🛑 input_size must be an integer, but got {type(input_size)}")
 
@@ -129,3 +129,20 @@ def train_model(df: pd.DataFrame):
     save_model(model)
 
     return model
+
+# ---------- Exécution autonome du script ----------
+if __name__ == "__main__":
+    print("🔄 Chargement du modèle pour test...")
+    model = load_model(input_size=6)
+
+    # 🔥 Test rapide de prédiction avec des valeurs fictives
+    example_features = {
+        "Temperature": 25,
+        "Humidity": 60,
+        "Precipitation": 12,
+        "pH": 6.5,
+        "Fertilizer": 80,
+        "NDVI": 0.5
+    }
+    prediction = predict_single(model, example_features)
+    print(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
