@@ -39,6 +39,9 @@ def load_data(path):
     X = df_encoded.drop(columns=["yield"])
     y = df_encoded["yield"]
 
+    # ✅ Convertir toutes les colonnes en numériques pour éviter les erreurs de type
+    X = X.apply(pd.to_numeric, errors="coerce")
+
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
 X_train, X_test, y_train, y_test = load_data(DATA_PATH)
@@ -57,7 +60,7 @@ class PyTorchModel(nn.Module):
         self.fc3 = nn.Linear(32, 1).to(device)
 
     def forward(self, x):
-        x = x.to(device)  # ✅ Envoie des données vers CPU
+        x = x.to(device)  # ✅ Envoi des données vers CPU
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
