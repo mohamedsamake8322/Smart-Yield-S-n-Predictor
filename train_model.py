@@ -113,8 +113,11 @@ with torch.no_grad():
     rmse = mean_squared_error(y_test_tensor.numpy(), predictions.numpy(), squared=False)
     r2 = r2_score(y_test_tensor.numpy(), predictions.numpy())
 
-metrics = {"rmse": rmse, "r2": r2}
-logging.info(f"✅ Model trained. RMSE: {metrics['rmse']:.2f}, R2: {metrics['r2']:.2f}")
+metrics = {
+    "rmse": float(rmse),  # ✅ Convertir rmse en float standard
+    "r2": float(r2)        # ✅ Convertir r2 en float standard
+}
+
 
 # 💾 Sauvegarde du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
@@ -122,6 +125,7 @@ torch.save(model.state_dict(), MODEL_PATH)
 logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
 # 📊 Sauvegarde des métriques
+# 📊 Sauvegarde des métriques corrigée
 METRICS_PATH = os.path.join(MODEL_DIR, "retrained_model_metrics.json")
 with open(METRICS_PATH, "w") as f:
     json.dump(metrics, f)
