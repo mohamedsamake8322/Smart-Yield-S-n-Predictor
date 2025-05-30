@@ -7,6 +7,14 @@ import os
 # ✅ Définition du périphérique (CPU uniquement)
 device = torch.device("cpu")
 
+# ---------- Détection automatique des colonnes ----------
+def detect_input_size(csv_path="data.csv"):
+    """Détecte automatiquement le nombre de colonnes de features du CSV."""
+    df = pd.read_csv(csv_path)
+    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'Yield')
+    print(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
+    return input_size
+
 # ---------- Définition du modèle PyTorch ----------
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
@@ -49,7 +57,7 @@ def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
 MODEL_PATH = "model/disease_model.pth"
 
 def load_model(input_size, path=MODEL_PATH):
-    """Charge le modèle PyTorch."""
+    """Charge le modèle PyTorch et ajuste automatiquement le nombre de features."""
     if not isinstance(input_size, int):
         try:
             input_size = int(input_size)
@@ -69,6 +77,15 @@ def save_model(model, path=MODEL_PATH):
     torch.save(model.state_dict(), path)
     print(f"[INFO] Modèle PyTorch sauvegardé sous {path}.")
 
+# ---------- Nettoyage automatique du CSV ----------
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Nettoie les données pour éviter les erreurs avec PyTorch."""
+    print("🔄 Vérification et nettoyage du dataset...")
+    df = df.apply(pd.to_numeric, errors="coerce")  # 🚀 Convertit toutes les valeurs en numériques
+    df.fillna(0, inplace=True)  # ✅ Remplace les valeurs NaN par 0
+    print("✅ Nettoyage terminé.")
+    return df
+
 # ---------- Single Prediction ----------
 def predict_single(model, features: dict):
     """Effectue une prédiction unique."""
@@ -85,55 +102,22 @@ def predict_batch(model, df: pd.DataFrame):
     """Effectue des prédictions sur plusieurs données."""
     df = preprocess_fertilizer_column(df)
     df["NDVI"] = 0.5
-    required_features = ["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]
 
-    input_tensor = torch.tensor(df[required_features].values, dtype=torch.float32).to(device)  # ✅ Ajout de `.to(device)`
+    df = clean_dataframe(df)  # 🚀 Nettoyage automatique avant conversion
+
+    required_features = list(df.columns)  # ✅ Utiliser les colonnes dynamiques
+    input_tensor = torch.tensor(df[required_features].values, dtype=torch.float32).to(device)
+    
     predictions = model(input_tensor).detach().numpy()
     return predictions
 
-# ---------- Training ----------
-def train_model(df: pd.DataFrame):
-    """Entraîne le modèle PyTorch avec les données fournies."""
-    df["NDVI"] = 0.5
-    df = preprocess_fertilizer_column(df)
-
-    X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
-    y = df["Yield"]
-
-    # ✅ Vérification de `input_size`
-    input_size = X.shape[1]
-    if not isinstance(input_size, int):
-        raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
-
-    # ✅ Conversion des données en tensors avec passage sur CPU
-    X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
-    y_tensor = torch.tensor(y.values, dtype=torch.float32).view(-1, 1).to(device)
-
-    model = PyTorchModel(input_size)
-
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
-
-    # 🔄 Boucle d'entraînement
-    for epoch in range(500):
-        optimizer.zero_grad()
-        predictions = model(X_tensor)
-        loss = criterion(predictions, y_tensor)
-        loss.backward()
-        optimizer.step()
-
-        if epoch % 50 == 0:
-            print(f"Epoch {epoch}, Loss: {loss.item()}")
-
-    print(f"[INFO] Modèle entraîné avec succès.")
-    save_model(model)
-
-    return model
-
 # ---------- Exécution autonome du script ----------
 if __name__ == "__main__":
-    print("🔄 Chargement du modèle pour test...")
-    model = load_model(input_size=6)
+    print("🔄 Détection automatique des features...")
+    input_size = detect_input_size()
+
+    print("🔄 Chargement du modèle...")
+    model = load_model(input_size=input_size)
 
     # 🔥 Test rapide de prédiction avec des valeurs fictives
     example_features = {
