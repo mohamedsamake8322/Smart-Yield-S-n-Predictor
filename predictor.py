@@ -16,10 +16,10 @@ def detect_input_size(csv_path="data.csv"):
     df = pd.read_csv(csv_path)
     logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
 
-    if "Yield" not in df.columns:
-        raise KeyError("🛑 Erreur : La colonne 'Yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
+    if "yield" not in df.columns:
+        raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
 
-    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'Yield')
+    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'yield')
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
 
