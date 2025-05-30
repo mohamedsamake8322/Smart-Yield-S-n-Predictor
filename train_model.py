@@ -8,6 +8,7 @@ import numpy as np
 import logging
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler  # ✅ Normalisation avancée
 
 # ✅ Définition du périphérique (CPU uniquement)
 device = torch.device("cpu")
@@ -29,19 +30,21 @@ def detect_input_size(csv_path="data.csv"):
     if "yield" not in df.columns:
         raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
 
-    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'yield')
+    input_size = len(df.columns) - 1
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour l'entraînement.")
     return input_size, df
 
 # 📥 Chargement et prétraitement des données
 def load_data(df):
     logging.info("🔄 Prétraitement du dataset...")
-    
-    # ✅ Nettoyage des données
-    df = df.apply(pd.to_numeric, errors="coerce")  # 🔥 Convertir toutes les valeurs en numériques
-    df.fillna(0, inplace=True)  # ✅ Remplacer les NaN par 0
 
-    # ✅ Séparation des features et de la cible
+    df = df.apply(pd.to_numeric, errors="coerce")
+    df.fillna(0, inplace=True)
+
+    # ✅ Standardisation des données
+    scaler = StandardScaler()
+    df[df.columns] = scaler.fit_transform(df[df.columns])
+    
     X = df.drop(columns=["yield"])
     y = df["yield"]
 
@@ -60,15 +63,21 @@ class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
 
-        # ✅ Adaptabilité automatique au nombre d'entrées
         self.fc1 = nn.Linear(input_size, 64).to(device)
+        self.batch_norm1 = nn.BatchNorm1d(64)
         self.fc2 = nn.Linear(64, 32).to(device)
+        self.batch_norm2 = nn.BatchNorm1d(32)
         self.fc3 = nn.Linear(32, 1).to(device)
 
+        self.activation = nn.LeakyReLU(negative_slope=0.01)
+        self.dropout = nn.Dropout(0.3)
+
     def forward(self, x):
-        x = x.to(device)  # ✅ Envoi des données vers CPU
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
+        x = x.to(device)
+        x = self.activation(self.batch_norm1(self.fc1(x)))
+        x = self.dropout(x)
+        x = self.activation(self.batch_norm2(self.fc2(x)))
+        x = self.dropout(x)
         x = self.fc3(x)
         return x
 
@@ -77,14 +86,14 @@ model = PyTorchModel(input_size)
 
 # 🔧 Définition de la fonction de coût et de l'optimiseur
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)  # ✅ Optimisation avancée
 
-# ✅ Conversion des données en tensors avec passage sur CPU
+# ✅ Conversion des données en tensors
 X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
 y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).to(device)
 
 # 🚀 Entraînement du modèle PyTorch
-for epoch in range(500):
+for epoch in range(1000):  # ✅ Augmentation des époques pour une meilleure stabilité
     optimizer.zero_grad()
     predictions = model(X_train_tensor)
     loss = criterion(predictions, y_train_tensor)
@@ -110,7 +119,7 @@ metrics = {
 
 # 💾 Sauvegarde du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
-torch.save(model.state_dict(), MODEL_PATH)  # ✅ Sauvegarde correcte
+torch.save(model.state_dict(), MODEL_PATH)
 logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
 # 📊 Sauvegarde des métriques
