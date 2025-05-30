@@ -26,7 +26,7 @@ def detect_input_size(csv_path="data.csv"):
     df = pd.read_csv(csv_path)
     logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
 
-    if "Yield" not in df.columns:
+    if "yield" not in df.columns:
         raise KeyError("🛑 Erreur : La colonne 'Yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
 
     input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'Yield')
@@ -42,8 +42,8 @@ def load_data(df):
     df.fillna(0, inplace=True)  # ✅ Remplacer les NaN par 0
 
     # ✅ Séparation des features et de la cible
-    X = df.drop(columns=["Yield"])
-    y = df["Yield"]
+    X = df.drop(columns=["yield"])
+    y = df["yield"]
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
