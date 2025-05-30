@@ -212,6 +212,9 @@ if user_predictions is not None and "predictions" in user_predictions:
     user_predictions = pd.DataFrame(user_predictions["predictions"])
 else:
     user_predictions = None
+    
+    
+    
 
 if choice == "History" and user_predictions is not None:
     st.subheader("📜 Prediction History")
