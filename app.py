@@ -245,20 +245,14 @@ if choice == "Performance":
             st.metric("🔹 R² Score", f"{scores.get('r2', 0):.2%}")
 
 # 📌 Calcul des valeurs SHAP pour expliquer le modèle
-def compute_shap_values(model_path):
+# 📌 Calcul des valeurs SHAP pour expliquer le modèle
+def compute_shap_values(df, model_path):
     """Calculer et afficher l'importance des caractéristiques avec SHAP"""
     if not os.path.exists(model_path):
         raise FileNotFoundError("❌ Model file not found. SHAP cannot be computed.")
 
     model_data = joblib.load(model_path)
     model = model_data["model"]
-
-    # 📌 Chargement des données
-    data_path = "data.csv"
-    if not os.path.exists(data_path):
-        raise FileNotFoundError("❌ Dataset not found.")
-
-    df = pd.read_csv(data_path)
 
     # ✅ Convertir les colonnes catégoriques
     categorical_columns = ["soil_type", "crop_type"]
@@ -289,7 +283,7 @@ if uploaded_file:
     st.success("✅ Dataset loaded and formatted successfully!")
 if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
     try:
-        shap_values = compute_shap_values(df)  # ✅ Utilise le dataset uploadé !
+        shap_values = compute_shap_values(df, "model/retrained_model.pkl")  # ✅ Passe `df` directement !
         if shap_values is not None:
             st.subheader("📊 SHAP Feature Importance")
             st.pyplot(shap.summary_plot(shap_values))
