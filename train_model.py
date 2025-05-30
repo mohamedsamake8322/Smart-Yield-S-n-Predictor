@@ -110,7 +110,7 @@ metrics = {
 
 # 💾 Sauvegarde du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
-torch.save(model.state_dict(), MODEL_PATH)
+torch.save(model.state_dict(), MODEL_PATH)  # ✅ Sauvegarde correcte
 logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
 # 📊 Sauvegarde des métriques
