@@ -63,8 +63,8 @@ def predict_batch(model, df: pd.DataFrame):
 
     return model.predict(df[required_features])
 
-# ---------- Training ----------
-def train_model(df: pd.DataFrame):
+def train_model(df: pd.DataFrame, model_type="RandomForest"):
+    """Entraîne un modèle basé sur le type sélectionné."""
     df["NDVI"] = 0.5
     df = preprocess_fertilizer_column(df)
 
@@ -72,12 +72,21 @@ def train_model(df: pd.DataFrame):
     y = df["Yield"]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    # 🔹 Sélection du type de modèle
+    if model_type == "RandomForest":
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
+    elif model_type == "XGBoost":
+        import xgboost as xgb
+        model = xgb.XGBRegressor(enable_categorical=True)
+    else:
+        raise ValueError(f"🚫 Model type {model_type} not recognized!")
+
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
-    print(f"[INFO] Model trained. MAE: {mae:.2f}")
+    print(f"[INFO] Model trained ({model_type}). MAE: {mae:.2f}")
 
     return model
 
