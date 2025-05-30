@@ -2,6 +2,8 @@ import joblib
 import pandas as pd
 import os
 import torch
+import torchvision
+
 from PIL import Image
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
@@ -24,9 +26,10 @@ def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model Persistence ----------
 MODEL_PATH = "model/model_xgb.pkl"
+DISEASE_MODEL_PATH = "model/disease_model.pth"
 
 def load_model(path: str = MODEL_PATH):
-    """Charge le modèle en toute sécurité."""
+    """Charge un modèle de prédiction des cultures en toute sécurité."""
     if not os.path.exists(path):
         print(f"[ERROR] Model file not found at {path}")
         return None
@@ -42,6 +45,34 @@ def load_model(path: str = MODEL_PATH):
 def save_model(model, path: str = MODEL_PATH):
     joblib.dump(model, path)
     print(f"[INFO] Model saved to {path}.")
+class MyModel(torch.nn.Module):
+    def __init__(self):
+        super(MyModel, self).__init__()
+        self.fc = torch.nn.Linear(224 * 224 * 3, 10)  # Exemple
+
+    def forward(self, x):
+        return self.fc(x)
+
+# ---------- Disease Model Loading ----------
+def load_disease_model():
+    """Charge le modèle de détection des maladies basé sur PyTorch."""
+    if not os.path.exists(DISEASE_MODEL_PATH):
+        raise FileNotFoundError(f"❌ Model file {DISEASE_MODEL_PATH} not found.")
+
+    data = torch.load(DISEASE_MODEL_PATH, map_location=torch.device("cpu"))
+    
+    if isinstance(data, dict) and "model_state_dict" in data:
+        model = MyModel()  # 🚀 Remplace `MyModel()` par ta classe PyTorch
+        model.load_state_dict(data["model_state_dict"])
+        model.eval()  # ✅ Mets le modèle en mode évaluation
+        print("✅ Disease model loaded successfully!")
+        return model
+    else:
+        raise ValueError("🚫 Model state dict not found in the checkpoint.")
+
+# 📌 Chargement des modèles
+disease_model = load_disease_model()
+crop_model = load_model()
 
 # ---------- Single Prediction ----------
 def predict_single(model, features: dict):
@@ -91,16 +122,16 @@ def train_model(df: pd.DataFrame, model_type="RandomForest"):
     return model
 
 # ---------- Disease Prediction ----------
-def predict_disease(model, image_path: str):
+def predict_disease(model, image_file):
     """Prédiction de la maladie à partir d'une image."""
     if model is None:
         raise ValueError("🚫 Aucun modèle de détection de maladie chargé.")
 
-    image = Image.open(image_path).convert("RGB")
+    image = Image.open(image_file).convert("RGB")
     image = image.resize((224, 224))
 
     if isinstance(model, torch.nn.Module):
-        transform = torch.tensor(image)
+        transform = torchvision.transforms.ToTensor()(image)
         transform = transform.unsqueeze(0)
         prediction = model(transform)
         return prediction.argmax().item()
