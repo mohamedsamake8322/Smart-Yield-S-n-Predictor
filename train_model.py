@@ -44,6 +44,11 @@ X_train, X_test, y_train, y_test = load_data(DATA_PATH)
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
+
+        # ✅ Vérification sécurisée de input_size
+        if not isinstance(input_size, int):
+            raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
+
         self.fc1 = nn.Linear(input_size, 64)
         self.fc2 = nn.Linear(64, 32)
         self.fc3 = nn.Linear(32, 1)  
@@ -56,6 +61,8 @@ class PyTorchModel(nn.Module):
 
 # 📌 Instanciation du modèle
 input_size = X_train.shape[1]
+if not isinstance(input_size, int):
+    raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
 model = PyTorchModel(input_size)
 
 # 🔧 Définition de la fonction de coût et de l'optimiseur

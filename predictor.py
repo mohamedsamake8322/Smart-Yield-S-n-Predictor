@@ -8,6 +8,14 @@ import os
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
+
+        # ✅ Vérification et conversion de input_size en entier
+        if not isinstance(input_size, int):
+            try:
+                input_size = int(input_size)  # Force la conversion en entier si nécessaire
+            except ValueError:
+                raise TypeError(f"🛑 input_size must be an integer, but got {type(input_size)}")
+
         self.fc1 = nn.Linear(input_size, 64)
         self.fc2 = nn.Linear(64, 32)
         self.fc3 = nn.Linear(32, 1)  # Couche de sortie (régresseur)
@@ -37,6 +45,13 @@ def preprocess_fertilizer_column(df: pd.DataFrame) -> pd.DataFrame:
 MODEL_PATH = "model/disease_model.pth"
 
 def load_model(input_size, path=MODEL_PATH):
+    # ✅ Vérification et conversion de input_size en entier avant d'initialiser le modèle
+    if not isinstance(input_size, int):
+        try:
+            input_size = int(input_size)
+        except ValueError:
+            raise TypeError(f"🛑 input_size must be an integer, but got {type(input_size)}")
+
     model = PyTorchModel(input_size)
     if os.path.exists(path):
         model.load_state_dict(torch.load(path))
@@ -80,11 +95,15 @@ def train_model(df: pd.DataFrame):
     X = df[["Temperature", "Humidity", "Precipitation", "pH", "Fertilizer", "NDVI"]]
     y = df["Yield"]
 
+    # ✅ Vérification de input_size avant utilisation
+    input_size = X.shape[1]
+    if not isinstance(input_size, int):
+        raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
+
     # Convertir les données en tensors PyTorch
     X_tensor = torch.tensor(X.values, dtype=torch.float32)
     y_tensor = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
 
-    input_size = X.shape[1]
     model = PyTorchModel(input_size)
 
     criterion = nn.MSELoss()
