@@ -74,7 +74,8 @@ from viral_diseases import ViralDisease
 from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress
 from visualizations import generate_map
 from sklearn.metrics import mean_squared_error
-from predictor import predict_disease, process_image  # ✅ Maintenant, ces fonctions existent bien !
+from disease_model import predict_disease
+  # ✅ Maintenant, ces fonctions existent bien !
 from sklearn.metrics import mean_squared_error, r2_score  # ✅ Importe r2_score ici
 
 # 📌 Model Paths
