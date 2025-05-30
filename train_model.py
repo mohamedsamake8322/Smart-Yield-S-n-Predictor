@@ -20,54 +20,47 @@ MODEL_DIR = "model"
 os.makedirs(MODEL_DIR, exist_ok=True)
 logging.info(f"✅ Directory verified: {MODEL_DIR}")
 
+# 📥 Détection automatique des colonnes du dataset
+def detect_input_size(csv_path="data.csv"):
+    """Détecte automatiquement le nombre de colonnes de features du CSV."""
+    df = pd.read_csv(csv_path)
+    logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
+
+    if "Yield" not in df.columns:
+        raise KeyError("🛑 Erreur : La colonne 'Yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
+
+    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'Yield')
+    logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour l'entraînement.")
+    return input_size, df
+
 # 📥 Chargement et prétraitement des données
-DATA_PATH = "data.csv"
-
-def load_data(path):
-    if not os.path.exists(path):
-        logging.error("❌ Dataset not found.")
-        raise FileNotFoundError(f"Dataset not found: {path}")
+def load_data(df):
+    logging.info("🔄 Prétraitement du dataset...")
     
-    logging.info("🔄 Loading dataset...")
-    df = pd.read_csv(path)
+    # ✅ Nettoyage des données
+    df = df.apply(pd.to_numeric, errors="coerce")  # 🔥 Convertir toutes les valeurs en numériques
+    df.fillna(0, inplace=True)  # ✅ Remplacer les NaN par 0
 
-    if "date" in df.columns:
-        df["year"] = pd.to_datetime(df["date"]).dt.year
-        df["month"] = pd.to_datetime(df["date"]).dt.month
-
-    df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
-    X = df_encoded.drop(columns=["yield"])
-    y = df_encoded["yield"]
-
-    # ✅ Vérification des types des colonnes
-    print("🔍 Types de chaque colonne avant conversion :", X.dtypes)
-
-    # ✅ Convertir toutes les colonnes en type numérique pour éviter les erreurs de type
-    X = X.apply(pd.to_numeric, errors="coerce")
-
-    # ✅ Forcer toutes les valeurs en `float32`
-    X = X.astype(np.float32)
-
-    # ✅ Remplacer les valeurs NaN par 0
-    X.fillna(0, inplace=True)
-
-    # 🔍 Vérification après conversion
-    print("🔍 Types de chaque colonne après conversion :", X.dtypes)
-    print("🔍 Nombre de valeurs NaN après conversion :", X.isna().sum().sum())
+    # ✅ Séparation des features et de la cible
+    X = df.drop(columns=["Yield"])
+    y = df["Yield"]
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
-X_train, X_test, y_train, y_test = load_data(DATA_PATH)
+# 📌 Détection du input_size et chargement des données
+try:
+    input_size, df = detect_input_size()
+    X_train, X_test, y_train, y_test = load_data(df)
+except KeyError as e:
+    logging.error(str(e))
+    exit(1)
 
 # 🔥 Définition du modèle PyTorch
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
 
-        # ✅ Vérification sécurisée de `input_size`
-        if not isinstance(input_size, int):
-            raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
-
+        # ✅ Adaptabilité automatique au nombre d'entrées
         self.fc1 = nn.Linear(input_size, 64).to(device)
         self.fc2 = nn.Linear(64, 32).to(device)
         self.fc3 = nn.Linear(32, 1).to(device)
@@ -80,9 +73,6 @@ class PyTorchModel(nn.Module):
         return x
 
 # 📌 Instanciation du modèle
-input_size = X_train.shape[1]
-if not isinstance(input_size, int):
-    raise TypeError(f"🛑 input_size should be an integer, but got {type(input_size)}")
 model = PyTorchModel(input_size)
 
 # 🔧 Définition de la fonction de coût et de l'optimiseur
@@ -96,7 +86,7 @@ y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).t
 # 🚀 Entraînement du modèle PyTorch
 for epoch in range(500):
     optimizer.zero_grad()
-    predictions = model(X_train_tensor)  # ✅ Correction ici
+    predictions = model(X_train_tensor)
     loss = criterion(predictions, y_train_tensor)
     loss.backward()
     optimizer.step()
@@ -114,10 +104,9 @@ with torch.no_grad():
     r2 = r2_score(y_test_tensor.numpy(), predictions.numpy())
 
 metrics = {
-    "rmse": float(rmse),  # ✅ Convertir rmse en float standard
-    "r2": float(r2)        # ✅ Convertir r2 en float standard
+    "rmse": float(rmse),
+    "r2": float(r2)
 }
-
 
 # 💾 Sauvegarde du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
@@ -125,8 +114,10 @@ torch.save(model.state_dict(), MODEL_PATH)
 logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
 # 📊 Sauvegarde des métriques
-# 📊 Sauvegarde des métriques corrigée
 METRICS_PATH = os.path.join(MODEL_DIR, "retrained_model_metrics.json")
 with open(METRICS_PATH, "w") as f:
     json.dump(metrics, f)
 logging.info(f"📊 Metrics logged in {METRICS_PATH}")
+
+# 🚀 Fin de l'entraînement
+logging.info("🎯 ✅ Modèle entraîné et prêt à être utilisé !")
