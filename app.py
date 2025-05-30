@@ -148,7 +148,7 @@ if choice == "Retrain Model":
     st.subheader("🚀 Retraining the Model")
 
     # 📂 Upload Dataset
-    uploaded_file = st.file_uploader("📤 Upload your dataset (CSV format)", type=["csv"])
+    uploaded_file = st.file_uploader("📤 Upload your dataset (CSV format)", type=["csv"], key="file_uploader_retrain")
 
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
@@ -274,7 +274,8 @@ def compute_shap_values(model_path):
 
     return shap_values
 # 📂 Upload du dataset
-uploaded_file = st.file_uploader("📤 Upload your dataset (CSV format)", type=["csv"])
+uploaded_file_metrics = st.file_uploader("📤 Upload Performance Data", type=["csv"], key="file_uploader_metrics")
+
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)  # ✅ Chargement dynamique des données
@@ -300,8 +301,7 @@ if st.button("🔍 Explain Model Predictions", key="shap_explain_btn6"):
 # 📌 Détection des maladies
 if choice == "Disease Detection":
     st.subheader("🦠 Disease Detection")
-    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
-
+    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"], key="file_uploader_leaf_image")
     if image_file:
         image = process_image(image_file)
         st.image(image, caption="🖼️ Uploaded Image", use_column_width=True)

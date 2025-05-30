@@ -43,8 +43,7 @@ def predict_pest_control():
 def detect_disease_via_image():
     """Détection de maladie végétale via image."""
     st.subheader("🦠 Plant Disease Detection")
-    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
-    
+    image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"], key="file_uploader_leaf_image1")
     if image_file:
         image = Image.open(image_file).convert("RGB")
         st.image(image, caption="🖼️ Uploaded Leaf Image", use_column_width=True)
