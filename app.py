@@ -18,7 +18,10 @@ st.write("🌾 Smart Sènè helps you predict plant diseases and improve your cr
 
 # 🔥 Display **only once** after the welcome message
 st_lottie(lottie_plant, height=150)
-
+# ✅ The rest of the content starts here, without repeating the animation
+st.write("### Crop Analysis")
+st.write("You can now upload an image of your plant to get an accurate diagnosis.")
+# 📌 Configuration and Imports
 # ✅ Configuration and Imports
 import os
 import logging
@@ -137,17 +140,6 @@ def load_training_data(DATA_PATH="data.csv"):
 
     # ✅ Retourne le dataframe pré-traité
     return df
-
-    # 📌 Prétraitement des données
-    if "date" in df.columns:
-        df["year"] = pd.to_datetime(df["date"]).dt.year
-        df["month"] = pd.to_datetime(df["date"]).dt.month
-
-    df_encoded = pd.get_dummies(df, columns=["soil_type", "crop_type"])
-    X = df_encoded.drop(columns=["yield"])
-
-    return X
-
 # 📌 Chargement des données d'entraînement
 X_train = load_training_data()
 
