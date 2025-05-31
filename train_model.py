@@ -1,13 +1,10 @@
 import os
-import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
-import numpy as np
 import logging
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 
 # ✅ Définition du périphérique (CPU uniquement)
@@ -19,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # 📂 Vérification et création du dossier "model"
 MODEL_DIR = "model"
 os.makedirs(MODEL_DIR, exist_ok=True)
-logging.info(f"✅ Directory verified: {MODEL_DIR}")
+logging.info(f"✅ Dossier modèle vérifié : {MODEL_DIR}")
 
 # 📥 Détection automatique des colonnes du dataset
 def detect_input_size(csv_path="data.csv"):
@@ -27,29 +24,20 @@ def detect_input_size(csv_path="data.csv"):
     logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
 
     if "yield" not in df.columns:
-        raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
+        raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset.")
 
-    input_size = len(df.columns) - 1
-
-    try:
-        input_size = int(input_size)  # ✅ Convertir en entier pour éviter l’erreur
-    except ValueError:
-        logging.error(f"🛑 Erreur : `input_size` doit être un entier, mais reçu {type(input_size)}")
-        raise TypeError(f"input_size must be an integer, but got {type(input_size)}")
-
-    logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
-    return input_size, df
+    return len(df.columns) - 1, df
 
 # 📥 Chargement et prétraitement des données
 def load_data(df):
     logging.info("🔄 Prétraitement du dataset...")
 
     df = df.apply(pd.to_numeric, errors="coerce")
-    df.fillna(0, inplace=True)
+    df.fillna(df.mean(), inplace=True)  # ✅ Remplacement des `NaN` par la moyenne
 
     scaler = StandardScaler()
     df[df.columns] = scaler.fit_transform(df[df.columns])
-    
+
     X = df.drop(columns=["yield"])
     y = df["yield"]
 
@@ -59,14 +47,12 @@ def load_data(df):
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
-
         self.fc1 = nn.Linear(input_size, 64).to(device)
         self.batch_norm1 = nn.BatchNorm1d(64)
         self.fc2 = nn.Linear(64, 32).to(device)
         self.batch_norm2 = nn.BatchNorm1d(32)
         self.fc3 = nn.Linear(32, 1).to(device)
-
-        self.activation = nn.LeakyReLU(negative_slope=0.01)
+        self.activation = nn.LeakyReLU()
         self.dropout = nn.Dropout(0.3)
 
     def forward(self, x):
@@ -81,26 +67,15 @@ class PyTorchModel(nn.Module):
 # 📌 Sauvegarde et chargement du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
 
-def save_model(model, path=MODEL_PATH):
-    logging.info(f"🔍 Clés du modèle sauvegardé : {model.state_dict().keys()}")
-    torch.save(model.state_dict(), MODEL_PATH)  # ✅ Format attendu
-  # ✅ Format attendu
-    
-    # 🚨 Vérification après la sauvegarde
-    if os.path.exists(path):
-        logging.info(f"✅ Modèle correctement sauvegardé sous {path} !")
-    else:
-        logging.error(f"🛑 Erreur : Le modèle n'a pas été sauvegardé correctement.")
-        raise RuntimeError("🛑 Échec de la sauvegarde du modèle.")
+def save_model(model):
+    torch.save(model.state_dict(), MODEL_PATH)
+    logging.info(f"✅ Modèle PyTorch correctement sauvegardé sous {MODEL_PATH}.")
+
 # 🚀 Fonction pour entraîner le modèle
 def train_model():
     logging.info("🚀 Début de l'entraînement du modèle...")
 
     input_size, df = detect_input_size()
-
-    if not isinstance(input_size, int):
-        logging.error(f"🛑 `input_size` doit être un entier, mais reçu {type(input_size)} avec valeur `{input_size}`")
-        raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
 
     X_train, X_test, y_train, y_test = load_data(df)
     model = PyTorchModel(input_size)
@@ -123,14 +98,12 @@ def train_model():
 
     save_model(model)
 
-    # 🚨 Vérification finale pour assurer que le modèle est bien sauvegardé
     if not os.path.exists(MODEL_PATH):
-        logging.error(f"🛑 Erreur critique : `disease_model.pth` n’a pas été sauvegardé correctement.")
-        raise RuntimeError("🛑 Le modèle n'a pas été sauvegardé malgré l'entraînement.")
+        logging.error("🛑 Erreur : `disease_model.pth` n’a pas été sauvegardé correctement.")
+        raise RuntimeError("Le modèle n'a pas été sauvegardé.")
 
     return model
 
-# 🚀 Fin de l'entraînement
-logging.info("🎯 ✅ Modèle prêt à être utilisé !")
+# 🚀 Lancement automatique de l'entraînement
 if __name__ == "__main__":
     train_model()
