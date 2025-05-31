@@ -7,6 +7,7 @@ class AbioticDisease:
         self.symptoms = symptoms
         self.conditions = conditions
         self.control = control
+
     def to_dict(self):
         return vars(self)
 
@@ -15,11 +16,11 @@ class AbioticDisease:
         return "\n".join(f"🔹 {key.capitalize().replace('_', ' ')}: {value}" for key, value in details.items())
 
 
-# Bibliothèque sous forme de dictionnaire pour un accès plus rapide
+# Dictionary-based library for faster access
 abiotic_diseases = {
     "Blossom-End Rot": AbioticDisease(
         "Blossom-End Rot", ["Calcium Imbalance"], ["Tomatoes", "Peppers"], "Worldwide",
-        "Water-soaked lesions near blossom scar, turns leathery brown, colonized by saprophytic fungi.",
+        "Water-soaked lesions near the blossom scar, turns leathery brown, colonized by saprophytic fungi.",
         "Insufficient calcium uptake, alternating wet/dry soil, root stress, excess nitrogen.",
         "Drip irrigation, lime for calcium, avoid ammonium fertilizers, apply calcium nitrate."
     ),
@@ -42,14 +43,15 @@ abiotic_diseases = {
         "Optimized irrigation and nutrition, avoiding high humidity in greenhouses."
     )
 }
+
 def get_abiotic_disease_by_name(name):
-    """Recherche rapide d'une maladie abiotique."""
+    """Quick search for an abiotic disease."""
     disease = abiotic_diseases.get(name)
     if disease:
         return disease
     else:
-        return f"⚠️ La maladie '{name}' n'existe pas dans la base de données."
+        return f"⚠️ The disease '{name}' does not exist in the database."
 
-# Exemple d'affichage
+# Example output
 print(get_abiotic_disease_by_name("Blossom-End Rot"))
-print("Exécution terminée avec succès !")
+print("Execution completed successfully!")

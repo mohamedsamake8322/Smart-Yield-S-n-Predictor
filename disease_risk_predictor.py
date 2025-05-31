@@ -12,7 +12,7 @@ class DiseaseRiskPredictor:
         self.season = season
 
     def get_seasonal_adjustment(self):
-        """Adjust risk based on the season."""
+        """Adjusts risk based on the season."""
         season_factors = {
             "spring": 0.1,  
             "summer": 0.2,  
@@ -22,8 +22,8 @@ class DiseaseRiskPredictor:
         return season_factors.get(self.season.lower(), 0)
 
     def calculate_risk(self):
-        """Calculate the infection risk based on environmental conditions."""
-        base_risk = random.uniform(0.0, 0.6)  # Ajuste pour une meilleure précision  
+        """Calculates the infection risk based on environmental conditions."""
+        base_risk = random.uniform(0.0, 0.6)  # Adjusted for better accuracy  
 
         disease_factors = {
             "viral": {"temperature_range": (25, 35), "humidity_range": (50, 80), "insect": "aphid"},
@@ -57,7 +57,7 @@ class DiseaseRiskPredictor:
               f"🍂 Season: {self.season}\n"
               f"🔍 Final Risk Score: {base_risk:.2f}")
 
-        return base_risk  # 🔹 Correction : La fonction retourne le score
+        return base_risk  # 🔹 Correction: The function returns the score
 
 # Example usage of the predictive model
 predictor = DiseaseRiskPredictor(
@@ -71,5 +71,5 @@ predictor = DiseaseRiskPredictor(
     season="summer"
 )
 
-print(predictor.calculate_risk())  # ✅ Affiche le score correctement
-print("Exécution terminée avec succès !")
+print(predictor.calculate_risk())  # ✅ Displays the score correctly
+print("Execution completed successfully!")

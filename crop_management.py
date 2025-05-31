@@ -10,7 +10,7 @@ from report_generator import generate_pdf_report
 from disease_info import search_disease
 from insect_pests import search_pest, predict_pest_control
 
-# Chargement du modèle de reconnaissance des maladies
+# Load the disease recognition model
 MODEL_PATH = "disease_model.pth"
 try:
     disease_model = load_disease_model(MODEL_PATH)
@@ -41,7 +41,7 @@ def predict_pest_control():
     print(f"\n🤖 Pest control recommendations:\n{prediction}")
 
 def detect_disease_via_image():
-    """Détection de maladie végétale via image."""
+    """Plant disease detection via image."""
     st.subheader("🦠 Plant Disease Detection")
     image_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"], key="file_uploader_leaf_image1")
     if image_file:
@@ -86,7 +86,7 @@ def detect_disease_via_image():
                 )
                 st.download_button("📥 Download Disease Report", report_pdf, "disease_report.pdf")
 
-# 🔹 Déclaration correcte de `choices`, avant la boucle `while True`
+# 🔹 Correctly declaring `choices` before the `while True` loop
 choices = {
     "1": search_disease,
     "2": search_pest,
@@ -96,7 +96,7 @@ choices = {
     "6": lambda: print("👋 Goodbye and happy crop management! 🌾")  
 }
 
-# 🔹 Suppression de la double boucle `while True`
+# 🔹 Removing the double `while True` loop
 while True:
     print("\nChoose an option:")
     for num, action in choices.items():
@@ -115,4 +115,4 @@ while True:
 if __name__ == "__main__":
     main()
 
-print("Exécution terminée avec succès !")
+print("Execution completed successfully!")

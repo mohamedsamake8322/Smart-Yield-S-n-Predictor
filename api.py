@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 jwt = JWTManager(app)
-oauth = OAuth(app)  # ✅ Initialisation ici
+oauth = OAuth(app)  # ✅ Initialization here
 
 # 🔹 Home Route
 @app.route("/", methods=["GET"])
@@ -43,20 +43,20 @@ def auth_callback():
         return jsonify({"error": "❌ Authentication failed!"}), 400
     user_info = oauth.google.parse_id_token(token)
     access_token = create_access_token(identity=user_info["email"])
-    return jsonify({"access_token": access_token, "user": user_info["email"], "message": "✅ Connexion réussie!"})
+    return jsonify({"access_token": access_token, "user": user_info["email"], "message": "✅ Login successful!"})
 
 # 🔹 JWT-Protected Route
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
-    return jsonify({"message": f"🔒 Bienvenue {current_user}, accès autorisé!"})
+    return jsonify({"message": f"🔒 Welcome {current_user}, access granted!"})
 
 # 🔹 Logout
 @app.route("/logout", methods=["GET"])
 def logout():
     session.clear()
-    return jsonify({"message": "✅ Déconnecté!"})
+    return jsonify({"message": "✅ Logged out!"})
 
 # 🔹 Predicted User Data
 @app.route('/get_user_predictions', methods=['GET'])
@@ -70,9 +70,9 @@ def get_user_predictions():
 # 🔹 Error handling for missing routes
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "❌ Route introuvable"}), 404
+    return jsonify({"error": "❌ Route not found"}), 404
 
 # === Run the Application ===
 if __name__ == "__main__":
-    print(app.url_map)  # ✅ Liste des routes avant de démarrer le serveur
+    print(app.url_map)  # ✅ List of routes before starting the server
     app.run(debug=True, port=5000)

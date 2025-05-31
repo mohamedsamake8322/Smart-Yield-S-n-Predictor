@@ -1,58 +1,72 @@
 import os
+import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
+import numpy as np
 import logging
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 
-# ✅ Définition du périphérique (CPU uniquement)
+# ✅ Device definition (CPU only)
 device = torch.device("cpu")
 
-# ✅ Configuration du logging
+# ✅ Logging configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# 📂 Vérification et création du dossier "model"
+# 📂 Verify and create the "model" directory
 MODEL_DIR = "model"
 os.makedirs(MODEL_DIR, exist_ok=True)
-logging.info(f"✅ Dossier modèle vérifié : {MODEL_DIR}")
+logging.info(f"✅ Directory verified: {MODEL_DIR}")
 
-# 📥 Détection automatique des colonnes du dataset
+# 📥 Automatic detection of dataset columns
 def detect_input_size(csv_path="data.csv"):
     df = pd.read_csv(csv_path)
-    logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
+    logging.info(f"🔎 Available columns in the dataset: {df.columns.tolist()}")
 
     if "yield" not in df.columns:
-        raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset.")
+        raise KeyError("🛑 Error: The 'yield' column does not exist in the dataset. Check your CSV file.")
 
-    return len(df.columns) - 1, df
+    input_size = len(df.columns) - 1
 
-# 📥 Chargement et prétraitement des données
+    try:
+        input_size = int(input_size)  # ✅ Convert to integer to avoid error
+    except ValueError:
+        logging.error(f"🛑 Error: `input_size` must be an integer, but received {type(input_size)}")
+        raise TypeError(f"input_size must be an integer, but got {type(input_size)}")
+
+    logging.info(f"✅ Feature detection: {input_size} columns used for prediction.")
+    return input_size, df
+
+# 📥 Load and preprocess data
 def load_data(df):
-    logging.info("🔄 Prétraitement du dataset...")
+    logging.info("🔄 Preprocessing the dataset...")
 
     df = df.apply(pd.to_numeric, errors="coerce")
-    df.fillna(df.mean(), inplace=True)  # ✅ Remplacement des `NaN` par la moyenne
+    df.fillna(0, inplace=True)
 
     scaler = StandardScaler()
     df[df.columns] = scaler.fit_transform(df[df.columns])
-
+    
     X = df.drop(columns=["yield"])
     y = df["yield"]
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
-# 🔥 Définition du modèle PyTorch
+# 🔥 Define the PyTorch model
 class PyTorchModel(nn.Module):
     def __init__(self, input_size):
         super(PyTorchModel, self).__init__()
+
         self.fc1 = nn.Linear(input_size, 64).to(device)
         self.batch_norm1 = nn.BatchNorm1d(64)
         self.fc2 = nn.Linear(64, 32).to(device)
         self.batch_norm2 = nn.BatchNorm1d(32)
         self.fc3 = nn.Linear(32, 1).to(device)
-        self.activation = nn.LeakyReLU()
+
+        self.activation = nn.LeakyReLU(negative_slope=0.01)
         self.dropout = nn.Dropout(0.3)
 
     def forward(self, x):
@@ -64,18 +78,29 @@ class PyTorchModel(nn.Module):
         x = self.fc3(x)
         return x
 
-# 📌 Sauvegarde et chargement du modèle
+# 📌 Save and load the model
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
 
-def save_model(model):
-    torch.save(model.state_dict(), MODEL_PATH)
-    logging.info(f"✅ Modèle PyTorch correctement sauvegardé sous {MODEL_PATH}.")
+def save_model(model, path=MODEL_PATH):
+    logging.info(f"🔍 Saved model keys: {model.state_dict().keys()}")
+    torch.save(model.state_dict(), MODEL_PATH)  # ✅ Expected format
+    
+    # 🚨 Verification after saving
+    if os.path.exists(path):
+        logging.info(f"✅ Model correctly saved at {path}!")
+    else:
+        logging.error(f"🛑 Error: The model was not saved correctly.")
+        raise RuntimeError("🛑 Model save failure.")
 
-# 🚀 Fonction pour entraîner le modèle
+# 🚀 Function to train the model
 def train_model():
-    logging.info("🚀 Début de l'entraînement du modèle...")
+    logging.info("🚀 Starting model training...")
 
     input_size, df = detect_input_size()
+
+    if not isinstance(input_size, int):
+        logging.error(f"🛑 `input_size` must be an integer, but received {type(input_size)} with value `{input_size}`")
+        raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
 
     X_train, X_test, y_train, y_test = load_data(df)
     model = PyTorchModel(input_size)
@@ -98,12 +123,14 @@ def train_model():
 
     save_model(model)
 
+    # 🚨 Final check to ensure model is properly saved
     if not os.path.exists(MODEL_PATH):
-        logging.error("🛑 Erreur : `disease_model.pth` n’a pas été sauvegardé correctement.")
-        raise RuntimeError("Le modèle n'a pas été sauvegardé.")
+        logging.error(f"🛑 Critical error: `disease_model.pth` was not saved properly.")
+        raise RuntimeError("🛑 The model was not saved despite training.")
 
     return model
 
-# 🚀 Lancement automatique de l'entraînement
+# 🚀 End of training
+logging.info("🎯 ✅ Model ready for use!")
 if __name__ == "__main__":
     train_model()

@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-# 🔹 Logger configuration (utilisation d'un logger spécifique pour `database.py`)
+# 🔹 Logger configuration (using a specific logger for `database.py`)
 logger = logging.getLogger(__name__)
 
 DB_FILE = "history.db"
@@ -117,4 +117,4 @@ def save_location(lat, lon):
             logger.info(f"✅ Location saved: ({lat}, {lon}).")
     except sqlite3.Error as e:
         logger.error(f"🚨 Error saving location: {e}")
-        print("Exécution terminée avec succès !")
+        print("Execution completed successfully!")

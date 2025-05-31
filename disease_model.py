@@ -1,100 +1,84 @@
-import os
-import torch
-import numpy as np
+import time
 from PIL import Image
-from torchvision import models, transforms
-import torch.nn as nn
+from utils import predict_disease
+from disease_info import get_disease_info, DISEASE_DATABASE
+from disease_model import load_disease_model  # ✅ Added import
 
-# 📌 Dictionnaire des classes de maladies
-CLASS_LABELS = {
-    0: "Cucumber Anthracnose",
-    1: "Eggplant Cercospora",
-    2: "Eggplant Bacterial Wilt",
-    3: "Eggplant Phomopsis",
-    4: "Eggplant Healthy",
-    5: "Okra Yellow Vein Mosaic Virus",
-    6: "Okra Leaf Spot",
-    7: "Okra Powdery Mildew",
-    8: "Okra Caterpillar Damage",
-    9: "Okra Healthy",
-    10: "Okra Rust",
-    11: "Okra Salinisation Stress",
-    12: "Tomato Bacterial Spot",
-    13: "Tomato Early Blight",
-    14: "Tomato Healthy",
-    15: "Tomato Late Blight",
-    16: "Tomato Leaf Mold",
-    17: "Tomato Septoria Leaf Spot",
-    18: "Tomato Spider Mites",
-    19: "Tomato Target Spot",
-    20: "Tomato Yellow Leaf Curl Virus",
-    21: "Maize Dwarf Mosaic Virus",
-    22: "Barley Yellow Dwarf Virus",
-    23: "Soybean Mosaic Virus",
-    24: "Blossom-End Rot",
-    25: "Chemical Damage",
-    26: "Chimera Genetic Mutation",
-    27: "Cracking Environmental Stress"
-}
+# ✅ Load the model BEFORE using it
+start_time = time.time()
+disease_model = load_disease_model("C:/Mohamed/model/disease_model.pth")  
+end_time = time.time()
 
-# 📌 Définition du périphérique (GPU si disponible)
-device = torch.device("cpu")  # 🚀 Force l'utilisation du CPU
+if disease_model:
+    print("✅ Disease detection model is loaded successfully!")
+else:
+    print("🛑 Error: Disease model not loaded.")
 
-# 📌 Définition du modèle
-num_classes = len(CLASS_LABELS)
-model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-model.fc = nn.Linear(model.fc.in_features, num_classes)
-model.to(device)
+print(f"⏳ Model loaded in {end_time - start_time:.2f} seconds.")
 
-# 📌 Vérifier et créer le dossier `model/`
-model_dir = "model"
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
+def process_image(image_file):
+    """Converts an image to RGB format."""
+    return Image.open(image_file).convert("RGB")
 
-# 📦 Sauvegarde du modèle
-model_path = os.path.join(model_dir, "disease_model.pth")
-torch.save({"state_dict": model.state_dict()}, model_path)
-print(f"✅ Modèle sauvegardé avec succès dans {model_path} !")
+def detect_disease(disease_model=None, image=None, symptom=None):
+    """Detects disease based on image or symptom."""
+    if image and disease_model:
+        label = predict_disease(disease_model, image)
+        detected_plant = label.split()[0] if label else "Unknown"
+        disease_details = get_disease_info(label) if label and label in DISEASE_DATABASE else None
+    elif symptom:
+        disease_details = next((d for d in DISEASE_DATABASE.values() if symptom.lower() in d.symptoms.lower()), None)
+        label = disease_details.name if disease_details else "Unknown"
+        detected_plant = "Unknown"
+    else:
+        return {"error": "Provide either an image or a symptom for detection."}
 
-# 📌 Fonction pour charger le modèle
-def load_disease_model(model_path="C:/Mohamed/model/disease_model.pth"):
-    global model
-    print(f"🔍 Vérification du chemin: {model_path}")
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"❌ Fichier non trouvé: {model_path}")
-    checkpoint = torch.load(model_path, map_location=device)
-    model.load_state_dict(checkpoint["state_dict"])
-    model.eval()
-    print("✅ Modèle chargé avec succès !")
+    return {
+        "label": label,
+        "plant": detected_plant,
+        "info": disease_details or "⚠️ No matching disease found."
+    }
 
-def predict_disease(image_path):
-    """Prédit la maladie des plantes à partir d'une image."""
-    try:
-        image = Image.open(image_path).convert("RGB")
-    except Exception as e:
-        print(f"❌ Erreur lors de l'ouverture de l'image : {e}")
-        return "Erreur : Format d'image non supporté"
+# ✅ Example of symptom-based detection
+symptom_query = "Water-soaked areas on leaves"
+detected_disease = detect_disease(symptom=symptom_query)
 
-    if image.mode == "RGBA":
-        image = image.convert("RGB")
-    if image.mode == "L":
-        image = image.convert("RGB")
+if detected_disease.get("info"):  # ✅ Correction to avoid error
+    print(f"Possible disease detected: {detected_disease['info']}")
+else:
+    print("No matching disease found.")
 
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+# ✅ Symptom-based detection only
+def detect_disease_by_symptom(symptom):
+    """🔎 Search for a disease by symptom."""
+    return next((disease for disease in DISEASE_DATABASE.values() if symptom.lower() in disease.symptoms.lower()), None)
 
-    image = transform(image).unsqueeze(0).to(device)
+# ✅ Example usage
+symptom_query = "Young seedlings develop rot at the crown"
+detected_disease = detect_disease_by_symptom(symptom_query)
 
-    model.eval()
-    with torch.no_grad():
-        output = model(image)
-        probs = torch.softmax(output, dim=1)  # Ajoute les probabilités
-        _, predicted = torch.max(output, 1)
-        disease_name = CLASS_LABELS.get(predicted.item(), "Unknown Disease")
-        confidence = probs[0][predicted.item()].item()
+if detected_disease:
+    print(f"Possible disease detected: {detected_disease.name}")  
+else:
+    print("No matching disease found.")
 
-    return f"🔍 Prédiction : {disease_name} (Confiance : {confidence:.2f})"
+# ✅ Detection from the database
+def detect_disease_from_database(symptom):
+    """
+    🔍 Detects a disease based on a symptom.
+    - Searches in the `DISEASE_DATABASE`.
+    - Returns the corresponding disease if found.
+    """
+    return next(
+        (disease for disease in DISEASE_DATABASE.values() if symptom.lower() in disease.symptoms.lower()), 
+        None
+    )
 
+# ✅ Example usage
+symptom_query = "Soft, water-soaked lesions develop without discoloration"
+detected_disease = detect_disease_from_database(symptom_query)
+
+if detected_disease:
+    print(f"Possible disease detected:\n{detected_disease}")
+else:
+    print("⚠️ No matching disease found.")
