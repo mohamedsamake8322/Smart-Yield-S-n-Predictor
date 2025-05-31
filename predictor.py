@@ -46,25 +46,35 @@ class PyTorchModel(nn.Module):
         x = self.dropout(x)
         x = self.fc3(x)
         return x
-
 # ---------- Model Persistence ----------
 MODEL_PATH = "model/disease_model.pth"
 
 def load_model(input_size, path=MODEL_PATH):
     """Charge le modèle PyTorch et vérifie la compatibilité avec `input_size`."""
     model = PyTorchModel(input_size)
-    if os.path.exists(path):
-        try:
-            model.load_state_dict(torch.load(path, map_location=device))
-            model.eval()
-            logging.info(f"✅ Modèle PyTorch chargé avec succès depuis {path} !")
-        except RuntimeError as e:
-            logging.error(f"🛑 Erreur de chargement du modèle : {e}")
-            exit(1)
-    else:
-        logging.error(f"🚫 Modèle non trouvé à {path}.")
-        exit(1)
+    
+    if not os.path.exists(path):
+        logging.error(f"🚫 Modèle non trouvé à {path}. Vérifie que l'entraînement a bien eu lieu.")
+        raise FileNotFoundError(f"Modèle non trouvé : {path}")
+    
+    try:
+        model.load_state_dict(torch.load(path, map_location=device))
+        model.eval()
+        logging.info(f"✅ Modèle PyTorch chargé avec succès depuis {path} !")
+    except RuntimeError as e:
+        logging.error(f"🛑 Erreur de chargement du modèle : {e}")
+        raise RuntimeError("Le fichier du modèle n'est pas compatible avec l'architecture actuelle.")
+    
     return model
+
+def save_model(model, path=MODEL_PATH):
+    """Sauvegarde le modèle PyTorch."""
+    try:
+        torch.save(model.state_dict(), path)
+        logging.info(f"✅ Modèle PyTorch sauvegardé sous {path}.")
+    except Exception as e:
+        logging.error(f"🛑 Erreur lors de la sauvegarde du modèle : {e}")
+        raise RuntimeError("Impossible de sauvegarder le modèle.")
 
 # ---------- Nettoyage et Normalisation du CSV ----------
 def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
