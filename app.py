@@ -44,7 +44,7 @@ from sklearn.metrics import mean_squared_error, r2_score  # ✅ Évite l'importa
 import visualizations
 import disease_model
 from database import init_db, save_prediction, get_user_predictions, save_location
-from predictor import load_model, save_model, predict_single, predict_batch
+from predictor import load_model, save_model, predict_single, predict_batch, detect_input_size
 from train_model import train_model  # ✅ Import correct
 from evaluate import evaluate_model
 from utils import predict_disease
@@ -77,9 +77,14 @@ DISEASE_MODEL_PATH = "model/disease_model.pth"
 DATA_PATH = "data.csv"
 
 # ✅ Load Disease Detection Model safely
-disease_model = load_model(DISEASE_MODEL_PATH)  
+# 🔄 Détection de la taille des features avant de charger le modèle
+input_size, _ = detect_input_size()  # ✅ Obtenir correctement la taille des features
+disease_model = load_model(input_size)  
+
+# 🚨 Vérification que le modèle a bien été chargé
 if disease_model is None:
-    raise RuntimeError(f"🚫 Failed to load disease model from {DISEASE_MODEL_PATH}.")
+    raise RuntimeError(f"🚫 Failed to load disease model with input size {input_size}.")
+
 
 # 🔹 Load trained model safely
 def load_trained_model(model_path=MODEL_PATH):
