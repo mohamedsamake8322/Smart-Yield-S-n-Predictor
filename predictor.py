@@ -111,6 +111,14 @@ def predict_single(model, features: dict):
     input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
     prediction = model(input_tensor).item()
     return prediction
+def predict_batch(model, df: pd.DataFrame):
+    """Effectue des prédictions sur plusieurs données."""
+    df = clean_and_normalize_dataframe(df)
+
+    input_tensor = torch.tensor(df.values, dtype=torch.float32).to(device)
+    predictions = model(input_tensor).detach().numpy()
+    
+    return predictions
 
 # ---------- Exécution autonome du script ----------
 if __name__ == "__main__":
