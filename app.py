@@ -70,6 +70,7 @@ from parasitic_plants import ParasiticPlant
 from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from visualizations import generate_map
+from phytoplasma_diseases import predict_phytoplasma_disease
 
 # 📌 Model Paths
 MODEL_PATH = "model/retrained_model.pkl"
@@ -379,3 +380,11 @@ if choice == "Disease Detection":
                     st.warning("⚠️ No detailed information found.")
             except Exception as e:
                 st.error(f"🛑 Detection error: {e}")
+if __name__ == "__main__":
+    # 🔍 Test de prédiction avec des données fictives
+    symptom = "Leaf deformation"
+    climate = "humid"
+    soil_type = "clay"
+
+    result = predict_phytoplasma_disease(symptom, climate, soil_type)
+    print(f"🌱 Prédiction de maladie phytoplasmique : {result}")
