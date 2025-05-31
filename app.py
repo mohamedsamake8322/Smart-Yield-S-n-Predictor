@@ -44,7 +44,8 @@ from sklearn.metrics import mean_squared_error, r2_score  # ✅ Évite l'importa
 import visualizations
 import disease_model
 from database import init_db, save_prediction, get_user_predictions, save_location
-from predictor import load_model, save_model, predict_single, predict_batch, train_model
+from predictor import load_model, save_model, predict_single, predict_batch
+from train_model import train_model  # ✅ Import correct
 from evaluate import evaluate_model
 from utils import predict_disease
 from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
