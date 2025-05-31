@@ -40,7 +40,6 @@ def detect_input_size(csv_path="data.csv"):
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
 
-
 # 📥 Chargement et prétraitement des données
 def load_data(df):
     logging.info("🔄 Prétraitement du dataset...")
@@ -85,19 +84,24 @@ MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
 def save_model(model, path=MODEL_PATH):
     logging.info(f"🔍 Clés du modèle sauvegardé : {model.state_dict().keys()}")
     torch.save(model.state_dict(), path)
-    logging.info(f"✅ Modèle PyTorch sauvegardé sous {path}.")
+    
+    # 🚨 Vérification après la sauvegarde
+    if os.path.exists(path):
+        logging.info(f"✅ Modèle correctement sauvegardé sous {path} !")
+    else:
+        logging.error(f"🛑 Erreur : Le modèle n'a pas été sauvegardé correctement.")
 
 # 🚀 Fonction pour entraîner le modèle
 def train_model():
     logging.info("🚀 Début de l'entraînement du modèle...")
 
     input_size, df = detect_input_size()
-    # 🚨 Vérification explicite du type de `input_size`
+    
     if not isinstance(input_size, int):
         logging.error(f"🛑 `input_size` doit être un entier, mais reçu {type(input_size)} avec valeur `{input_size}`")
         raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
-    X_train, X_test, y_train, y_test = load_data(df)
 
+    X_train, X_test, y_train, y_test = load_data(df)
     model = PyTorchModel(input_size)
 
     criterion = nn.MSELoss()
