@@ -137,16 +137,18 @@ if __name__ == "__main__":
         "soil_type": "sandy",
         "crop_type": "wheat"
     }
-
+    # 🚨 Vérification que les clés existent avant conversion
+if "soil_type" in example_features and "crop_type" in example_features:
+    example_features["soil_type"] = 1 if example_features["soil_type"] == "sandy" else 0
+    example_features["crop_type"] = 1 if example_features["crop_type"] == "wheat" else 0
+else:
+    logging.error("🛑 Erreur : `example_features` n'est pas bien défini avant conversion.")
+    exit(1)
     required_columns = ['temperature', 'humidity', 'pH', 'rainfall', 'soil_type', 'crop_type']
     missing_columns = [col for col in required_columns if col not in example_features]
 
     if missing_columns:
         logging.warning(f"⚠️ Certaines colonnes manquent dans `example_features`: {missing_columns}")
-# 🔹 Assurer que les variables catégoriques sont bien converties
-example_features["soil_type"] = 1 if example_features["soil_type"] == "sandy" else 0
-example_features["crop_type"] = 1 if example_features["crop_type"] == "wheat" else 0
-
 prediction = predict_single(model, example_features)
 logging.info(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
 
