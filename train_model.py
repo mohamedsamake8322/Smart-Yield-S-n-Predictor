@@ -8,7 +8,7 @@ import numpy as np
 import logging
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.preprocessing import StandardScaler  # ✅ Normalisation avancée
+from sklearn.preprocessing import StandardScaler
 
 # ✅ Définition du périphérique (CPU uniquement)
 device = torch.device("cpu")
@@ -23,7 +23,6 @@ logging.info(f"✅ Directory verified: {MODEL_DIR}")
 
 # 📥 Détection automatique des colonnes du dataset
 def detect_input_size(csv_path="data.csv"):
-    """Détecte automatiquement le nombre de colonnes de features du CSV."""
     df = pd.read_csv(csv_path)
     logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
 
@@ -41,7 +40,6 @@ def load_data(df):
     df = df.apply(pd.to_numeric, errors="coerce")
     df.fillna(0, inplace=True)
 
-    # ✅ Standardisation des données
     scaler = StandardScaler()
     df[df.columns] = scaler.fit_transform(df[df.columns])
     
@@ -49,14 +47,6 @@ def load_data(df):
     y = df["yield"]
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
-
-# 📌 Détection du input_size et chargement des données
-try:
-    input_size, df = detect_input_size()
-    X_train, X_test, y_train, y_test = load_data(df)
-except KeyError as e:
-    logging.error(str(e))
-    exit(1)
 
 # 🔥 Définition du modèle PyTorch
 class PyTorchModel(nn.Module):
@@ -81,52 +71,41 @@ class PyTorchModel(nn.Module):
         x = self.fc3(x)
         return x
 
-# 📌 Instanciation du modèle
-model = PyTorchModel(input_size)
-
-# 🔧 Définition de la fonction de coût et de l'optimiseur
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)  # ✅ Optimisation avancée
-
-# ✅ Conversion des données en tensors
-X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
-y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).to(device)
-
-# 🚀 Entraînement du modèle PyTorch
-for epoch in range(1000):  # ✅ Augmentation des époques pour une meilleure stabilité
-    optimizer.zero_grad()
-    predictions = model(X_train_tensor)
-    loss = criterion(predictions, y_train_tensor)
-    loss.backward()
-    optimizer.step()
-
-    if epoch % 50 == 0:
-        logging.info(f"Epoch {epoch}, Loss: {loss.item():.4f}")
-
-# 📊 Évaluation du modèle
-X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32).to(device)
-y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1).to(device)
-
-with torch.no_grad():
-    predictions = model(X_test_tensor)
-    rmse = mean_squared_error(y_test_tensor.numpy(), predictions.numpy(), squared=False)
-    r2 = r2_score(y_test_tensor.numpy(), predictions.numpy())
-
-metrics = {
-    "rmse": float(rmse),
-    "r2": float(r2)
-}
-
-# 💾 Sauvegarde du modèle
+# 📌 Sauvegarde et chargement du modèle
 MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
-torch.save(model.state_dict(), MODEL_PATH)
-logging.info(f"✅ Model saved successfully in {MODEL_PATH}")
 
-# 📊 Sauvegarde des métriques
-METRICS_PATH = os.path.join(MODEL_DIR, "retrained_model_metrics.json")
-with open(METRICS_PATH, "w") as f:
-    json.dump(metrics, f)
-logging.info(f"📊 Metrics logged in {METRICS_PATH}")
+def save_model(model, path=MODEL_PATH):
+    torch.save(model.state_dict(), path)
+    logging.info(f"✅ Modèle PyTorch sauvegardé sous {path}.")
+
+# 🚀 Fonction pour entraîner le modèle
+def train_model():
+    logging.info("🚀 Début de l'entraînement du modèle...")
+
+    input_size, df = detect_input_size()
+    X_train, X_test, y_train, y_test = load_data(df)
+
+    model = PyTorchModel(input_size)
+
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
+
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).to(device)
+
+    for epoch in range(1000):
+        optimizer.zero_grad()
+        predictions = model(X_train_tensor)
+        loss = criterion(predictions, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+
+        if epoch % 50 == 0:
+            logging.info(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+
+    save_model(model)
+
+    return model
 
 # 🚀 Fin de l'entraînement
-logging.info("🎯 ✅ Modèle entraîné et prêt à être utilisé !")
+logging.info("🎯 ✅ Modèle prêt à être utilisé !")
