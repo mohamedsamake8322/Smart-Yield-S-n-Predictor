@@ -91,6 +91,10 @@ def train_model():
     logging.info("🚀 Début de l'entraînement du modèle...")
 
     input_size, df = detect_input_size()
+    # 🚨 Vérification explicite du type de `input_size`
+    if not isinstance(input_size, int):
+        logging.error(f"🛑 `input_size` doit être un entier, mais reçu {type(input_size)} avec valeur `{input_size}`")
+        raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
     X_train, X_test, y_train, y_test = load_data(df)
 
     model = PyTorchModel(input_size)

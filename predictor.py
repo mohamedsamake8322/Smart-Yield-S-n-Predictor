@@ -127,6 +127,11 @@ if __name__ == "__main__":
         logging.error(str(e))
         exit(1)
 
+    # 🚨 Vérification finale du type de `input_size`
+    if not isinstance(input_size, int):
+        logging.error(f"🛑 `input_size` doit être un entier, mais reçu {type(input_size)} avec valeur `{input_size}`")
+        raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
+
     logging.info("🔄 Chargement du modèle...")
     model = load_model(input_size=input_size)
 
