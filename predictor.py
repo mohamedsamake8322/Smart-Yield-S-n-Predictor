@@ -69,6 +69,14 @@ def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model Persistence ----------
 MODEL_PATH = "model/disease_model.pth"
+def save_model(model, path=MODEL_PATH):
+    """Sauvegarde le modèle PyTorch."""
+    try:
+        torch.save(model.state_dict(), path)
+        logging.info(f"✅ Modèle PyTorch sauvegardé sous {path}.")
+    except Exception as e:
+        logging.error(f"🛑 Erreur lors de la sauvegarde du modèle : {e}")
+        raise RuntimeError("Impossible de sauvegarder le modèle.")
 
 def load_model(input_size, path=MODEL_PATH):
     """Charge le modèle PyTorch et vérifie la compatibilité avec `input_size`."""
