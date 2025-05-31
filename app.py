@@ -67,7 +67,6 @@ from insect_pests import InsectPest
 from nematode_diseases import NematodeDisease
 from disease_info import Disease
 from parasitic_plants import ParasiticPlant
-from phytoplasma_diseases import PhytoplasmaDisease
 from viral_diseases import ViralDisease
 from visualizations import generate_map
 from phytoplasma_diseases import predict_phytoplasma_disease
