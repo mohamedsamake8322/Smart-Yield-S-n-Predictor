@@ -83,7 +83,8 @@ MODEL_PATH = os.path.join(MODEL_DIR, "disease_model.pth")
 
 def save_model(model, path=MODEL_PATH):
     logging.info(f"🔍 Clés du modèle sauvegardé : {model.state_dict().keys()}")
-    torch.save(model.state_dict(), path)
+    torch.save(model.state_dict(), MODEL_PATH)  # ✅ Format attendu
+
     
     # 🚨 Vérification après la sauvegarde
     if os.path.exists(path):
