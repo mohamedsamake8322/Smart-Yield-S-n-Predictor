@@ -1,7 +1,7 @@
 import json
 import streamlit as st
 from streamlit_lottie import st_lottie
-from sklearn.model_selection import train_test_split  # ✅ Supprime l'importation en double
+from sklearn.model_selection import train_test_split  # ✅ Removes duplicate import
 
 # 📌 Function to load the Lottie animation file
 def load_lottie_file(filepath):
@@ -38,21 +38,21 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
-from sklearn.metrics import mean_squared_error, r2_score  # ✅ Évite l'importation répétée
+from sklearn.metrics import mean_squared_error, r2_score  # ✅ Avoids repeated imports
 
 # 📌 Internal Modules
 import visualizations
 import disease_model
 from database import init_db, save_prediction, get_user_predictions, save_location
 from predictor import load_model, save_model, predict_single, predict_batch, detect_input_size
-from train_model import train_model  # ✅ Import correct
+from train_model import train_model  # ✅ Correct import
 from evaluate import evaluate_model
 from utils import predict_disease
 from abiotic_diseases import abiotic_diseases, get_abiotic_disease_by_name
 import nematode_diseases
 import insect_pests
 import parasitic_plants
-from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress  # ✅ Supprime le doublon
+from field_stress_map import FIELDS, generate_stress_trend, generate_stress_heatmap, predict_stress  # ✅ Removes duplicate import
 from disease_model import load_disease_model
 
 # 📌 Newly Integrated Modules
@@ -77,14 +77,13 @@ DISEASE_MODEL_PATH = "model/disease_model.pth"
 DATA_PATH = "data.csv"
 
 # ✅ Load Disease Detection Model safely
-# 🔄 Détection de la taille des features avant de charger le modèle
-input_size, _ = detect_input_size()  # ✅ Obtenir correctement la taille des features
+# 🔄 Detect the feature size before loading the model
+input_size, _ = detect_input_size()  # ✅ Correctly obtain feature size
 disease_model = load_model(input_size)  
 
-# 🚨 Vérification que le modèle a bien été chargé
+# 🚨 Verify that the model has been successfully loaded
 if disease_model is None:
     raise RuntimeError(f"🚫 Failed to load disease model with input size {input_size}.")
-
 
 # 🔹 Load trained model safely
 def load_trained_model(model_path=MODEL_PATH):
@@ -93,7 +92,7 @@ def load_trained_model(model_path=MODEL_PATH):
         raise FileNotFoundError(f"❌ File {model_path} not found.")
 
     try:
-        model_data = torch.load(model_path)  # ✅ Remplace Joblib par PyTorch
+        model_data = torch.load(model_path)  # ✅ Replaces Joblib with PyTorch
         model = model_data.get("model")
         metrics = model_data.get("metrics")
 
@@ -211,6 +210,7 @@ if choice == "History" and user_predictions is not None:
     selected_disease = st.selectbox("🔎 Filter by Disease", ["All"] + list(user_predictions["disease"].unique()))
     start_date = st.date_input("📅 Start Date", user_predictions["date"].min())
     end_date = st.date_input("📅 End Date", user_predictions["date"].max())
+
 
     filtered_df = user_predictions[
         (user_predictions["date"] >= start_date) &
