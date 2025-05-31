@@ -90,13 +90,13 @@ def save_model(model, path=MODEL_PATH):
         logging.info(f"✅ Modèle correctement sauvegardé sous {path} !")
     else:
         logging.error(f"🛑 Erreur : Le modèle n'a pas été sauvegardé correctement.")
-
+        raise RuntimeError("🛑 Échec de la sauvegarde du modèle.")
 # 🚀 Fonction pour entraîner le modèle
 def train_model():
     logging.info("🚀 Début de l'entraînement du modèle...")
 
     input_size, df = detect_input_size()
-    
+
     if not isinstance(input_size, int):
         logging.error(f"🛑 `input_size` doit être un entier, mais reçu {type(input_size)} avec valeur `{input_size}`")
         raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
@@ -121,6 +121,11 @@ def train_model():
             logging.info(f"Epoch {epoch}, Loss: {loss.item():.4f}")
 
     save_model(model)
+
+    # 🚨 Vérification finale pour assurer que le modèle est bien sauvegardé
+    if not os.path.exists(MODEL_PATH):
+        logging.error(f"🛑 Erreur critique : `disease_model.pth` n’a pas été sauvegardé correctement.")
+        raise RuntimeError("🛑 Le modèle n'a pas été sauvegardé malgré l'entraînement.")
 
     return model
 
