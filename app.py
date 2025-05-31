@@ -381,10 +381,13 @@ if choice == "Disease Detection":
             except Exception as e:
                 st.error(f"🛑 Detection error: {e}")
 if __name__ == "__main__":
-    # 🔍 Test de prédiction avec des données fictives
     symptom = "Leaf deformation"
     climate = "humid"
     soil_type = "clay"
+    leaves = "deformed"
+    stems = "weak"
+    fruits = "sterile"
+    roots = "damaged"
 
-    result = predict_phytoplasma_disease(symptom, climate, soil_type)
-    print(f"🌱 Prédiction de maladie phytoplasmique : {result}")
+    result = predict_phytoplasma_disease(symptom, climate, soil_type, leaves, stems, fruits, roots)
+    print(f"🌱 Résultat de la prédiction : {result}")
