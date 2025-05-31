@@ -30,8 +30,16 @@ def detect_input_size(csv_path="data.csv"):
         raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
 
     input_size = len(df.columns) - 1
-    logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour l'entraînement.")
+
+    try:
+        input_size = int(input_size)  # ✅ Convertir en entier pour éviter l’erreur
+    except ValueError:
+        logging.error(f"🛑 Erreur : `input_size` doit être un entier, mais reçu {type(input_size)}")
+        raise TypeError(f"input_size must be an integer, but got {type(input_size)}")
+
+    logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
+
 
 # 📥 Chargement et prétraitement des données
 def load_data(df):

@@ -13,16 +13,23 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # ---------- Détection automatique des colonnes ----------
 def detect_input_size(csv_path="data.csv"):
-    """Détecte automatiquement le nombre de colonnes de features du CSV et vérifie la colonne cible."""
     df = pd.read_csv(csv_path)
     logging.info(f"🔎 Colonnes disponibles dans le dataset : {df.columns.tolist()}")
 
     if "yield" not in df.columns:
         raise KeyError("🛑 Erreur : La colonne 'yield' n'existe pas dans le dataset. Vérifie ton fichier CSV.")
 
-    input_size = len(df.columns) - 1  # 🚀 Ignorer la colonne cible (ex: 'yield')
+    input_size = len(df.columns) - 1
+
+    try:
+        input_size = int(input_size)  # ✅ Convertir en entier pour éviter l’erreur
+    except ValueError:
+        logging.error(f"🛑 Erreur : `input_size` doit être un entier, mais reçu {type(input_size)}")
+        raise TypeError(f"input_size must be an integer, but got {type(input_size)}")
+
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
+
 
 # ---------- Définition du modèle PyTorch ----------
 class PyTorchModel(nn.Module):
