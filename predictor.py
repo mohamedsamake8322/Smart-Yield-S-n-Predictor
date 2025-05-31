@@ -29,6 +29,22 @@ def detect_input_size(csv_path="data.csv"):
 
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
+def predict_single(model, features: dict):
+    """Effectue une prédiction unique."""
+    input_df = pd.DataFrame([features])
+    input_df = clean_and_normalize_dataframe(input_df)
+
+    input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
+    prediction = model(input_tensor).item()
+    return prediction
+def predict_batch(model, df: pd.DataFrame):
+    """Effectue des prédictions sur plusieurs données."""
+    df = clean_and_normalize_dataframe(df)
+
+    input_tensor = torch.tensor(df.values, dtype=torch.float32).to(device)
+    predictions = model(input_tensor).detach().numpy()
+    
+    return predictions
 
 
 # ---------- Définition du modèle PyTorch ----------
@@ -37,13 +53,13 @@ class PyTorchModel(nn.Module):
         super(PyTorchModel, self).__init__()
 
         self.fc1 = nn.Linear(input_size, 64).to(device)
-        self.batch_norm1 = nn.BatchNorm1d(64)  # ✅ Ajout de BatchNorm
+        self.batch_norm1 = nn.BatchNorm1d(64)  
         self.fc2 = nn.Linear(64, 32).to(device)
-        self.batch_norm2 = nn.BatchNorm1d(32)  # ✅ Ajout de BatchNorm
+        self.batch_norm2 = nn.BatchNorm1d(32)  
         self.fc3 = nn.Linear(32, 1).to(device)
 
-        self.activation = nn.LeakyReLU(negative_slope=0.01)  # ✅ Activation améliorée
-        self.dropout = nn.Dropout(0.3)  # ✅ Régularisation pour éviter l'overfitting
+        self.activation = nn.LeakyReLU(negative_slope=0.01)  
+        self.dropout = nn.Dropout(0.3)  
 
     def forward(self, x):
         x = x.to(device)
@@ -53,11 +69,18 @@ class PyTorchModel(nn.Module):
         x = self.dropout(x)
         x = self.fc3(x)
         return x
+
 # ---------- Model Persistence ----------
 MODEL_PATH = "model/disease_model.pth"
 
 def load_model(input_size, path=MODEL_PATH):
     """Charge le modèle PyTorch et vérifie la compatibilité avec `input_size`."""
+    try:
+        input_size = int(input_size)
+    except ValueError:
+        logging.error(f"🛑 `input_size` reçu comme `{type(input_size)}`, valeur : `{input_size}`")
+        raise TypeError(f"`input_size` must be an integer, but got {type(input_size)}")
+
     model = PyTorchModel(input_size)
     
     if not os.path.exists(path):
@@ -74,15 +97,6 @@ def load_model(input_size, path=MODEL_PATH):
     
     return model
 
-def save_model(model, path=MODEL_PATH):
-    """Sauvegarde le modèle PyTorch."""
-    try:
-        torch.save(model.state_dict(), path)
-        logging.info(f"✅ Modèle PyTorch sauvegardé sous {path}.")
-    except Exception as e:
-        logging.error(f"🛑 Erreur lors de la sauvegarde du modèle : {e}")
-        raise RuntimeError("Impossible de sauvegarder le modèle.")
-
 # ---------- Nettoyage et Normalisation du CSV ----------
 def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Nettoie et normalise les données pour éviter les erreurs avec PyTorch."""
@@ -92,31 +106,10 @@ def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df.fillna(0, inplace=True)
 
     scaler = StandardScaler()
-    df[df.columns] = scaler.fit_transform(df[df.columns])  # ✅ Normalisation
+    df[df.columns] = scaler.fit_transform(df[df.columns])  
     logging.info("✅ Normalisation terminée.")
 
     return df
-
-# ---------- Single Prediction ----------
-def predict_single(model, features: dict):
-    """Effectue une prédiction unique."""
-    input_df = pd.DataFrame([features])
-    input_df = clean_and_normalize_dataframe(input_df)
-
-    input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
-    prediction = model(input_tensor).item()
-    return prediction
-
-# ---------- Batch Prediction ----------
-def predict_batch(model, df: pd.DataFrame):
-    """Effectue des prédictions sur plusieurs données."""
-    df = clean_and_normalize_dataframe(df)
-
-    required_features = list(df.columns)
-    input_tensor = torch.tensor(df[required_features].values, dtype=torch.float32).to(device)
-    
-    predictions = model(input_tensor).detach().numpy()
-    return predictions
 
 # ---------- Exécution autonome du script ----------
 if __name__ == "__main__":
@@ -137,12 +130,24 @@ if __name__ == "__main__":
 
     # 🔥 Test rapide de prédiction avec des valeurs fictives
     example_features = {
-        "Temperature": 25,
-        "Humidity": 60,
-        "Precipitation": 12,
+        "temperature": 25,
+        "humidity": 60,
         "pH": 6.5,
-        "Fertilizer": 80,
-        "NDVI": 0.5
+        "rainfall": 12,
+        "soil_type": "sandy",
+        "crop_type": "wheat"
     }
-    prediction = predict_single(model, example_features)
-    logging.info(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
+
+    required_columns = ['temperature', 'humidity', 'pH', 'rainfall', 'soil_type', 'crop_type']
+    missing_columns = [col for col in required_columns if col not in example_features]
+
+    if missing_columns:
+        logging.warning(f"⚠️ Certaines colonnes manquent dans `example_features`: {missing_columns}")
+# 🔹 Assurer que les variables catégoriques sont bien converties
+example_features["soil_type"] = 1 if example_features["soil_type"] == "sandy" else 0
+example_features["crop_type"] = 1 if example_features["crop_type"] == "wheat" else 0
+
+prediction = predict_single(model, example_features)
+logging.info(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
+
+logging.info("🎯 Script terminé avec succès !")
