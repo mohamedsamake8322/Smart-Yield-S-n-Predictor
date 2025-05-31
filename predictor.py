@@ -39,12 +39,12 @@ def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 def convert_categorical_features(features):
     """Convertir `soil_type` et `crop_type` en valeurs numériques."""
     conversions = {
-        "soil_type": {"sandy": 1, "clay": 0},
-        "crop_type": {"wheat": 1, "corn": 0}
+        "soil_type": {"sandy": 1, "clay": 0, "loamy": 2},
+        "crop_type": {"wheat": 1, "corn": 0, "rice": 2}
     }
     for feature in conversions:
         if feature in features:
-            features[feature] = conversions[feature].get(features[feature], -1)
+            features[feature] = conversions[feature].get(features[feature], -1)  # -1 si non reconnu
     return features
 
 # ✅ Définition du modèle PyTorch
