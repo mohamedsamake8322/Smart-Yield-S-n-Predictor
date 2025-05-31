@@ -131,3 +131,5 @@ def train_model():
 
 # 🚀 Fin de l'entraînement
 logging.info("🎯 ✅ Modèle prêt à être utilisé !")
+if __name__ == "__main__":
+    train_model()
