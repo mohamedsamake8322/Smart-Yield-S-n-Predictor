@@ -29,23 +29,6 @@ def detect_input_size(csv_path="data.csv"):
 
     logging.info(f"✅ Détection des features : {input_size} colonnes utilisées pour la prédiction.")
     return input_size, df
-def predict_single(model, features: dict):
-    """Effectue une prédiction unique."""
-    input_df = pd.DataFrame([features])
-    input_df = clean_and_normalize_dataframe(input_df)
-
-    input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
-    prediction = model(input_tensor).item()
-    return prediction
-def predict_batch(model, df: pd.DataFrame):
-    """Effectue des prédictions sur plusieurs données."""
-    df = clean_and_normalize_dataframe(df)
-
-    input_tensor = torch.tensor(df.values, dtype=torch.float32).to(device)
-    predictions = model(input_tensor).detach().numpy()
-    
-    return predictions
-
 
 # ---------- Définition du modèle PyTorch ----------
 class PyTorchModel(nn.Module):
@@ -69,6 +52,20 @@ class PyTorchModel(nn.Module):
         x = self.dropout(x)
         x = self.fc3(x)
         return x
+
+# ---------- Nettoyage et Normalisation du CSV ----------
+def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Nettoie et normalise les données pour éviter les erreurs avec PyTorch."""
+    logging.info("🔄 Vérification et normalisation du dataset...")
+
+    df = df.apply(pd.to_numeric, errors="coerce")
+    df.fillna(0, inplace=True)
+
+    scaler = StandardScaler()
+    df[df.columns] = scaler.fit_transform(df[df.columns])  
+    logging.info("✅ Normalisation terminée.")
+
+    return df
 
 # ---------- Model Persistence ----------
 MODEL_PATH = "model/disease_model.pth"
@@ -97,19 +94,15 @@ def load_model(input_size, path=MODEL_PATH):
     
     return model
 
-# ---------- Nettoyage et Normalisation du CSV ----------
-def clean_and_normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Nettoie et normalise les données pour éviter les erreurs avec PyTorch."""
-    logging.info("🔄 Vérification et normalisation du dataset...")
+# ---------- Prédiction ----------
+def predict_single(model, features: dict):
+    """Effectue une prédiction unique."""
+    input_df = pd.DataFrame([features])
+    input_df = clean_and_normalize_dataframe(input_df)
 
-    df = df.apply(pd.to_numeric, errors="coerce")
-    df.fillna(0, inplace=True)
-
-    scaler = StandardScaler()
-    df[df.columns] = scaler.fit_transform(df[df.columns])  
-    logging.info("✅ Normalisation terminée.")
-
-    return df
+    input_tensor = torch.tensor(input_df.values, dtype=torch.float32).to(device)
+    prediction = model(input_tensor).item()
+    return prediction
 
 # ---------- Exécution autonome du script ----------
 if __name__ == "__main__":
@@ -137,19 +130,16 @@ if __name__ == "__main__":
         "soil_type": "sandy",
         "crop_type": "wheat"
     }
-    # 🚨 Vérification que les clés existent avant conversion
-if "soil_type" in example_features and "crop_type" in example_features:
-    example_features["soil_type"] = 1 if example_features["soil_type"] == "sandy" else 0
-    example_features["crop_type"] = 1 if example_features["crop_type"] == "wheat" else 0
-else:
-    logging.error("🛑 Erreur : `example_features` n'est pas bien défini avant conversion.")
-    exit(1)
-    required_columns = ['temperature', 'humidity', 'pH', 'rainfall', 'soil_type', 'crop_type']
-    missing_columns = [col for col in required_columns if col not in example_features]
 
-    if missing_columns:
-        logging.warning(f"⚠️ Certaines colonnes manquent dans `example_features`: {missing_columns}")
-prediction = predict_single(model, example_features)
-logging.info(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
+    # 🚨 Vérification des clés avant conversion
+    if "soil_type" in example_features and "crop_type" in example_features:
+        example_features["soil_type"] = 1 if example_features["soil_type"] == "sandy" else 0
+        example_features["crop_type"] = 1 if example_features["crop_type"] == "wheat" else 0
+    else:
+        logging.error("🛑 Erreur : `example_features` n'est pas bien défini avant conversion.")
+        exit(1)
 
-logging.info("🎯 Script terminé avec succès !")
+    prediction = predict_single(model, example_features)
+    logging.info(f"🌾 Prédiction du rendement: {prediction:.2f} tonnes/hectare")
+
+    logging.info("🎯 Script terminé avec succès !")
